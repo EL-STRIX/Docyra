@@ -12,6 +12,7 @@ const { ERROR_CODES } = require('./config/constants');
 
 // Route imports
 const healthRoutes = require('./routes/v1/health.routes');
+const authRoutes = require('./routes/v1/auth.routes');
 
 const app = express();
 
@@ -60,6 +61,7 @@ if (env.NODE_ENV !== 'test') {
 
 // API v1 Routes
 app.use('/api/v1/health', healthRoutes);
+app.use('/api/v1/auth', authRoutes);
 
 // 404 Route Handler
 app.use('*', (req, res, next) => {
