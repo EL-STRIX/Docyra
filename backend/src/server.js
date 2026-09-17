@@ -2,14 +2,26 @@ const http = require('http');
 const app = require('./app');
 const env = require('./config/env');
 const { connectDB, disconnectDB } = require('./config/db');
+const { initSocket } = require('./sockets');
+const { startSlotGenerationJob, stopSlotGenerationJob } = require('./jobs/slotGeneration.job');
+const { startReminderJob, stopReminderJob } = require('./jobs/reminder.job');
 const logger = require('./utils/logger');
 
 const server = http.createServer(app);
+
+// Initialize Socket.IO
+const io = initSocket(server);
 
 const startServer = async () => {
   try {
     // Connect to database
     await connectDB();
+
+    // Start background cron jobs in non-test environments
+    if (env.NODE_ENV !== 'test') {
+      startSlotGenerationJob();
+      startReminderJob();
+    }
 
     // Start HTTP server
     server.listen(env.PORT, () => {
@@ -25,6 +37,8 @@ const startServer = async () => {
 // Graceful Shutdown
 const handleShutdown = async (signal) => {
   logger.info(`Received ${signal}. Shutting down gracefully...`);
+  stopSlotGenerationJob();
+  stopReminderJob();
   server.close(async () => {
     logger.info('HTTP server closed');
     await disconnectDB();
@@ -45,4 +59,4 @@ if (process.env.NODE_ENV !== 'test') {
   startServer();
 }
 
-module.exports = { server, app };
+module.exports = { server, app, io };

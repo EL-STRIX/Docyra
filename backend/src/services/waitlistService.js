@@ -1,8 +1,9 @@
-const { Waitlist } = require('../models');
+const { Waitlist, User } = require('../models');
 const AppError = require('../utils/AppError');
 const { ERROR_CODES } = require('../config/constants');
 const logger = require('../utils/logger');
 const systemSettingsService = require('./systemSettingsService');
+const notificationService = require('./notificationService');
 
 class WaitlistService {
   /**
@@ -91,6 +92,20 @@ class WaitlistService {
       await earliestEntry.save();
 
       logger.info(`📢 [WaitlistService] FIFO Waitlist Match: Notifying patient ${earliestEntry.patientId.email} for Doctor ${doctorId} slot on ${slotStart}`);
+
+      // Dispatch notification across socket, email, SMS
+      try {
+        const doctorUser = await User.findById(doctorId);
+        await notificationService.notifyWaitlistSlotAvailable(
+          earliestEntry,
+          earliestEntry.patientId,
+          doctorUser,
+          { slotStart }
+        );
+      } catch (err) {
+        logger.error(`[WaitlistService] Notification dispatch error: ${err.message}`);
+      }
+
       return earliestEntry;
     }
 

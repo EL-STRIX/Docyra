@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 const ics = require('ics');
 const {
+  User,
+  Clinic,
   Appointment,
   AppointmentSlot,
   DoctorProfile,
@@ -11,6 +13,7 @@ const AppError = require('../utils/AppError');
 const captchaService = require('./captchaService');
 const systemSettingsService = require('./systemSettingsService');
 const waitlistService = require('./waitlistService');
+const notificationService = require('./notificationService');
 const logger = require('../utils/logger');
 
 class AppointmentService {
@@ -93,29 +96,34 @@ class AppointmentService {
 
     // 3. Start MongoDB Transaction (R7.1)
     let session = null;
+    let appointment = null;
     try {
       session = await mongoose.startSession();
       session.startTransaction();
-      const appointment = await executeBooking(session);
+      appointment = await executeBooking(session);
       await session.commitTransaction();
       logger.info(`✅ [AppointmentService] Booked appointment ${appointment._id} for patient ${patientId} (transactional)`);
-      return appointment;
     } catch (err) {
       if (session && session.inTransaction()) {
         await session.abortTransaction();
       }
       // If standalone Mongo without replica sets in local dev, fallback to atomic operation
       if (err.message && (err.message.includes('replica set') || err.message.includes('Transaction numbers'))) {
-        const appointment = await executeBooking(null);
+        appointment = await executeBooking(null);
         logger.info(`✅ [AppointmentService] Booked appointment ${appointment._id} for patient ${patientId} (atomic)`);
-        return appointment;
+      } else {
+        throw err;
       }
-      throw err;
     } finally {
       if (session) {
         session.endSession();
       }
     }
+
+    if (appointment) {
+      this._sendBookingNotification(appointment);
+    }
+    return appointment;
   }
 
   /**
@@ -278,6 +286,8 @@ class AppointmentService {
     appointment.status = newStatus;
     await appointment.save();
 
+    this._sendStatusNotification(appointment, newStatus);
+
     return appointment;
   }
 
@@ -329,6 +339,9 @@ class AppointmentService {
       logger.error(`[AppointmentService] Error triggering waitlist notification: ${err.message}`);
     }
 
+    // Trigger cancellation notification
+    this._sendCancelNotification(appointment, appointment.cancellationReason);
+
     return appointment;
   }
 
@@ -355,10 +368,59 @@ class AppointmentService {
 
       // Free the slot
       await AppointmentSlot.findByIdAndUpdate(apt.slotId, { isBooked: false });
+
+      // Trigger notification to patient
+      this._sendCancelNotification(apt, 'Doctor same-day emergency unavailability');
     }
 
     logger.info(`🚨 [AppointmentService] Emergency cancellation executed: ${affectedAppointments.length} appointments cancelled for doctor ${doctorUserId}`);
     return affectedAppointments;
+  }
+
+  /**
+   * Helper methods for asynchronous notification dispatch
+   */
+  async _sendBookingNotification(appointment) {
+    try {
+      const [patient, doctor, clinic] = await Promise.all([
+        User.findById(appointment.patientId),
+        User.findById(appointment.doctorId),
+        appointment.clinicId ? Clinic.findById(appointment.clinicId) : null
+      ]);
+      if (patient) {
+        await notificationService.notifyBookingCreated(appointment, patient, doctor, clinic);
+      }
+    } catch (err) {
+      logger.error(`[AppointmentService] Failed to send booking notification: ${err.message}`);
+    }
+  }
+
+  async _sendStatusNotification(appointment, newStatus) {
+    try {
+      const [patient, doctor] = await Promise.all([
+        User.findById(appointment.patientId),
+        User.findById(appointment.doctorId)
+      ]);
+      if (patient) {
+        await notificationService.notifyStatusChanged(appointment, patient, doctor, newStatus);
+      }
+    } catch (err) {
+      logger.error(`[AppointmentService] Failed to send status update notification: ${err.message}`);
+    }
+  }
+
+  async _sendCancelNotification(appointment, reason) {
+    try {
+      const [patient, doctor] = await Promise.all([
+        User.findById(appointment.patientId),
+        User.findById(appointment.doctorId)
+      ]);
+      if (patient) {
+        await notificationService.notifyBookingCancelled(appointment, patient, doctor, reason);
+      }
+    } catch (err) {
+      logger.error(`[AppointmentService] Failed to send cancellation notification: ${err.message}`);
+    }
   }
 
   /**
