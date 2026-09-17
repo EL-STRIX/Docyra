@@ -17,6 +17,11 @@ const { ERROR_CODES } = require('./config/constants');
 // Route imports
 const healthRoutes = require('./routes/v1/health.routes');
 const authRoutes = require('./routes/v1/auth.routes');
+const clinicRoutes = require('./routes/v1/clinic.routes');
+const doctorRoutes = require('./routes/v1/doctor.routes');
+const specializationRoutes = require('./routes/v1/specialization.routes');
+const clinicAdminRoutes = require('./routes/v1/clinicAdmin.routes');
+const adminRoutes = require('./routes/v1/admin.routes');
 
 const app = express();
 
@@ -73,6 +78,11 @@ app.get('/api/v1/auth/csrf-token', getCsrfToken);
 // API v1 Routes
 app.use('/api/v1/health', healthRoutes);
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/clinics', clinicRoutes);
+app.use('/api/v1/doctors', doctorRoutes);
+app.use('/api/v1/specializations', specializationRoutes);
+app.use('/api/v1/clinic-admin', clinicAdminRoutes);
+app.use('/api/v1/admin', adminRoutes);
 
 // 404 Route Handler
 app.use('*', (req, res, next) => {
