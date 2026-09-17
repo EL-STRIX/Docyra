@@ -1,0 +1,45 @@
+.portal-container {
+  max-width: 1200px;
+  margin: 40px auto;
+  padding: 0 24px;
+}
+
+.subtitle {
+  color: var(--docyra-text-secondary);
+  font-size: 15px;
+  margin-bottom: 32px;
+}
+
+.roles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  margin-top: 24px;
+}
+
+.role-card {
+  border: 1px solid var(--docyra-neutral-border);
+  border-radius: 12px;
+  padding: 20px;
+  background: var(--docyra-neutral-bg);
+
+  mat-icon {
+    font-size: 32px;
+    width: 32px;
+    height: 32px;
+    margin-bottom: 12px;
+  }
+
+  h3 {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    color: var(--docyra-text-primary);
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
+    color: var(--docyra-text-secondary);
+    line-height: 1.5;
+  }
+}

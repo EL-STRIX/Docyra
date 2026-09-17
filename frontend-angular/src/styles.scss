@@ -1,0 +1,89 @@
+/* Docyra Angular Portal Theme & Design Tokens per design.md */
+:root {
+  --docyra-primary: #0F5C5C;
+  --docyra-primary-light: #E6F2F1;
+  --docyra-primary-dark: #0B4747;
+  --docyra-accent: #F2A93B;
+  --docyra-accent-hover: #DF9628;
+  --docyra-neutral-bg: #FAFAF8;
+  --docyra-neutral-surface: #FFFFFF;
+  --docyra-neutral-border: #E7E5E0;
+  --docyra-text-primary: #1A2E2E;
+  --docyra-text-secondary: #5C6B6B;
+  --docyra-success: #2E9E6B;
+  --docyra-warning: #F2A93B;
+  --docyra-error: #D9534F;
+  --docyra-info: #6C757D;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: 'Poppins', 'Inter', Roboto, "Helvetica Neue", sans-serif;
+  background-color: var(--docyra-neutral-bg);
+  color: var(--docyra-text-primary);
+}
+
+.portal-header {
+  background: #ffffff;
+  border-bottom: 1px solid var(--docyra-neutral-border);
+  height: 64px;
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  justify-content: space-between;
+}
+
+.portal-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--docyra-primary);
+  text-decoration: none;
+}
+
+.portal-logo-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--docyra-primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+.portal-card {
+  background: #ffffff;
+  border: 1px solid var(--docyra-neutral-border);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 8px 24px rgba(15, 92, 92, 0.06);
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  
+  &.status-confirmed {
+    background: #E8F7F0;
+    color: var(--docyra-success);
+  }
+
+  &.status-pending {
+    background: #FEF6E9;
+    color: #C07B12;
+  }
+
+  &.status-cancelled {
+    background: #FDF0EF;
+    color: var(--docyra-error);
+  }
+}

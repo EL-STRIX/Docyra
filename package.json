@@ -1,0 +1,19 @@
+{
+  "name": "docyra-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend-react",
+    "frontend-angular"
+  ],
+  "scripts": {
+    "dev:backend": "npm --workspace=backend run dev",
+    "dev:react": "npm --workspace=frontend-react run dev",
+    "dev:angular": "npm --workspace=frontend-angular run start",
+    "build:react": "npm --workspace=frontend-react run build",
+    "build:angular": "npm --workspace=frontend-angular run build",
+    "test:backend": "npm --workspace=backend run test",
+    "lint": "npm --workspace=backend run lint && npm --workspace=frontend-react run lint"
+  }
+}
