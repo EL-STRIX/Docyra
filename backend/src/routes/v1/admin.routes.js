@@ -3,6 +3,7 @@ const clinicController = require('../../controllers/clinic.controller');
 const doctorController = require('../../controllers/doctor.controller');
 const specializationController = require('../../controllers/specialization.controller');
 const systemSettingsController = require('../../controllers/systemSettings.controller');
+const auditController = require('../../controllers/audit.controller');
 const auth = require('../../middleware/auth');
 const { requireRole } = require('../../middleware/rbac');
 const { ROLES } = require('../../config/constants');
@@ -30,5 +31,8 @@ router.delete('/specializations/:id', specializationController.remove);
 // System Settings (Phase 5)
 router.get('/settings', systemSettingsController.getSettings);
 router.put('/settings', systemSettingsController.updateSettings);
+
+// Audit Logs (Phase 7)
+router.get('/audit-logs', auditController.getAuditLogs);
 
 module.exports = router;

@@ -10,6 +10,7 @@ const { APPOINTMENT_STATUS, BOOKED_FOR_TYPE, ERROR_CODES, ROLES } = require('../
 const AppError = require('../utils/AppError');
 const captchaService = require('./captchaService');
 const systemSettingsService = require('./systemSettingsService');
+const waitlistService = require('./waitlistService');
 const logger = require('../utils/logger');
 
 class AppointmentService {
@@ -320,6 +321,13 @@ class AppointmentService {
 
     // Re-open the slot
     await AppointmentSlot.findByIdAndUpdate(appointment.slotId, { isBooked: false });
+
+    // Trigger FIFO waitlist claim notification (architecture Section 7.6)
+    try {
+      await waitlistService.triggerSlotAvailable(appointment.doctorId, appointment.slotStart);
+    } catch (err) {
+      logger.error(`[AppointmentService] Error triggering waitlist notification: ${err.message}`);
+    }
 
     return appointment;
   }
