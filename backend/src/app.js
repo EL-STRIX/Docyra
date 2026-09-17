@@ -22,6 +22,8 @@ const doctorRoutes = require('./routes/v1/doctor.routes');
 const specializationRoutes = require('./routes/v1/specialization.routes');
 const clinicAdminRoutes = require('./routes/v1/clinicAdmin.routes');
 const adminRoutes = require('./routes/v1/admin.routes');
+const appointmentRoutes = require('./routes/v1/appointment.routes');
+const dependentRoutes = require('./routes/v1/dependent.routes');
 
 const app = express();
 
@@ -83,6 +85,8 @@ app.use('/api/v1/doctors', doctorRoutes);
 app.use('/api/v1/specializations', specializationRoutes);
 app.use('/api/v1/clinic-admin', clinicAdminRoutes);
 app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/appointments', appointmentRoutes);
+app.use('/api/v1/dependents', dependentRoutes);
 
 // 404 Route Handler
 app.use('*', (req, res, next) => {

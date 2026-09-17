@@ -13,4 +13,7 @@ router.post('/doctors', clinicAdminController.addDoctor);
 router.get('/doctors', clinicAdminController.getDoctors);
 router.patch('/doctors/:id', clinicAdminController.updateDoctor);
 
+// Clinic Appointments (CA-1, Phase 6)
+router.get('/appointments', require('../../controllers/appointment.controller').getClinicAppointments);
+
 module.exports = router;
