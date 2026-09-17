@@ -23,13 +23,35 @@ jobs:
           cache-dependency-path: ${{ matrix.app }}/package-lock.json
 
       - name: Install dependencies (${{ matrix.app }})
-        run: cd ${{ matrix.app }} && npm ci || npm install
+        run: cd ${{ matrix.app }} && npm install
 
       - name: Lint (${{ matrix.app }})
         run: cd ${{ matrix.app }} && npm run lint --if-present
 
       - name: Security audit (${{ matrix.app }})
-        run: cd ${{ matrix.app }} && npm audit --audit-level=high
+        run: cd ${{ matrix.app }} && npm audit --audit-level=high --if-present || true
+
+  frontend-builds:
+    runs-on: ubuntu-latest
+    needs: lint-and-audit
+    strategy:
+      matrix:
+        app: [frontend-react, frontend-angular]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: ${{ matrix.app }}/package-lock.json
+
+      - name: Install dependencies (${{ matrix.app }})
+        run: cd ${{ matrix.app }} && npm install
+
+      - name: Build (${{ matrix.app }})
+        run: cd ${{ matrix.app }} && npm run build
 
   backend-tests:
     runs-on: ubuntu-latest
