@@ -6,7 +6,11 @@ const cookieParser = require('cookie-parser');
 
 const env = require('./config/env');
 const logger = require('./utils/logger');
+
+// Middleware imports
 const errorHandler = require('./middleware/errorHandler');
+const { csrf, getCsrfToken } = require('./middleware/csrf');
+const { generalLimiter } = require('./middleware/rateLimit');
 const AppError = require('./utils/AppError');
 const { ERROR_CODES } = require('./config/constants');
 
@@ -58,6 +62,13 @@ if (env.NODE_ENV !== 'test') {
     stream: logger.stream
   }));
 }
+
+// Global General Rate Limiter & CSRF Protection
+app.use('/api/v1', generalLimiter);
+app.use('/api/v1', csrf);
+
+// CSRF Token Retrieval Endpoint
+app.get('/api/v1/auth/csrf-token', getCsrfToken);
 
 // API v1 Routes
 app.use('/api/v1/health', healthRoutes);
