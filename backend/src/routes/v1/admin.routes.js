@@ -2,6 +2,7 @@ const express = require('express');
 const clinicController = require('../../controllers/clinic.controller');
 const doctorController = require('../../controllers/doctor.controller');
 const specializationController = require('../../controllers/specialization.controller');
+const systemSettingsController = require('../../controllers/systemSettings.controller');
 const auth = require('../../middleware/auth');
 const { requireRole } = require('../../middleware/rbac');
 const { ROLES } = require('../../config/constants');
@@ -25,5 +26,9 @@ router.patch('/doctors/:id/approve', doctorController.approveDoctor);
 router.post('/specializations', specializationController.create);
 router.put('/specializations/:id', specializationController.update);
 router.delete('/specializations/:id', specializationController.remove);
+
+// System Settings (Phase 5)
+router.get('/settings', systemSettingsController.getSettings);
+router.put('/settings', systemSettingsController.updateSettings);
 
 module.exports = router;

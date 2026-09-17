@@ -1,5 +1,6 @@
 const express = require('express');
 const doctorController = require('../../controllers/doctor.controller');
+const availabilityController = require('../../controllers/availability.controller');
 const auth = require('../../middleware/auth');
 const { requireRole } = require('../../middleware/rbac');
 const { ROLES } = require('../../config/constants');
@@ -10,6 +11,11 @@ const router = express.Router();
 router.get('/', doctorController.searchDoctors);
 router.post('/apply', doctorController.applyIndependentDoctor);
 router.get('/:id', doctorController.getDoctorProfile);
+
+// Availability & Slots (Phase 5)
+router.get('/:id/availability', availabilityController.getAvailability);
+router.put('/:id/availability', auth, availabilityController.setAvailability);
+router.get('/:id/slots', availabilityController.getSlots);
 
 // Admin-only doctor approval routes (A-2)
 router.patch('/:id/approve', auth, requireRole(ROLES.ADMIN), doctorController.approveDoctor);
