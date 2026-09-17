@@ -26,6 +26,7 @@ const appointmentRoutes = require('./routes/v1/appointment.routes');
 const dependentRoutes = require('./routes/v1/dependent.routes');
 const reviewRoutes = require('./routes/v1/review.routes');
 const waitlistRoutes = require('./routes/v1/waitlist.routes');
+const userRoutes = require('./routes/v1/user.routes');
 
 const app = express();
 
@@ -91,6 +92,7 @@ app.use('/api/v1/appointments', appointmentRoutes);
 app.use('/api/v1/dependents', dependentRoutes);
 app.use('/api/v1/reviews', reviewRoutes);
 app.use('/api/v1/waitlist', waitlistRoutes);
+app.use('/api/v1/users', userRoutes);
 
 // 404 Route Handler
 app.use('*', (req, res, next) => {

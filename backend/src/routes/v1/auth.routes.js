@@ -22,4 +22,8 @@ router.post('/forgot-password', authLimiter, validate(forgotPasswordSchema), aut
 router.post('/reset-password', validate(resetPasswordSchema), authController.resetPassword);
 router.get('/me', auth, authController.getMe);
 
+// 2FA Endpoints (Phase 9)
+router.post('/2fa/setup', auth, authController.setup2FA);
+router.post('/2fa/verify', authController.verify2FA);
+
 module.exports = router;

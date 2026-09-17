@@ -1,6 +1,8 @@
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const speakeasy = require('speakeasy');
+const qrcode = require('qrcode');
 const env = require('../config/env');
 const { User } = require('../models');
 const { ROLES, USER_STATUS, ERROR_CODES } = require('../config/constants');
@@ -210,6 +212,83 @@ class AuthService {
     await user.save();
 
     return user;
+  }
+
+  /**
+   * Setup 2FA: Generate secret & QR Code (Phase 9)
+   */
+  async setup2FA(userId) {
+    const user = await User.findById(userId);
+    if (!user) {
+      throw AppError.notFound(ERROR_CODES.USER_NOT_FOUND, 'User not found');
+    }
+
+    const secret = speakeasy.generateSecret({
+      name: `${env.TOTP_ISSUER} (${user.email})`,
+      issuer: env.TOTP_ISSUER
+    });
+
+    user.twoFactorSecret = secret.base32;
+    await user.save();
+
+    const qrCodeDataUrl = await qrcode.toDataURL(secret.otpauth_url);
+
+    return {
+      secret: secret.base32,
+      qrCodeUrl: qrCodeDataUrl,
+      otpauthUrl: secret.otpauth_url
+    };
+  }
+
+  /**
+   * Verify 2FA token & issue full auth tokens (Phase 9)
+   */
+  async verify2FA({ userId, tempToken, token }) {
+    if (!token) {
+      throw AppError.badRequest(ERROR_CODES.VALIDATION_ERROR, '2FA TOTP code is required');
+    }
+
+    let targetUserId = userId;
+
+    if (tempToken) {
+      try {
+        const decoded = jwt.verify(tempToken, env.JWT_ACCESS_SECRET);
+        targetUserId = decoded.sub;
+      } catch (err) {
+        throw AppError.unauthorized(ERROR_CODES.TOKEN_INVALID, '2FA session token is invalid or expired');
+      }
+    }
+
+    if (!targetUserId) {
+      throw AppError.unauthorized(ERROR_CODES.UNAUTHORIZED, 'User identification required');
+    }
+
+    const user = await User.findById(targetUserId);
+    if (!user || !user.twoFactorSecret) {
+      throw AppError.badRequest(ERROR_CODES.BAD_REQUEST, '2FA is not configured for this user');
+    }
+
+    const verified = speakeasy.totp.verify({
+      secret: user.twoFactorSecret,
+      encoding: 'base32',
+      token: token.toString().trim(),
+      window: 1
+    });
+
+    if (!verified) {
+      throw AppError.unauthorized(ERROR_CODES.INVALID_2FA_TOKEN, 'Invalid 2FA authentication code');
+    }
+
+    if (!user.twoFactorEnabled) {
+      user.twoFactorEnabled = true;
+      await user.save();
+    }
+
+    const tokens = this.generateTokenPair(user);
+    return {
+      user,
+      ...tokens
+    };
   }
 
   /**

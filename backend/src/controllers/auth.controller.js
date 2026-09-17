@@ -115,6 +115,54 @@ const getMe = asyncHandler(async (req, res) => {
   });
 });
 
+const setup2FA = asyncHandler(async (req, res) => {
+  const result = await authService.setup2FA(req.user._id);
+  res.status(200).json({
+    success: true,
+    data: result
+  });
+});
+
+const verify2FA = asyncHandler(async (req, res) => {
+  const { token, tempToken } = req.body;
+  let userId = req.user ? req.user._id : null;
+
+  if (!userId && !tempToken) {
+    let headerToken = null;
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+      headerToken = req.headers.authorization.split(' ')[1];
+    } else if (req.cookies && req.cookies.accessToken) {
+      headerToken = req.cookies.accessToken;
+    }
+
+    if (headerToken) {
+      try {
+        const decoded = require('jsonwebtoken').verify(headerToken, require('../config/env').JWT_ACCESS_SECRET);
+        userId = decoded.sub;
+      } catch (err) {
+        // Leave userId null to let authService throw UNAUTHORIZED
+      }
+    }
+  }
+
+  const result = await authService.verify2FA({
+    userId,
+    tempToken,
+    token
+  });
+
+  res.cookie('accessToken', result.accessToken, authService.getCookieOptions(false));
+  res.cookie('refreshToken', result.refreshToken, authService.getCookieOptions(true));
+
+  res.status(200).json({
+    success: true,
+    data: {
+      user: result.user,
+      accessToken: result.accessToken
+    }
+  });
+});
+
 module.exports = {
   register,
   verifyEmail,
@@ -123,5 +171,7 @@ module.exports = {
   logout,
   forgotPassword,
   resetPassword,
-  getMe
+  getMe,
+  setup2FA,
+  verify2FA
 };
