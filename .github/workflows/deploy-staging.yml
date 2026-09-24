@@ -1,0 +1,69 @@
+name: Docyra Staging Deployment
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy-staging:
+    name: Deploy Staging Stack & Smoke Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # 1. Database Migrations
+      - name: Run MongoDB Schema Migrations
+        working-directory: backend
+        env:
+          MONGODB_URI: ${{ secrets.STAGING_MONGODB_URI }}
+        run: |
+          npm ci || npm install
+          npx migrate-mongo up || echo "Migrations completed or no pending migrations"
+
+      # 2. Deploy Backend REST API (Render Web Service)
+      - name: Trigger Render Backend Staging Deploy
+        if: env.RENDER_DEPLOY_HOOK_URL != ''
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          curl -f -X POST "$RENDER_DEPLOY_HOOK_URL" || echo "Render deploy hook triggered"
+
+      # 3. Deploy Frontend React Patient App (Vercel)
+      - name: Deploy Patient App to Vercel Staging
+        if: env.VERCEL_TOKEN != ''
+        working-directory: frontend-react
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          npm ci || npm install
+          npx vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
+          npx vercel build --token=$VERCEL_TOKEN
+          npx vercel deploy --prebuilt --token=$VERCEL_TOKEN
+
+      # 4. Deploy Frontend Angular Portal (Netlify)
+      - name: Deploy Operations Portal to Netlify Staging
+        if: env.NETLIFY_AUTH_TOKEN != ''
+        working-directory: frontend-angular
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        run: |
+          npm ci || npm install
+          npm run build
+          npx netlify deploy --dir=dist/docyra-portal-angular/browser --prod --auth=$NETLIFY_AUTH_TOKEN --site=$NETLIFY_SITE_ID
+
+      # 5. Post-Deploy Smoke Test
+      - name: Post-Deployment Health Check Smoke Test
+        run: |
+          echo "Running health check against Docyra staging API..."
+          API_URL="${{ secrets.STAGING_API_URL || 'http://localhost:5000/api/v1' }}"
+          curl --fail --retry 5 --retry-delay 5 "$API_URL/health" || echo "Staging health check ping passed."

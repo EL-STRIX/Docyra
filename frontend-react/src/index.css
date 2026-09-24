@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    font-family: 'Manrope', 'Plus Jakarta Sans', system-ui, sans-serif;
+  }
+
+  body {
+    background-color: #FAFAF8;
+    color: #1A2E2E;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Accessible focus rings */
+  :focus-visible {
+    outline: 2px solid #0F5C5C;
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-brand-primary hover:bg-brand-primary-hover text-white font-medium px-5 py-2.5 rounded-full transition-all duration-200 shadow-sm hover:shadow-md active:scale-95 inline-flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
+  }
+  
+  .btn-accent {
+    @apply bg-brand-accent hover:bg-brand-accent-hover text-neutral-text-primary font-semibold px-6 py-3 rounded-full transition-all duration-200 shadow-md hover:shadow-lg active:scale-95 inline-flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
+  }
+
+  .btn-outline {
+    @apply border border-neutral-border hover:border-brand-primary text-neutral-text-primary hover:text-brand-primary font-medium px-5 py-2.5 rounded-full transition-all duration-200 bg-white hover:bg-brand-primary-light inline-flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
+  }
+
+  .card-docyra {
+    @apply bg-neutral-surface rounded-card border border-neutral-border p-6 shadow-docyra-card hover:shadow-docyra-hover transition-all duration-200;
+  }
+
+  .badge-primary {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-brand-primary-light text-brand-primary border border-teal-100;
+  }
+
+  .badge-accent {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-brand-accent-light text-brand-accent-hover border border-amber-200;
+  }
+
+  .badge-success {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200;
+  }
+
+  .badge-warning {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200;
+  }
+
+  .badge-error {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200;
+  }
+
+  .badge-info {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200;
+  }
+}
+
+/* Custom hero background gradient */
+.hero-gradient {
+  background: radial-gradient(circle at 50% 0%, rgba(15, 92, 92, 0.12) 0%, rgba(250, 250, 248, 0) 70%);
+}
+
+.subtle-mesh {
+  background-image: radial-gradient(#0f5c5c 0.5px, transparent 0.5px), radial-gradient(#0f5c5c 0.5px, #fafaf8 0.5px);
+  background-size: 20px 20px;
+  background-position: 0 0, 10px 10px;
+  opacity: 0.05;
+}

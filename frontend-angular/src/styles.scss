@@ -1,0 +1,59 @@
+// Docyra Portal Design Tokens & Base Styles
+
+// Color Tokens (identical to design.md / Stitch)
+$brand-primary: #0F5C5C;
+$brand-primary-hover: #0B4747;
+$brand-primary-light: #E6F2F1;
+$brand-accent: #F2A93B;
+$brand-accent-hover: #D99228;
+$brand-accent-light: #FEF6EC;
+
+$neutral-bg: #FAFAF8;
+$neutral-surface: #FFFFFF;
+$neutral-border: #E7E5E0;
+$text-primary: #1A2E2E;
+$text-secondary: #5C6B6B;
+
+$status-success: #2E9E6B;
+$status-warning: #F2A93B;
+$status-error: #D9534F;
+$status-info: #6C757D;
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: $neutral-bg;
+  color: $text-primary;
+  font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.docyra-portal-body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+// Global button utilities
+.btn-portal-primary {
+  background-color: $brand-primary !important;
+  color: #ffffff !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease;
+  &:hover {
+    background-color: $brand-primary-hover !important;
+  }
+}
+
+.btn-portal-accent {
+  background-color: $brand-accent !important;
+  color: $text-primary !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease;
+  &:hover {
+    background-color: $brand-accent-hover !important;
+  }
+}
