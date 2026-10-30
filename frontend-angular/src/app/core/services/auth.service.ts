@@ -184,7 +184,7 @@ export class AuthService {
    */
   refreshToken(): Observable<boolean> {
     return this.http.post<ApiResponse<any>>(
-      `${this.API_URL}/refresh-token`,
+      `${this.API_URL}/refresh`,
       {},
       { withCredentials: true }
     ).pipe(

@@ -12,7 +12,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     catchError((error: HttpErrorResponse) => {
       // If 401 Unauthorized and not already refreshing or calling auth endpoints
       const isAuthEndpoint = req.url.includes('/auth/login') ||
-                             req.url.includes('/auth/refresh-token') ||
+                             req.url.includes('/auth/refresh') ||
                              req.url.includes('/auth/me');
 
       if (error.status === 401 && !isAuthEndpoint && !isRefreshing) {

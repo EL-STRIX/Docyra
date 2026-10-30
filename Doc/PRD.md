@@ -356,7 +356,7 @@ As v2 (Angular 17+ standalone, Angular Material, RxJS services), plus **route-le
 
 Given this is a final-year academic build, not every item above needs to be *fully implemented* to submit a professional, complete project — but per your instruction, all of it stays *fully specified* in this PRD. Suggested split when you get to implementation:
 
-- **Core build (do these):** Clinic/doctor/patient CRUD, auth incl. email verification + password reset, fixed-slot booking with transaction safety, RBAC incl. Clinic Admin scoping, landing page, reviews, real-time notifications, basic analytics, Docker local dev, core test suite.
+- **Core build (do these):** Clinic/doctor/patient CRUD, auth incl. email verification + password reset, fixed-slot booking with transaction safety, RBAC incl. Clinic Admin scoping, landing page, reviews, real-time notifications, basic analytics, local dev, core test suite.
 - **Strong-to-have (do if time allows):** 2FA, SMS reminders, waitlist, emergency-cancellation flow, calendar export, GDPR export endpoint, CSRF hardening, CI dependency scanning.
 - **Documented-for-completeness (describe in your report, don't need to fully build):** Production BAA hosting migration, formal load testing at scale, full incident-response plan, legal review of Privacy Policy/ToS.
 
@@ -368,7 +368,7 @@ This split is a suggestion, not a constraint — it exists so the PRD stays hone
 
 | Phase | Scope | Duration |
 |---|---|---|
-| 0 — Setup | Repo, Docker Compose, CI (lint/test/`npm audit`), `.env.example` | 2–3 days |
+| 0 — Setup | Repo, local dev environment, CI (lint/test/`npm audit`), `.env.example` | 2–3 days |
 | 1 — Foundation | Auth (incl. 2FA, verification, reset), RBAC incl. Clinic Admin scoping, Clinic/Doctor/Specialization CRUD, audit log | 2–2.5 weeks |
 | 2 — Patient App + Landing Page | Landing page, clinic/doctor search, timezone-aware slots, booking (txn + CAPTCHA), dependents, reviews (moderated) | 2.5 weeks |
 | 3 — Doctor/Clinic/Admin Portal | Availability + nightly slot gen, clinic-admin doctor management, doctor approval + license review, emergency-unavailable flow, analytics, audit viewer | 3 weeks |

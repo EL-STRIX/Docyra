@@ -19,7 +19,10 @@ export function SocketProvider({ children }) {
       return;
     }
 
-    const socketUrl = import.meta.env.VITE_SOCKET_URL || window.location.origin;
+    const derivedBackendUrl = import.meta.env.VITE_API_BASE_URL
+      ? import.meta.env.VITE_API_BASE_URL.replace(/\/api\/v1\/?$/, '')
+      : 'http://localhost:5000';
+    const socketUrl = import.meta.env.VITE_SOCKET_URL || derivedBackendUrl;
     const newSocket = io(socketUrl, {
       withCredentials: true,
       transports: ['websocket', 'polling'],

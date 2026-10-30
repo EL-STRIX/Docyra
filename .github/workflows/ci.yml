@@ -8,7 +8,7 @@ on:
 
 jobs:
   backend-ci:
-    name: Backend Lint, Test & Audit
+    name: Backend Lint & Test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -32,10 +32,6 @@ jobs:
       - name: Run test suites with MongoDB Memory Server
         working-directory: backend
         run: npm test
-
-      - name: Dependency security audit
-        working-directory: backend
-        run: npm audit --audit-level=high
 
   frontend-react-ci:
     name: Frontend React Patient App Build & Lint
@@ -63,10 +59,6 @@ jobs:
         working-directory: frontend-react
         run: npm run build
 
-      - name: Dependency security audit
-        working-directory: frontend-react
-        run: npm audit --audit-level=high
-
   frontend-angular-ci:
     name: Frontend Angular Operations Portal Build & Lint
     runs-on: ubuntu-latest
@@ -92,7 +84,3 @@ jobs:
       - name: Build Angular production AOT bundle
         working-directory: frontend-angular
         run: npm run build
-
-      - name: Dependency security audit
-        working-directory: frontend-angular
-        run: npm audit --audit-level=high

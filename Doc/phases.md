@@ -11,18 +11,17 @@
 
 ### Phase 0: Project Initialization & Environment Setup
 **Prerequisites:** None (starting point).
-**Goal:** A working, empty-but-runnable skeleton for all three apps, containerized, with CI wired up.
+**Goal:** A working, empty-but-runnable skeleton for all three apps, with CI wired up.
 **Tasks:**
 - Initialize monorepo per `architecture.md` Section 3.2 folder structure (`backend/`, `frontend-react/`, `frontend-angular/`).
 - Scaffold backend: Express app skeleton (`app.js`, `server.js`), install core deps (express, mongoose, dotenv, cors, helmet, morgan).
 - Scaffold frontend-react via Vite + Tailwind config.
 - Scaffold frontend-angular via Angular CLI (standalone components, Angular Material added).
-- Write `docker-compose.yml` (backend + MongoDB + mongo-express) per TRD Section 3.
-- Write `.env.example` per TRD Section 4.2; add `config/env.js` with Zod validation that fails fast on missing vars.
+- Set up local environment config and database connection (`.env.example` per TRD Section 4.2; `config/env.js` with Zod validation).
 - Set up ESLint + Prettier (backend, React) and Angular ESLint (Angular).
 - Set up GitHub Actions `ci.yml` skeleton (install + lint only for now — tests come later).
 - Create `/api/v1/health` endpoint.
-**Definition of Done:** `docker-compose up` runs the backend and connects to Mongo locally; `GET /api/v1/health` returns 200; both frontend apps run locally (`npm run dev`) showing a default page; CI passes on an empty PR.
+**Definition of Done:** Backend connects to Mongo locally and starts via `npm start` / `npm run dev`; `GET /api/v1/health` returns 200; both frontend apps run locally (`npm run dev`) showing a default page; CI passes on an empty PR.
 
 ---
 
@@ -217,13 +216,12 @@
 - k6 script: concurrent booking load test against a single slot (manual run, per TRD).
 **Definition of Done:** All CI-gated test suites pass; k6 report shows zero double-bookings under concurrent load; Cypress accessibility checks show no WCAG 2.1 AA violations on core flows.
 
-### Phase 18: CI/CD Pipeline Completion
+### Phase 18: CI Pipeline Completion
 **Prerequisites:** Phase 17.
-**Goal:** `ci.yml` and `deploy-staging.yml` fully match `TRD.md` Section 10.
+**Goal:** `ci.yml` verifies lint, test, and build workflows across all apps.
 **Tasks:**
-- Extend `ci.yml`: full test matrix, `npm audit`, Cypress run against a preview build.
-- Build `deploy-staging.yml`: Render (backend) + Vercel (React) + Netlify (Angular) deploy steps, `migrate-mongo up` against staging, post-deploy health-check smoke test.
-**Definition of Done:** A merge to `main` triggers a fully automated staging deployment with no manual steps; a deliberately broken PR (failing test/lint/audit) is correctly blocked from merging.
+- Maintain `ci.yml`: full test matrix, linter, and build checks for backend and frontends.
+**Definition of Done:** Pull requests and pushes trigger automated CI runs validating code quality, test suites, and production bundles.
 
 ### Phase 19: Staging Deployment & Infra Setup
 **Prerequisites:** Phase 18.

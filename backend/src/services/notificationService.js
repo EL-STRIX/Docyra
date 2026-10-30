@@ -209,7 +209,8 @@ class NotificationService {
   }
 
   async sendPasswordResetEmail(email, name, resetToken) {
-    const resetUrl = `http://localhost:5173/reset-password?token=${resetToken}`;
+    const clientBaseUrl = env.ALLOWED_ORIGINS?.[0] || 'http://localhost:5173';
+    const resetUrl = `${clientBaseUrl}/reset-password?token=${resetToken}`;
     const subject = `Reset your Docyra password`;
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e7e5e0; border-radius: 12px;">

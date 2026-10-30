@@ -9,7 +9,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
       // Don't show toast for 401s handled by authInterceptor or background checks
-      const isSilentEndpoint = req.url.includes('/auth/me') || req.url.includes('/auth/refresh-token');
+      const isSilentEndpoint = req.url.includes('/auth/me') || req.url.includes('/auth/refresh');
 
       if (!isSilentEndpoint && error.status !== 401) {
         let errorMsg = 'An unexpected error occurred. Please try again.';

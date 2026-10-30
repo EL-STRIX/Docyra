@@ -37,7 +37,6 @@
 | SMS | MSG91 SDK (default; Twilio as fallback) | — |
 | File storage | AWS S3 (or S3-compatible: Cloudflare R2) | — |
 | Error tracking | Sentry (backend + both frontends) | — |
-| Containerization | Docker + Docker Compose | — |
 | CI/CD | GitHub Actions | — |
 
 ---
@@ -98,12 +97,10 @@ docyra/
 │   │   ├── jobs/            # cron: slot-generation, reminders, waitlist-sweep
 │   │   └── utils/
 │   ├── tests/
-│   ├── Dockerfile
 │   └── package.json
 ├── frontend-react/
 │   ├── src/
 │   │   ├── components/ pages/ context/ hooks/ services/ routes/
-│   ├── Dockerfile (optional, for containerized preview)
 │   └── package.json
 ├── frontend-angular/
 │   ├── src/app/
@@ -111,9 +108,8 @@ docyra/
 │   │   ├── features/ (patient N/A here — doctor/, clinic-admin/, admin/, auth/)
 │   │   └── shared/ (components, pipes, directives)
 │   └── package.json
-├── docker-compose.yml        # backend + mongodb (+ mongo-express) for local dev
 ├── .env.example
-├── .github/workflows/        # ci.yml, deploy-staging.yml
+├── .github/workflows/        # ci.yml
 └── docs/                      # PRD, design.md, this TRD
 ```
 
@@ -125,7 +121,7 @@ docyra/
 
 | Env | Purpose | Data | Hosting |
 |---|---|---|---|
-| `local` | Individual dev machine | Synthetic/seed | Docker Compose |
+| `local` | Individual dev machine | Synthetic/seed | Local Node.js + MongoDB |
 | `staging` | Shared testing, demo, academic submission | Synthetic only | Render + Vercel + Netlify + Atlas M0 |
 | `production` (future) | Real clinics/patients | Real (PHI) | AWS/GCP + Atlas Dedicated (BAA) — per PRD Section 6.2 migration plan, not built now |
 
@@ -138,7 +134,7 @@ PORT=5000
 API_BASE_URL=http://localhost:5000/api/v1
 
 # Database
-MONGODB_URI=mongodb://mongo:27017/docyra
+MONGODB_URI=mongodb://localhost:27017/docyra
 
 # Auth
 JWT_ACCESS_SECRET=
