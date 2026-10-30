@@ -56,3 +56,7 @@ temp/
 # Uploads & Media
 backend/uploads/*
 !backend/uploads/**/.gitkeep
+
+# Documentation
+Doc/
+
