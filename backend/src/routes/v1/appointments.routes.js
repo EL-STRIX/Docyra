@@ -4,6 +4,7 @@ import {
   getMyAppointments,
   getAppointmentById,
   getDoctorAppointments,
+  getClinicAppointments,
   updateAppointmentStatus,
   cancelAppointment,
   exportAppointmentIcs,
@@ -34,6 +35,9 @@ router.get('/my', requireRole(ROLES.PATIENT), getMyAppointments);
 
 // Doctor routes
 router.get('/doctor', requireRole(ROLES.DOCTOR, ROLES.ADMIN), getDoctorAppointments);
+
+// Clinic Admin routes
+router.get('/clinic', requireRole(ROLES.CLINIC_ADMIN, ROLES.ADMIN), getClinicAppointments);
 
 // Single Appointment Details & ICS export
 router.get('/:id', getAppointmentById);

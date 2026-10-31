@@ -64,9 +64,32 @@ export const listAllClinicsAdmin = asyncHandler(async (req, res) => {
   });
 });
 
+export const getMyClinic = asyncHandler(async (req, res) => {
+  const clinicId = req.user?.clinicId;
+  if (!clinicId) {
+    return res.status(404).json({ success: false, error: { message: 'No clinic associated with this user' } });
+  }
+  const result = await clinicService.getClinicDetail(clinicId);
+  res.status(200).json({
+    success: true,
+    data: result.clinic,
+  });
+});
+
+export const getClinicDoctors = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const result = await clinicService.getClinicDetail(id);
+  res.status(200).json({
+    success: true,
+    data: result.doctors,
+  });
+});
+
 export default {
   listClinics,
   getClinicDetail,
+  getMyClinic,
+  getClinicDoctors,
   onboardClinic,
   updateClinic,
   listAllClinicsAdmin,

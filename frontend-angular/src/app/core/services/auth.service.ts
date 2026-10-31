@@ -88,7 +88,8 @@ export class AuthService {
     return this.http.post<ApiResponse<LoginResponse>>(`${this.API_URL}/login`, credentials, { withCredentials: true }).pipe(
       map((res) => res.data),
       tap((data) => {
-        if (data.requiresTwoFactor) {
+        const requires2FA = data.requiresTwoFactor || (data as any)?.requires2FA;
+        if (requires2FA) {
           this.temp2faToken = data.tempToken || null;
           this.pending2faUser = data.user || null;
         } else if (data.user) {

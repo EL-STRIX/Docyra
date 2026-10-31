@@ -38,7 +38,15 @@ export const csrfProtection = (req, res, next) => {
   }
 
   // Exclude public auth endpoints that create initial sessions if needed
-  // But for full protection, client sends token retrieved from cookie
+  const isPublicAuth =
+    req.path.includes('/auth/login') ||
+    req.path.includes('/auth/register') ||
+    req.path.includes('/auth/forgot-password') ||
+    req.path.includes('/auth/reset-password');
+  if (isPublicAuth && !req.headers['x-csrf-token'] && !req.headers['x-xsrf-token']) {
+    return next();
+  }
+
   const cookieToken = req.cookies.csrfToken;
   const headerToken = req.headers['x-csrf-token'] || req.headers['x-xsrf-token'];
 

@@ -392,7 +392,8 @@ export class LoginComponent {
     this.authService.login(this.loginForm.value).subscribe({
       next: (data) => {
         this.loading = false;
-        if (data.requiresTwoFactor) {
+        const is2FA = data.requiresTwoFactor || (data as any)?.requires2FA;
+        if (is2FA) {
           this.is2faRequired = true;
         } else {
           this.notificationService.success('Logged in successfully');
