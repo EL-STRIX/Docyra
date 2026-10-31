@@ -3,15 +3,35 @@ import apiClient from './apiClient.js';
 export const reviewsApi = {
   submitReview: async (payload) => {
     const response = await apiClient.post('/reviews', payload);
-    return response.data;
+    const raw = response.data;
+    return {
+      ...raw,
+      data: {
+        review: raw?.data?.review || raw?.data,
+      },
+    };
   },
   getMyReviews: async (params = {}) => {
     const response = await apiClient.get('/reviews/my', { params });
-    return response.data;
+    const raw = response.data;
+    const list = Array.isArray(raw?.data) ? raw.data : (raw?.data?.reviews || []);
+    return {
+      ...raw,
+      data: {
+        reviews: list,
+      },
+    };
   },
   getDoctorReviews: async (doctorId, params = {}) => {
     const response = await apiClient.get(`/doctors/${doctorId}/reviews`, { params });
-    return response.data;
+    const raw = response.data;
+    const list = Array.isArray(raw?.data) ? raw.data : (raw?.data?.reviews || []);
+    return {
+      ...raw,
+      data: {
+        reviews: list,
+      },
+    };
   },
 };
 

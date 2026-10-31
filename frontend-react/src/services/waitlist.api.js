@@ -7,7 +7,14 @@ export const waitlistApi = {
   },
   getMyWaitlists: async () => {
     const response = await apiClient.get('/waitlists/my');
-    return response.data;
+    const raw = response.data;
+    const list = Array.isArray(raw?.data) ? raw.data : (raw?.data?.waitlists || []);
+    return {
+      ...raw,
+      data: {
+        waitlists: list,
+      },
+    };
   },
 };
 

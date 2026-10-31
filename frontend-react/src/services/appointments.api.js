@@ -3,15 +3,36 @@ import apiClient from './apiClient.js';
 export const appointmentsApi = {
   bookAppointment: async (payload) => {
     const response = await apiClient.post('/appointments', payload);
-    return response.data;
+    const raw = response.data;
+    const appointment = raw?.data?.appointment || raw?.data;
+    return {
+      ...raw,
+      data: {
+        appointment,
+      },
+    };
   },
   getMyAppointments: async (params = {}) => {
     const response = await apiClient.get('/appointments/my', { params });
-    return response.data;
+    const raw = response.data;
+    const list = Array.isArray(raw?.data) ? raw.data : (raw?.data?.appointments || []);
+    return {
+      ...raw,
+      data: {
+        appointments: list,
+      },
+    };
   },
   getAppointmentById: async (id) => {
     const response = await apiClient.get(`/appointments/${id}`);
-    return response.data;
+    const raw = response.data;
+    const appointment = raw?.data?.appointment || raw?.data;
+    return {
+      ...raw,
+      data: {
+        appointment,
+      },
+    };
   },
   cancelAppointment: async (id, payload) => {
     const response = await apiClient.patch(`/appointments/${id}/cancel`, payload);

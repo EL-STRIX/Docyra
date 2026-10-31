@@ -10,7 +10,11 @@ export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const from = location.state?.from?.pathname || '/dashboard';
+  const from = location.state?.from
+    ? typeof location.state.from === 'object'
+      ? `${location.state.from.pathname}${location.state.from.search || ''}`
+      : location.state.from
+    : '/dashboard';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
