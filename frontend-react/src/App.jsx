@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { SocketProvider } from './context/SocketContext.jsx';
 import ProtectedRoute from './components/auth/ProtectedRoute.jsx';
@@ -44,8 +44,7 @@ function App() {
   return (
     <AuthProvider>
       <SocketProvider>
-        <BrowserRouter>
-          <Routes>
+        <Routes>
             {/* Public Marketing & Discovery Routes with PublicLayout */}
             <Route element={<PublicLayout />}>
               <Route path="/" element={<HomePage />} />
@@ -92,7 +91,6 @@ function App() {
             {/* Catch-all 404 Route */}
             <Route path="*" element={<PublicLayout><NotFoundPage /></PublicLayout>} />
           </Routes>
-        </BrowserRouter>
       </SocketProvider>
     </AuthProvider>
   );

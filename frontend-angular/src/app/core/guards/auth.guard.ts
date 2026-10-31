@@ -1,8 +1,7 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
-import { take, filter, switchMap } from 'rxjs/operators';
-import { of } from 'rxjs';
+import { take, filter, map } from 'rxjs/operators';
 
 export const authGuard: CanActivateFn = (route, state) => {
   const authService = inject(AuthService);
@@ -11,11 +10,11 @@ export const authGuard: CanActivateFn = (route, state) => {
   return authService.isAuthLoading$.pipe(
     filter((loading) => !loading),
     take(1),
-    switchMap(() => {
+    map(() => {
       if (authService.isAuthenticated) {
-        return of(true);
+        return true;
       }
-      return router.navigate(['/login'], { queryParams: { returnUrl: state.url } });
+      return router.createUrlTree(['/login'], { queryParams: { returnUrl: state.url } });
     })
   );
 };

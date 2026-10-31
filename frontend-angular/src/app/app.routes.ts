@@ -1,6 +1,8 @@
-import { Routes } from '@angular/router';
+import { inject } from '@angular/core';
+import { Routes, Router } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';
+import { AuthService } from './core/services/auth.service';
 
 // Public Auth Components
 import { LoginComponent } from './features/auth/login/login.component';
@@ -48,6 +50,23 @@ export const routes: Routes = [
     component: PortalLayoutComponent,
     canActivate: [authGuard],
     children: [
+      // Default landing redirect based on authenticated user's role
+      {
+        path: '',
+        pathMatch: 'full',
+        canActivate: [
+          () => {
+            const authService = inject(AuthService);
+            const router = inject(Router);
+            const role = authService.userRole;
+            if (role === 'doctor') return router.createUrlTree(['/doctor/dashboard']);
+            if (role === 'clinic_admin') return router.createUrlTree(['/clinic/dashboard']);
+            if (role === 'admin') return router.createUrlTree(['/admin/dashboard']);
+            return router.createUrlTree(['/login']);
+          },
+        ],
+      },
+
       // Shared authenticated 2FA setup
       { path: '2fa-setup', component: TwoFactorSetupComponent },
 

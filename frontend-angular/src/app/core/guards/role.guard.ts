@@ -15,8 +15,7 @@ export function roleGuard(allowedRoles: UserRole[]): CanActivateFn {
       map(() => {
         const user = authService.currentUser;
         if (!user) {
-          router.navigate(['/login']);
-          return false;
+          return router.createUrlTree(['/login']);
         }
 
         if (allowedRoles.includes(user.role)) {
@@ -24,8 +23,10 @@ export function roleGuard(allowedRoles: UserRole[]): CanActivateFn {
         }
 
         // Redirect to their own role's home
-        authService.redirectAfterLogin(user.role);
-        return false;
+        if (user.role === 'doctor') return router.createUrlTree(['/doctor/dashboard']);
+        if (user.role === 'clinic_admin') return router.createUrlTree(['/clinic/dashboard']);
+        if (user.role === 'admin') return router.createUrlTree(['/admin/dashboard']);
+        return router.createUrlTree(['/login']);
       })
     );
   };

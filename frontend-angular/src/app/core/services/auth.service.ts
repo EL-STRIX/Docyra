@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
-import { map, tap, catchError } from 'rxjs/operators';
+import { map, tap, catchError, finalize } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { User, LoginResponse, TwoFactorSetupResponse, UserRole } from '../models/user.model';
 import { ApiResponse } from '../models/api-response.model';
@@ -29,7 +29,7 @@ export class AuthService {
   private pending2faUser: User | null = null;
 
   constructor() {
-    this.checkSession();
+    this.checkSession().subscribe();
   }
 
   get currentUser(): User | null {
@@ -77,7 +77,7 @@ export class AuthService {
         this.currentUserSubject.next(null);
         return of(null);
       }),
-      tap(() => this.isAuthLoadingSubject.next(false))
+      finalize(() => this.isAuthLoadingSubject.next(false))
     );
   }
 
