@@ -1,8 +1,25 @@
-import { inject } from '@angular/core';
+import { inject, Component } from '@angular/core';
 import { Routes, Router } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';
 import { AuthService } from './core/services/auth.service';
+
+@Component({
+  selector: 'app-role-redirect',
+  standalone: true,
+  template: '',
+})
+export class RoleRedirectComponent {
+  constructor() {
+    const authService = inject(AuthService);
+    const router = inject(Router);
+    const role = authService.userRole;
+    if (role === 'doctor') router.navigate(['/doctor/dashboard'], { replaceUrl: true });
+    else if (role === 'clinic_admin') router.navigate(['/clinic/dashboard'], { replaceUrl: true });
+    else if (role === 'admin') router.navigate(['/admin/dashboard'], { replaceUrl: true });
+    else router.navigate(['/login'], { replaceUrl: true });
+  }
+}
 
 // Public Auth Components
 import { LoginComponent } from './features/auth/login/login.component';
@@ -54,17 +71,7 @@ export const routes: Routes = [
       {
         path: '',
         pathMatch: 'full',
-        canActivate: [
-          () => {
-            const authService = inject(AuthService);
-            const router = inject(Router);
-            const role = authService.userRole;
-            if (role === 'doctor') return router.createUrlTree(['/doctor/dashboard']);
-            if (role === 'clinic_admin') return router.createUrlTree(['/clinic/dashboard']);
-            if (role === 'admin') return router.createUrlTree(['/admin/dashboard']);
-            return router.createUrlTree(['/login']);
-          },
-        ],
+        component: RoleRedirectComponent,
       },
 
       // Shared authenticated 2FA setup
