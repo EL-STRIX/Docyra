@@ -71,17 +71,6 @@ export function Footer() {
                   Clinic Onboarding Inquiry
                 </Link>
               </li>
-              <li>
-                <a
-                  href="http://localhost:4200"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="hover:text-white transition-colors inline-flex items-center gap-1"
-                >
-                  <span>Doctor & Clinic Portal</span>
-                  <ArrowUpRight className="w-3 h-3 text-brand-accent" />
-                </a>
-              </li>
             </ul>
           </div>
 
