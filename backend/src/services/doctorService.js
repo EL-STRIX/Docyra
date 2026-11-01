@@ -15,11 +15,22 @@ class DoctorService {
     const profileMatch = { isApproved: true };
 
     if (specializationId) {
-      profileMatch.specializationId = new mongoose.Types.ObjectId(specializationId);
+      if (mongoose.Types.ObjectId.isValid(specializationId)) {
+        profileMatch.specializationId = new mongoose.Types.ObjectId(specializationId);
+      } else {
+        const spec = await Specialization.findOne({ name: new RegExp(`^${specializationId}$`, 'i') });
+        if (spec) {
+          profileMatch.specializationId = spec._id;
+        } else {
+          profileMatch.specializationId = new mongoose.Types.ObjectId();
+        }
+      }
     }
 
     if (clinicId) {
-      profileMatch.clinicId = new mongoose.Types.ObjectId(clinicId);
+      if (mongoose.Types.ObjectId.isValid(clinicId)) {
+        profileMatch.clinicId = new mongoose.Types.ObjectId(clinicId);
+      }
     } else if (isIndependent === 'true' || isIndependent === true) {
       profileMatch.clinicId = null;
     }

@@ -1,6 +1,6 @@
 import { Star } from 'lucide-react';
 
-export function RatingStars({ rating = 0, totalReviews, size = 'sm' }) {
+export function RatingStars({ rating = 0, totalReviews, size = 'sm', showRating = true }) {
   const iconSize = size === 'sm' ? 'w-4 h-4' : size === 'lg' ? 'w-5 h-5' : 'w-4 h-4';
   const numericRating = Number(rating) || 0;
 
@@ -18,9 +18,11 @@ export function RatingStars({ rating = 0, totalReviews, size = 'sm' }) {
           />
         ))}
       </div>
-      <span className="text-sm font-semibold text-neutral-text-primary">
-        {numericRating > 0 ? numericRating.toFixed(1) : 'New'}
-      </span>
+      {showRating && (
+        <span className="text-sm font-semibold text-neutral-text-primary">
+          {numericRating > 0 ? numericRating.toFixed(1) : 'New'}
+        </span>
+      )}
       {totalReviews !== undefined && (
         <span className="text-xs text-neutral-text-secondary">({totalReviews})</span>
       )}

@@ -2,12 +2,12 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, HeartPulse, ChevronRight } from 'lucide-react';
 
-
 import specializationsApi from '../../services/specializations.api.js';
 
 export function SpecializationsPage() {
   const [specializations, setSpecializations] = useState([]);
   const [search, setSearch] = useState('');
+  const [selectedSpec, setSelectedSpec] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -39,10 +39,14 @@ export function SpecializationsPage() {
   ];
 
   const dataList = specializations.length > 0 ? specializations : defaultSpecs;
-  const filteredSpecs = dataList.filter((s) =>
-    s.name.toLowerCase().includes(search.toLowerCase()) ||
-    (s.description && s.description.toLowerCase().includes(search.toLowerCase()))
-  );
+  const filteredSpecs = dataList.filter((s) => {
+    const matchesSearch =
+      !search ||
+      s.name.toLowerCase().includes(search.toLowerCase()) ||
+      (s.description && s.description.toLowerCase().includes(search.toLowerCase()));
+    const matchesDropdown = !selectedSpec || s.name === selectedSpec;
+    return matchesSearch && matchesDropdown;
+  });
 
   return (
     <div className="space-y-16 pb-20">
@@ -59,18 +63,31 @@ export function SpecializationsPage() {
             Explore healthcare disciplines, understand clinical scopes, and connect directly with verified specialists across partner clinics.
           </p>
 
-          {/* Search bar */}
-          <div className="pt-4 max-w-md mx-auto">
-            <div className="relative">
+          {/* Search bar & Specialization Dropdown */}
+          <div className="pt-4 max-w-2xl mx-auto flex flex-col sm:flex-row items-center gap-3">
+            <div className="relative flex-1 w-full">
               <Search className="w-5 h-5 text-neutral-text-secondary absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Filter by specialization or keyword..."
+                placeholder="Filter by keyword or description..."
                 className="w-full pl-11 pr-4 py-3 rounded-full bg-white border border-neutral-border text-sm text-neutral-text-primary placeholder:text-neutral-text-secondary focus:outline-none focus:ring-2 focus:ring-brand-primary shadow-sm"
               />
             </div>
+
+            <select
+              value={selectedSpec}
+              onChange={(e) => setSelectedSpec(e.target.value)}
+              className="w-full sm:w-56 px-4 py-3 rounded-full bg-white border border-neutral-border text-sm text-neutral-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary shadow-sm cursor-pointer"
+            >
+              <option value="">All Specializations</option>
+              {dataList.map((spec, i) => (
+                <option key={spec._id || i} value={spec.name}>
+                  {spec.name}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
       </section>
@@ -85,9 +102,15 @@ export function SpecializationsPage() {
         ) : filteredSpecs.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-3xl border border-neutral-border max-w-md mx-auto p-8 space-y-3">
             <p className="text-base font-semibold text-neutral-text-primary">No specializations found</p>
-            <p className="text-xs text-neutral-text-secondary">Try adjusting your search query.</p>
-            <button onClick={() => setSearch('')} className="btn-outline text-xs mt-2">
-              Clear Filter
+            <p className="text-xs text-neutral-text-secondary">Try adjusting your search query or dropdown filter.</p>
+            <button
+              onClick={() => {
+                setSearch('');
+                setSelectedSpec('');
+              }}
+              className="btn-outline text-xs mt-2"
+            >
+              Clear Filters
             </button>
           </div>
         ) : (

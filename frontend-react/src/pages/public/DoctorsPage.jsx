@@ -19,6 +19,11 @@ export function DoctorsPage() {
   const selectedClinic = searchParams.get('clinicId') || '';
   const minRating = searchParams.get('minRating') || '';
 
+  const matchedSpec = specializations.find(
+    (s) => s._id === selectedSpec || s.name.toLowerCase() === selectedSpec.toLowerCase()
+  );
+  const activeSpecId = matchedSpec ? matchedSpec._id : selectedSpec;
+
   useEffect(() => {
     async function loadFiltersAndDoctors() {
       setLoading(true);
@@ -28,7 +33,8 @@ export function DoctorsPage() {
           clinicsApi.getClinics(),
           doctorsApi.getDoctors({
             search: query || undefined,
-            specialization: selectedSpec || undefined,
+            specializationId: activeSpecId || selectedSpec || undefined,
+            specialization: activeSpecId || selectedSpec || undefined,
             clinicId: selectedClinic || undefined,
             minRating: minRating || undefined,
           }),
@@ -50,7 +56,7 @@ export function DoctorsPage() {
       }
     }
     loadFiltersAndDoctors();
-  }, [query, selectedSpec, selectedClinic, minRating]);
+  }, [query, selectedSpec, activeSpecId, selectedClinic, minRating]);
 
   const updateFilter = (key, value) => {
     const newParams = new URLSearchParams(searchParams);
@@ -119,9 +125,9 @@ export function DoctorsPage() {
                 Specialization
               </label>
               <select
-                value={selectedSpec}
+                value={activeSpecId}
                 onChange={(e) => updateFilter('specialization', e.target.value)}
-                className="w-full p-2.5 rounded-xl border border-neutral-border text-xs text-neutral-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary bg-neutral-bg"
+                className="w-full p-2.5 rounded-xl border border-neutral-border text-xs text-neutral-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary bg-neutral-bg cursor-pointer"
               >
                 <option value="">All Specializations</option>
                 {specializations.map((s) => (

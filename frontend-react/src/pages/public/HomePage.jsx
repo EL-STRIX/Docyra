@@ -19,22 +19,33 @@ import {
 } from 'lucide-react';
 import clinicsApi from '../../services/clinics.api.js';
 import specializationsApi from '../../services/specializations.api.js';
+import statsApi from '../../services/stats.api.js';
 import RatingStars from '../../components/common/RatingStars.jsx';
 
 export function HomePage() {
   const navigate = useNavigate();
   const [specializations, setSpecializations] = useState([]);
   const [clinics, setClinics] = useState([]);
+  const [stats, setStats] = useState({
+    totalClinics: 3,
+    totalDoctors: 3,
+    totalAppointments: 1,
+    completedAppointments: 1,
+    cancelledAppointments: 0,
+    slotReliability: '100%',
+    totalSlots: 60,
+    avgRating: 4.8,
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpecialization, setSelectedSpecialization] = useState('');
-
 
   useEffect(() => {
     async function loadData() {
       try {
-        const [specsRes, clinicsRes] = await Promise.allSettled([
+        const [specsRes, clinicsRes, statsRes] = await Promise.allSettled([
           specializationsApi.getSpecializations(),
           clinicsApi.getClinics({ limit: 6 }),
+          statsApi.getPublicStats(),
         ]);
 
         if (specsRes.status === 'fulfilled' && specsRes.value.success) {
@@ -42,6 +53,9 @@ export function HomePage() {
         }
         if (clinicsRes.status === 'fulfilled' && clinicsRes.value.success) {
           setClinics(clinicsRes.value.data.clinics || []);
+        }
+        if (statsRes.status === 'fulfilled' && statsRes.value?.success && statsRes.value?.data) {
+          setStats(statsRes.value.data);
         }
       } catch (err) {
         // Fallback gracefully
@@ -163,15 +177,24 @@ export function HomePage() {
             <div className="pt-4 flex flex-wrap items-center justify-center gap-6 sm:gap-10 text-xs sm:text-sm text-neutral-text-secondary">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                <span className="font-semibold text-neutral-text-primary">1,500+</span> Appointments Completed
+                <span className="font-semibold text-neutral-text-primary">
+                  {stats.completedAppointments > 0 ? `${stats.completedAppointments}+` : `${stats.totalAppointments || 1}+`}
+                </span>{' '}
+                Appointments Completed
               </div>
               <div className="flex items-center gap-2">
-                <RatingStars rating={4.9} />
-                <span className="font-semibold text-neutral-text-primary">4.9/5</span> Patient Satisfaction
+                <RatingStars rating={stats.avgRating || 4.8} showRating={false} />
+                <span className="font-semibold text-neutral-text-primary">
+                  {Number(stats.avgRating || 4.8).toFixed(1)}/5
+                </span>{' '}
+                Patient Satisfaction
               </div>
               <div className="flex items-center gap-2">
                 <Building2 className="w-4 h-4 text-brand-primary" />
-                <span className="font-semibold text-neutral-text-primary">Strictly Vetted</span> Clinic Model
+                <span className="font-semibold text-neutral-text-primary">
+                  {stats.totalClinics > 0 ? `${stats.totalClinics} Strictly Vetted` : 'Strictly Vetted'}
+                </span>{' '}
+                {stats.totalClinics > 1 ? 'Clinics' : 'Clinic Model'}
               </div>
             </div>
           </div>
@@ -374,19 +397,27 @@ export function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 text-center">
             <div className="space-y-1">
-              <span className="text-4xl sm:text-5xl font-extrabold text-brand-accent">50+</span>
+              <span className="text-4xl sm:text-5xl font-extrabold text-brand-accent">
+                {stats.totalClinics > 0 ? `${stats.totalClinics}+` : '0'}
+              </span>
               <p className="text-xs sm:text-sm text-teal-100 font-medium">Onboarded Partner Clinics</p>
             </div>
             <div className="space-y-1">
-              <span className="text-4xl sm:text-5xl font-extrabold text-brand-accent">200+</span>
+              <span className="text-4xl sm:text-5xl font-extrabold text-brand-accent">
+                {stats.totalDoctors > 0 ? `${stats.totalDoctors}+` : '0'}
+              </span>
               <p className="text-xs sm:text-sm text-teal-100 font-medium">Verified Medical Doctors</p>
             </div>
             <div className="space-y-1">
-              <span className="text-4xl sm:text-5xl font-extrabold text-brand-accent">15,000+</span>
+              <span className="text-4xl sm:text-5xl font-extrabold text-brand-accent">
+                {stats.totalAppointments > 0 ? `${stats.totalAppointments}+` : '0'}
+              </span>
               <p className="text-xs sm:text-sm text-teal-100 font-medium">Appointments Booked</p>
             </div>
             <div className="space-y-1">
-              <span className="text-4xl sm:text-5xl font-extrabold text-brand-accent">99.9%</span>
+              <span className="text-4xl sm:text-5xl font-extrabold text-brand-accent">
+                {stats.slotReliability || '100%'}
+              </span>
               <p className="text-xs sm:text-sm text-teal-100 font-medium">Slot Reliability</p>
             </div>
           </div>
