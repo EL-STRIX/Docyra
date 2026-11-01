@@ -9,8 +9,9 @@ export function DependentsPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    relationship: 'child',
+    relationship: 'Child',
     dateOfBirth: '',
+    gender: 'prefer_not_to_say',
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -41,7 +42,7 @@ export function DependentsPage() {
       const res = await dependentsApi.createDependent(formData);
       if (res.success) {
         setShowAddModal(false);
-        setFormData({ name: '', relationship: 'child', dateOfBirth: '' });
+        setFormData({ name: '', relationship: 'Child', dateOfBirth: '', gender: 'prefer_not_to_say' });
         loadDependents();
       }
     } catch (err) {
@@ -177,24 +178,65 @@ export function DependentsPage() {
                 <select
                   value={formData.relationship}
                   onChange={(e) => setFormData({ ...formData, relationship: e.target.value })}
-                  className="w-full p-2.5 rounded-xl border border-neutral-border text-xs text-neutral-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary bg-white"
+                  className="w-full p-2.5 rounded-xl border border-neutral-border text-xs text-neutral-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary bg-white cursor-pointer"
                 >
-                  <option value="child">Child</option>
-                  <option value="spouse">Spouse</option>
-                  <option value="parent">Parent</option>
-                  <option value="sibling">Sibling</option>
-                  <option value="other">Other</option>
+                  <optgroup label="Immediate Family">
+                    <option value="Spouse">Spouse / Partner</option>
+                    <option value="Husband">Husband</option>
+                    <option value="Wife">Wife</option>
+                    <option value="Son">Son</option>
+                    <option value="Daughter">Daughter</option>
+                    <option value="Child">Child</option>
+                    <option value="Father">Father</option>
+                    <option value="Mother">Mother</option>
+                    <option value="Brother">Brother</option>
+                    <option value="Sister">Sister</option>
+                  </optgroup>
+                  <optgroup label="Parents-in-law & Extended Family">
+                    <option value="Father-in-law">Father-in-law</option>
+                    <option value="Mother-in-law">Mother-in-law</option>
+                    <option value="Grandfather">Grandfather</option>
+                    <option value="Grandmother">Grandmother</option>
+                    <option value="Grandson">Grandson</option>
+                    <option value="Granddaughter">Granddaughter</option>
+                    <option value="Uncle">Uncle</option>
+                    <option value="Aunt">Aunt</option>
+                    <option value="Nephew">Nephew</option>
+                    <option value="Niece">Niece</option>
+                    <option value="Cousin">Cousin</option>
+                  </optgroup>
+                  <optgroup label="Care & Legal">
+                    <option value="Guardian">Guardian / Ward</option>
+                    <option value="Dependent">Dependent</option>
+                    <option value="Other">Other</option>
+                  </optgroup>
                 </select>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-neutral-text-primary">Date of Birth</label>
-                <input
-                  type="date"
-                  value={formData.dateOfBirth}
-                  onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-                  className="w-full p-2.5 rounded-xl border border-neutral-border text-xs text-neutral-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-neutral-text-primary">Date of Birth *</label>
+                  <input
+                    type="date"
+                    required
+                    value={formData.dateOfBirth}
+                    onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-neutral-border text-xs text-neutral-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-neutral-text-primary">Gender</label>
+                  <select
+                    value={formData.gender || 'prefer_not_to_say'}
+                    onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-neutral-border text-xs text-neutral-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary bg-white cursor-pointer"
+                  >
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                    <option value="prefer_not_to_say">Prefer not to say</option>
+                  </select>
+                </div>
               </div>
 
               <div className="pt-3 flex items-center justify-end gap-3">

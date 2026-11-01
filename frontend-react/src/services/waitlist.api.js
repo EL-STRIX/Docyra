@@ -16,6 +16,10 @@ export const waitlistApi = {
       },
     };
   },
+  cancelWaitlist: async (id) => {
+    const response = await apiClient.delete(`/waitlists/${id}`);
+    return response.data;
+  },
 };
 
 export default waitlistApi;

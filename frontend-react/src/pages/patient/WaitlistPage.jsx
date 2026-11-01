@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { format } from 'date-fns';
-import { Clock, Calendar, AlertCircle, Plus, ArrowRight } from 'lucide-react';
+import { Clock, Calendar, AlertCircle, Plus, ArrowRight, Trash2 } from 'lucide-react';
 import waitlistApi from '../../services/waitlist.api.js';
 import doctorsApi from '../../services/doctors.api.js';
 
@@ -19,6 +19,7 @@ export function WaitlistPage() {
   const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [endDate, setEndDate] = useState(format(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'));
   const [submitting, setSubmitting] = useState(false);
+  const [removingId, setRemovingId] = useState(null);
   const [error, setError] = useState(null);
 
   const loadData = async () => {
@@ -68,6 +69,23 @@ export function WaitlistPage() {
     }
   };
 
+  const handleRemoveWaitlist = async (id) => {
+    if (!window.confirm('Are you sure you want to remove this doctor from your waitlist?')) {
+      return;
+    }
+    setRemovingId(id);
+    try {
+      const res = await waitlistApi.cancelWaitlist(id);
+      if (res.success) {
+        setWaitlists((prev) => prev.filter((item) => item._id !== id));
+      }
+    } catch (err) {
+      alert(err.response?.data?.error?.message || 'Failed to remove from waitlist');
+    } finally {
+      setRemovingId(null);
+    }
+  };
+
   return (
     <div className="space-y-8 pb-16">
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-neutral-border shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-6">
@@ -114,8 +132,12 @@ export function WaitlistPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {waitlists.map((w) => {
-            const docUser = w.doctorId?.userId || {};
-            const spec = w.doctorId?.specializationId || {};
+            const docObj = w.doctorId || {};
+            const docUser = docObj.userId || {};
+            const docName = docObj.name || docUser.name || 'Doctor';
+            const spec = docObj.specializationId || {};
+            const specName = docObj.specializationName || spec.name || 'Specialist';
+            const clinic = docObj.clinicName || docObj.clinicId?.name || '';
             const isNotified = !!w.notifiedAt;
 
             return (
@@ -137,11 +159,13 @@ export function WaitlistPage() {
 
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-brand-primary text-white flex items-center justify-center font-bold text-sm">
-                      {docUser.name ? docUser.name.charAt(0) : 'D'}
+                      {docName.charAt(0) || 'D'}
                     </div>
                     <div>
-                      <h3 className="font-bold text-sm text-neutral-text-primary">{docUser.name || 'Doctor'}</h3>
-                      <p className="text-xs font-semibold text-brand-primary">{spec.name || 'Specialist'}</p>
+                      <h3 className="font-bold text-sm text-neutral-text-primary">{docName}</h3>
+                      <p className="text-xs font-semibold text-brand-primary">
+                        {specName} {clinic ? `• ${clinic}` : ''}
+                      </p>
                     </div>
                   </div>
 
@@ -159,14 +183,24 @@ export function WaitlistPage() {
                   </div>
                 </div>
 
-                <div className="pt-3 border-t border-neutral-border flex items-center justify-between">
+                <div className="pt-3 border-t border-neutral-border flex items-center justify-between gap-3">
                   <Link
-                    to={`/doctors/${w.doctorId?._id || w.doctorId}`}
+                    to={`/doctors/${docObj._id || w.doctorId}`}
                     className="btn-accent text-xs py-1.5 px-4"
                   >
                     <span>View Calendar</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
+
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveWaitlist(w._id)}
+                    disabled={removingId === w._id}
+                    className="text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-3 py-1.5 rounded-xl border border-rose-200 transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>{removingId === w._id ? 'Removing...' : 'Remove'}</span>
+                  </button>
                 </div>
               </div>
             );
@@ -196,14 +230,20 @@ export function WaitlistPage() {
                   required
                   value={doctorId}
                   onChange={(e) => setDoctorId(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-neutral-border text-xs text-neutral-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary bg-white"
+                  className="w-full p-2.5 rounded-xl border border-neutral-border text-xs text-neutral-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary bg-white cursor-pointer"
                 >
                   <option value="">Choose a physician...</option>
-                  {doctors.map((doc) => (
-                    <option key={doc._id} value={doc._id}>
-                      {doc.userId?.name || 'Doctor'} ({doc.specializationId?.name})
-                    </option>
-                  ))}
+                  {doctors.map((doc) => {
+                    const docName = doc.name || doc.userId?.name || 'Doctor';
+                    const specName = doc.specializationName || doc.specializationId?.name || '';
+                    const clinic = doc.clinicName || doc.clinicId?.name || '';
+                    const details = [specName, clinic].filter(Boolean).join(' • ');
+                    return (
+                      <option key={doc._id} value={doc._id}>
+                        {docName} {details ? `(${details})` : ''}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
 

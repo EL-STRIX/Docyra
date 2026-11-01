@@ -132,12 +132,14 @@ class WaitlistService {
   async getMyWaitlists(patientId) {
     const entries = await Waitlist.find({
       patientId: new mongoose.Types.ObjectId(patientId),
+      status: { $nin: ['cancelled'] },
     })
       .populate({
         path: 'doctorId',
         populate: [
           { path: 'userId', select: 'name profilePhotoUrl' },
           { path: 'specializationId', select: 'name' },
+          { path: 'clinicId', select: 'name city' },
         ],
       })
       .sort({ createdAt: -1 })
