@@ -178,7 +178,9 @@ export function HomePage() {
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                 <span className="font-semibold text-neutral-text-primary">
-                  {stats.completedAppointments > 0 ? `${stats.completedAppointments}+` : `${stats.totalAppointments || 1}+`}
+                  {stats.completedAppointments > 0
+                    ? `${stats.completedAppointments}${stats.completedAppointments >= 10 ? '+' : ''}`
+                    : `${stats.totalAppointments || 0}${stats.totalAppointments >= 10 ? '+' : ''}`}
                 </span>{' '}
                 Appointments Completed
               </div>
@@ -398,19 +400,19 @@ export function HomePage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 text-center">
             <div className="space-y-1">
               <span className="text-4xl sm:text-5xl font-extrabold text-brand-accent">
-                {stats.totalClinics > 0 ? `${stats.totalClinics}+` : '0'}
+                {stats.totalClinics > 0 ? `${stats.totalClinics}${stats.totalClinics >= 10 ? '+' : ''}` : '0'}
               </span>
               <p className="text-xs sm:text-sm text-teal-100 font-medium">Onboarded Partner Clinics</p>
             </div>
             <div className="space-y-1">
               <span className="text-4xl sm:text-5xl font-extrabold text-brand-accent">
-                {stats.totalDoctors > 0 ? `${stats.totalDoctors}+` : '0'}
+                {stats.totalDoctors > 0 ? `${stats.totalDoctors}${stats.totalDoctors >= 10 ? '+' : ''}` : '0'}
               </span>
               <p className="text-xs sm:text-sm text-teal-100 font-medium">Verified Medical Doctors</p>
             </div>
             <div className="space-y-1">
               <span className="text-4xl sm:text-5xl font-extrabold text-brand-accent">
-                {stats.totalAppointments > 0 ? `${stats.totalAppointments}+` : '0'}
+                {stats.totalAppointments > 0 ? `${stats.totalAppointments}${stats.totalAppointments >= 10 ? '+' : ''}` : '0'}
               </span>
               <p className="text-xs sm:text-sm text-teal-100 font-medium">Appointments Booked</p>
             </div>

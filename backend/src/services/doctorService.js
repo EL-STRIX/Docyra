@@ -106,18 +106,39 @@ class DoctorService {
       {
         $project: {
           _id: 1,
-          userId: '$user._id',
+          userId: {
+            _id: '$user._id',
+            name: '$user.name',
+            email: '$user.email',
+            phone: '$user.phone',
+            profilePhotoUrl: '$user.profilePhotoUrl',
+          },
           name: '$user.name',
           email: '$user.email',
           phone: '$user.phone',
           profilePhotoUrl: '$user.profilePhotoUrl',
-          clinicId: 1,
+          clinicId: {
+            $cond: [
+              { $ifNull: ['$clinic._id', false] },
+              {
+                _id: '$clinic._id',
+                name: '$clinic.name',
+                city: '$clinic.city',
+                address: '$clinic.address',
+              },
+              null,
+            ],
+          },
           clinicName: '$clinic.name',
           clinicCity: '$clinic.city',
           clinicAddress: {
             $ifNull: ['$clinic.address', '$clinicAddress'],
           },
-          specializationId: '$specialization._id',
+          specializationId: {
+            _id: '$specialization._id',
+            name: '$specialization.name',
+            iconName: '$specialization.iconName',
+          },
           specializationName: '$specialization.name',
           specializationIcon: '$specialization.iconName',
           qualifications: 1,

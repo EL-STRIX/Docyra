@@ -203,9 +203,14 @@ export function DoctorsPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {doctors.map((doctor) => {
-                  const user = doctor.userId || {};
-                  const spec = doctor.specializationId || {};
-                  const clinic = doctor.clinicId || {};
+                  const docUser = typeof doctor.userId === 'object' && doctor.userId !== null ? doctor.userId : {};
+                  const docSpec = typeof doctor.specializationId === 'object' && doctor.specializationId !== null ? doctor.specializationId : {};
+                  const docClinic = typeof doctor.clinicId === 'object' && doctor.clinicId !== null ? doctor.clinicId : {};
+
+                  const doctorName = doctor.name || docUser.name || 'Doctor';
+                  const specName = doctor.specializationName || docSpec.name || 'Medical Specialist';
+                  const clinicName = doctor.clinicName || docClinic.name || doctor.clinicAddress || 'Independent Practice';
+                  const clinicCity = doctor.clinicCity || docClinic.city || '';
 
                   return (
                     <div
@@ -215,14 +220,14 @@ export function DoctorsPage() {
                       <div className="space-y-4">
                         <div className="flex items-start gap-4">
                           <div className="w-14 h-14 rounded-2xl bg-brand-primary text-white flex items-center justify-center font-bold text-xl shrink-0">
-                            {user.name ? user.name.charAt(0) : 'D'}
+                            {doctorName ? doctorName.charAt(0) : 'D'}
                           </div>
                           <div className="space-y-1 min-w-0">
                             <h3 className="font-bold text-base text-neutral-text-primary truncate">
-                              {user.name || 'Dr. Specialist'}
+                              {doctorName}
                             </h3>
                             <p className="text-xs font-semibold text-brand-primary">
-                              {spec.name || 'Medical Specialist'}
+                              {specName}
                             </p>
                             <p className="text-[11px] text-neutral-text-secondary truncate">
                               {doctor.qualifications || 'MBBS, MD'} &bull; {doctor.yearsExperience ? `${doctor.yearsExperience} yrs exp` : 'Experienced'}
@@ -234,7 +239,7 @@ export function DoctorsPage() {
                         <div className="flex items-center gap-1.5 text-xs text-neutral-text-secondary">
                           <Building2 className="w-3.5 h-3.5 text-brand-primary shrink-0" />
                           <span className="truncate">
-                            {clinic.name ? `${clinic.name} (${clinic.city})` : doctor.clinicAddress || 'Independent Practice'}
+                            {clinicName}{clinicCity ? ` (${clinicCity})` : ''}
                           </span>
                         </div>
 

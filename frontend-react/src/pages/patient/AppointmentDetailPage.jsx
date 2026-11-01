@@ -118,8 +118,9 @@ export function AppointmentDetailPage() {
     );
   }
 
-  const doctorUser = appointment.doctorId?.userId || {};
   const doctorProfile = appointment.doctorId || {};
+  const doctorUser = typeof doctorProfile.userId === 'object' && doctorProfile.userId !== null ? doctorProfile.userId : {};
+  const doctorName = doctorProfile.name || doctorUser.name || 'Doctor';
   const clinic = appointment.clinicId || {};
   const isDependent = appointment.bookedForType === 'dependent';
   const dependent = appointment.bookedForId;
@@ -188,10 +189,10 @@ export function AppointmentDetailPage() {
             </span>
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-2xl bg-brand-primary text-white flex items-center justify-center font-bold text-lg">
-                {doctorUser.name ? doctorUser.name.charAt(0) : 'D'}
+                {doctorName ? doctorName.charAt(0) : 'D'}
               </div>
               <div>
-                <h3 className="font-bold text-base text-neutral-text-primary">{doctorUser.name}</h3>
+                <h3 className="font-bold text-base text-neutral-text-primary">{doctorName}</h3>
                 <p className="text-xs font-semibold text-brand-primary">
                   {doctorProfile.specializationId?.name || 'Specialist'}
                 </p>

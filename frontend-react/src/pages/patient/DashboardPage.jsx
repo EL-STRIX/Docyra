@@ -239,8 +239,10 @@ export function DashboardPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {displayedList.map((apt) => {
-              const doctorUser = apt.doctorId?.userId || {};
               const doctorProfile = apt.doctorId || {};
+              const doctorUser = typeof doctorProfile.userId === 'object' && doctorProfile.userId !== null ? doctorProfile.userId : {};
+              const doctorName = doctorProfile.name || doctorUser.name || 'Doctor';
+              const specName = doctorProfile.specializationName || doctorProfile.specializationId?.name || 'Medical Specialist';
               const clinic = apt.clinicId || {};
               const dependent = apt.bookedForId;
               const isDependent = apt.bookedForType === 'dependent';
@@ -262,14 +264,14 @@ export function DashboardPage() {
 
                     <div className="flex items-start gap-4">
                       <div className="w-12 h-12 rounded-2xl bg-brand-primary text-white flex items-center justify-center font-bold text-base shrink-0">
-                        {doctorUser.name ? doctorUser.name.charAt(0) : 'D'}
+                        {doctorName ? doctorName.charAt(0) : 'D'}
                       </div>
                       <div className="space-y-0.5 min-w-0">
                         <h3 className="font-bold text-base text-neutral-text-primary truncate">
-                          {doctorUser.name || 'Dr. Specialist'}
+                          {doctorName}
                         </h3>
                         <p className="text-xs font-semibold text-brand-primary">
-                          {doctorProfile.specializationId?.name || 'Medical Specialist'}
+                          {specName}
                         </p>
                         <p className="text-[11px] text-neutral-text-secondary flex items-center gap-1 truncate">
                           <Building2 className="w-3 h-3 text-neutral-text-secondary shrink-0" />

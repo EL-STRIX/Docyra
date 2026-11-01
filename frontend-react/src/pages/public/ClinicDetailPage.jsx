@@ -132,8 +132,11 @@ export function ClinicDetailPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {doctors.map((doctor) => {
-              const user = doctor.userId || {};
-              const spec = doctor.specializationId || {};
+              const docUser = typeof doctor.userId === 'object' && doctor.userId !== null ? doctor.userId : {};
+              const docSpec = typeof doctor.specializationId === 'object' && doctor.specializationId !== null ? doctor.specializationId : {};
+
+              const doctorName = doctor.name || docUser.name || 'Doctor';
+              const specName = doctor.specializationName || docSpec.name || 'Medical Specialist';
 
               return (
                 <div
@@ -143,14 +146,14 @@ export function ClinicDetailPage() {
                   <div className="space-y-4">
                     <div className="flex items-start gap-4">
                       <div className="w-14 h-14 rounded-2xl bg-brand-primary text-white flex items-center justify-center font-bold text-lg shrink-0">
-                        {user.name ? user.name.charAt(0) : 'D'}
+                        {doctorName ? doctorName.charAt(0) : 'D'}
                       </div>
                       <div className="space-y-1 min-w-0">
                         <h3 className="font-bold text-base text-neutral-text-primary truncate">
-                          {user.name || 'Dr. Specialist'}
+                          {doctorName}
                         </h3>
                         <p className="text-xs font-semibold text-brand-primary">
-                          {spec.name || 'Medical Specialist'}
+                          {specName}
                         </p>
                         <p className="text-[11px] text-neutral-text-secondary truncate">
                           {doctor.qualifications || 'MBBS, MD'}

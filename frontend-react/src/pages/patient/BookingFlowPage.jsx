@@ -239,9 +239,10 @@ export function BookingFlowPage() {
     return cId === selectedClinicFilter;
   });
 
-  const doctorUser = doctor?.userId || {};
-  const spec = doctor?.specializationId || {};
-  const clinic = doctor?.clinicId || {};
+  const docUser = typeof doctor?.userId === 'object' && doctor?.userId !== null ? doctor.userId : {};
+  const doctorName = doctor?.name || docUser?.name || 'Selected Doctor';
+  const spec = typeof doctor?.specializationId === 'object' && doctor?.specializationId !== null ? doctor.specializationId : { name: doctor?.specializationName };
+  const clinic = typeof doctor?.clinicId === 'object' && doctor?.clinicId !== null ? doctor?.clinicId : { name: doctor?.clinicName };
 
   const selectedDependent = dependents.find((d) => d._id === selectedDependentId);
 
@@ -374,9 +375,13 @@ export function BookingFlowPage() {
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {filteredDoctors.map((doc) => {
-                      const u = doc.userId || {};
-                      const s = doc.specializationId || {};
-                      const c = doc.clinicId || {};
+                      const u = typeof doc.userId === 'object' && doc.userId !== null ? doc.userId : {};
+                      const docItemName = doc.name || u.name || 'Doctor';
+                      const s = typeof doc.specializationId === 'object' && doc.specializationId !== null ? doc.specializationId : {};
+                      const specItemName = doc.specializationName || s.name || 'Specialist';
+                      const c = typeof doc.clinicId === 'object' && doc.clinicId !== null ? doc.clinicId : {};
+                      const clinicItemName = doc.clinicName || c.name || doc.clinicAddress || 'Partner Clinic';
+
                       return (
                         <div
                           key={doc._id}
@@ -386,21 +391,21 @@ export function BookingFlowPage() {
                           <div className="space-y-2">
                             <div className="flex items-center gap-3">
                               <div className="w-12 h-12 rounded-xl bg-brand-primary text-white flex items-center justify-center font-bold text-lg shrink-0 group-hover:scale-105 transition-transform">
-                                {u.name ? u.name.charAt(0) : 'D'}
+                                {docItemName ? docItemName.charAt(0) : 'D'}
                               </div>
                               <div className="min-w-0">
                                 <h4 className="font-bold text-sm text-neutral-text-primary group-hover:text-brand-primary transition-colors truncate">
-                                  {u.name || 'Dr. Specialist'}
+                                  {docItemName}
                                 </h4>
                                 <span className="badge-primary text-[10px] py-0 px-2">
-                                  {s.name || 'Specialist'}
+                                  {specItemName}
                                 </span>
                               </div>
                             </div>
 
                             <p className="text-[11px] text-neutral-text-secondary flex items-center gap-1 truncate">
-                              <Building2 className="w-3 h-3 text-brand-primary shrink-0" />
-                              <span className="truncate">{c.name || doc.clinicAddress || 'Partner Clinic'}</span>
+                              <Building2 className="w-3.5 h-3.5 text-brand-primary shrink-0" />
+                              <span className="truncate">{clinicItemName}</span>
                             </p>
                           </div>
 
@@ -426,12 +431,12 @@ export function BookingFlowPage() {
               <div className="p-4 rounded-2xl bg-neutral-bg border border-neutral-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <div className="w-14 h-14 rounded-2xl bg-brand-primary text-white flex items-center justify-center font-bold text-xl shrink-0">
-                    {doctorUser.name ? doctorUser.name.charAt(0) : 'D'}
+                    {doctorName ? doctorName.charAt(0) : 'D'}
                   </div>
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
                       <h3 className="font-bold text-base text-neutral-text-primary">
-                        {doctorUser.name || 'Dr. Specialist'}
+                        {doctorName}
                       </h3>
                       <span className="badge-primary text-[10px]">{spec.name || 'Specialist'}</span>
                     </div>
@@ -551,7 +556,7 @@ export function BookingFlowPage() {
                       to={`/waitlist?doctorId=${selectedDoctorId}`}
                       className="btn-outline text-xs py-1.5 px-4 mt-2 inline-block"
                     >
-                      Join Waitlist for {doctorUser.name || 'Doctor'}
+                      Join Waitlist for {doctorName}
                     </Link>
                   </div>
                 ) : (
@@ -618,7 +623,7 @@ export function BookingFlowPage() {
           <div className="p-4 rounded-2xl bg-neutral-bg border border-neutral-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
             <div className="space-y-1">
               <span className="font-bold text-neutral-text-primary block text-sm">
-                {doctorUser.name || 'Selected Doctor'}
+                {doctorName}
               </span>
               <span className="text-brand-primary font-semibold block">{spec.name || 'Specialist'}</span>
               <span className="text-neutral-text-secondary block">
@@ -774,7 +779,7 @@ export function BookingFlowPage() {
             <div className="p-5 rounded-2xl bg-neutral-bg border border-neutral-border space-y-3.5">
               <div className="flex justify-between items-center">
                 <span className="text-neutral-text-secondary">Physician / Doctor:</span>
-                <span className="font-bold text-sm text-neutral-text-primary">{doctorUser.name}</span>
+                <span className="font-bold text-sm text-neutral-text-primary">{doctorName}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-neutral-text-secondary">Specialization:</span>
@@ -894,14 +899,14 @@ export function BookingFlowPage() {
               Your Appointment is Reserved!
             </h2>
             <p className="text-xs sm:text-sm text-neutral-text-secondary max-w-md mx-auto leading-relaxed">
-              We have scheduled your visit with {doctorUser.name || 'your doctor'}. Confirmation notifications and automated reminders have been generated.
+              We have scheduled your visit with {doctorName || 'your doctor'}. Confirmation notifications and automated reminders have been generated.
             </p>
           </div>
 
           <div className="p-5 rounded-2xl bg-neutral-bg border border-neutral-border text-xs text-left space-y-2.5 max-w-md mx-auto">
             <div className="flex justify-between">
               <span className="text-neutral-text-secondary">Doctor:</span>
-              <span className="font-bold text-neutral-text-primary">{doctorUser.name}</span>
+              <span className="font-bold text-neutral-text-primary">{doctorName}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-neutral-text-secondary">Clinic:</span>

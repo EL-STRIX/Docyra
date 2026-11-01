@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom';
 
-export function Logo({ className = '', isLight = false }) {
+export function Logo({ className = '', isLight = false, to = '/' }) {
   return (
-    <Link to="/" className={`flex items-center gap-2.5 group ${className}`}>
+    <Link to={to} className={`flex items-center gap-2.5 group ${className}`}>
       {/* Abstract geometric mark: rounded trust badge with medical cross/pulse */}
       <div className="w-9 h-9 rounded-xl bg-brand-primary flex items-center justify-center text-white shadow-sm transition-transform duration-200 group-hover:scale-105">
         <svg

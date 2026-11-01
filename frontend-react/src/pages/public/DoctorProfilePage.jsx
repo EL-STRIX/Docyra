@@ -103,9 +103,14 @@ export function DoctorProfilePage() {
     );
   }
 
-  const user = doctor.userId || {};
-  const spec = doctor.specializationId || {};
-  const clinic = doctor.clinicId || {};
+  const docUser = typeof doctor.userId === 'object' && doctor.userId !== null ? doctor.userId : {};
+  const docSpec = typeof doctor.specializationId === 'object' && doctor.specializationId !== null ? doctor.specializationId : {};
+  const docClinic = typeof doctor.clinicId === 'object' && doctor.clinicId !== null ? doctor.clinicId : {};
+
+  const doctorName = doctor.name || docUser.name || 'Doctor';
+  const specName = doctor.specializationName || docSpec.name || 'Medical Specialist';
+  const clinicName = doctor.clinicName || docClinic.name || doctor.clinicAddress || 'Independent Practice';
+  const clinicAddress = doctor.clinicAddress || docClinic.address || 'Verified Clinic Location';
 
   return (
     <div className="space-y-12 pb-20">
@@ -123,13 +128,13 @@ export function DoctorProfilePage() {
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
               <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-brand-primary text-white flex items-center justify-center text-3xl sm:text-4xl font-extrabold shadow-md shrink-0">
-                {user.name ? user.name.charAt(0) : 'D'}
+                {doctorName ? doctorName.charAt(0) : 'D'}
               </div>
 
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="badge-primary text-xs font-bold">
-                    {spec.name || 'Medical Specialist'}
+                    {specName}
                   </span>
                   <div className="flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
                     <ShieldCheck className="w-3.5 h-3.5" />
@@ -138,7 +143,7 @@ export function DoctorProfilePage() {
                 </div>
 
                 <h1 className="text-3xl sm:text-4xl font-extrabold text-neutral-text-primary tracking-tight">
-                  {user.name || 'Dr. Specialist'}
+                  {doctorName}
                 </h1>
 
                 <p className="text-xs sm:text-sm text-neutral-text-secondary font-medium">
@@ -164,11 +169,11 @@ export function DoctorProfilePage() {
               <div className="pt-2 border-t border-neutral-border/80 space-y-1 text-xs text-neutral-text-secondary">
                 <div className="flex items-center gap-1.5 font-semibold text-neutral-text-primary">
                   <Building2 className="w-3.5 h-3.5 text-brand-primary" />
-                  <span>{clinic.name || 'Independent Practice'}</span>
+                  <span>{clinicName}</span>
                 </div>
                 <div className="flex items-start gap-1.5">
                   <MapPin className="w-3.5 h-3.5 text-neutral-text-secondary shrink-0 mt-0.5" />
-                  <span>{clinic.address || doctor.clinicAddress || 'Verified Clinic Location'}</span>
+                  <span>{clinicAddress}</span>
                 </div>
               </div>
             </div>
@@ -188,13 +193,13 @@ export function DoctorProfilePage() {
               </h2>
               <p className="text-sm text-neutral-text-secondary leading-relaxed whitespace-pre-line">
                 {doctor.bio ||
-                  `${user.name} is a dedicated practitioner specializing in ${spec.name || 'comprehensive medicine'}. With extensive clinical experience, Dr. ${user.name?.split(' ').pop()} provides evidence-based diagnoses and compassionate patient-centered healthcare.`}
+                  `${doctorName} is a dedicated practitioner specializing in ${specName || 'comprehensive medicine'}. With extensive clinical experience, ${doctorName} provides evidence-based diagnoses and compassionate patient-centered healthcare.`}
               </p>
 
               <div className="pt-4 grid grid-cols-2 sm:grid-cols-3 gap-4 border-t border-neutral-border/70 text-xs">
                 <div>
                   <span className="text-neutral-text-secondary block">Specialization</span>
-                  <span className="font-bold text-neutral-text-primary">{spec.name || 'General'}</span>
+                  <span className="font-bold text-neutral-text-primary">{specName || 'General'}</span>
                 </div>
                 <div>
                   <span className="text-neutral-text-secondary block">Credentials</span>

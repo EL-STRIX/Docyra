@@ -1,12 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Mail, Lock, ShieldCheck, KeyRound, AlertCircle } from 'lucide-react';
 import useAuth from '../../context/useAuth.js';
 import Logo from '../../components/common/Logo.jsx';
 
-
 export function LoginPage() {
-  const { login, login2FA } = useAuth();
+  const { user, login, login2FA } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -15,6 +14,12 @@ export function LoginPage() {
       ? `${location.state.from.pathname}${location.state.from.search || ''}`
       : location.state.from
     : '/dashboard';
+
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, navigate]);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
