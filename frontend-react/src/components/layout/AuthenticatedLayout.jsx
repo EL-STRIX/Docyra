@@ -46,7 +46,7 @@ export function AuthenticatedLayout() {
       <header className="bg-white border-b border-neutral-border sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Logo to="/dashboard" />
+            <Logo to="/" />
             <span className="hidden md:inline-block text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-brand-primary-light text-brand-primary border border-teal-100">
               Patient Portal
             </span>
