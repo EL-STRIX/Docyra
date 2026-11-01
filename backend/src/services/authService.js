@@ -76,13 +76,15 @@ class AuthService {
 
     const passwordHash = await bcrypt.hash(password, env.BCRYPT_SALT_ROUNDS);
 
+    const isDev = env.NODE_ENV === 'development';
     const user = await User.create({
       name,
       email: email.toLowerCase(),
       passwordHash,
       phone: phone || null,
       role,
-      status: USER_STATUS.UNVERIFIED,
+      status: isDev ? USER_STATUS.ACTIVE : USER_STATUS.UNVERIFIED,
+      emailVerifiedAt: isDev ? new Date() : null,
       acceptedTermsVersion: termsVersion,
       acceptedTermsAt: new Date(),
     });

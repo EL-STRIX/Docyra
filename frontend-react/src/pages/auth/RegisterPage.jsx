@@ -86,10 +86,10 @@ export function RegisterPage() {
               </div>
               <div className="space-y-2">
                 <h2 className="text-xl font-bold text-neutral-text-primary">
-                  Verify Your Email Address
+                  Account Created Successfully!
                 </h2>
                 <p className="text-xs text-neutral-text-secondary leading-relaxed">
-                  We have sent a verification link to <strong>{formData.email}</strong>. Please check your inbox and click the link to activate your account.
+                  Your account has been created for <strong>{formData.email}</strong>. Your password is securely saved and your account is active.
                 </p>
               </div>
               <div className="pt-2">
