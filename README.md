@@ -91,11 +91,14 @@ Docyra separates patient-facing discovery and booking from clinic operations:
 
 ---
 
-## Getting Started
+## Documentation
 
-To run Docyra locally on your machine, follow the step-by-step instructions in the setup guide:
-
-👉 **[SETUP.md](./SETUP.md)**
+| Document | Purpose |
+| :--- | :--- |
+| **[SETUP.md](./SETUP.md)** | Step-by-step local machine setup, environment variables, seeding, and demo accounts. |
+| **[ARCHITECTURE.md](./ARCHITECTURE.md)** | Deep dive into technical design, atomic concurrency engine, request pipeline, and WebSockets. |
+| **[CONTRIBUTING.md](./CONTRIBUTING.md)** | Contribution standards, branch naming conventions, commit formats, and quality checklists. |
+| **[SECURITY.md](./SECURITY.md)** | Security controls, authentication practices, responsible disclosure, and privacy policies. |
 
 ---
 
@@ -109,7 +112,10 @@ Docyra/
 ├── Doc/                      # Architecture specifications, PRD, TRD, and design documentation
 ├── .github/workflows/        # Automated CI/CD pipeline (linting, tests, production builds)
 ├── README.md                 # Project summary and role architecture
-└── SETUP.md                  # Local installation, database seeding, and execution guide
+├── SETUP.md                  # Local installation, database seeding, and execution guide
+├── ARCHITECTURE.md           # System design, concurrency locks & data flow
+├── CONTRIBUTING.md           # Code guidelines & pull request standards
+└── SECURITY.md               # Security architecture & vulnerability reporting
 ```
 
 ---
@@ -117,3 +123,4 @@ Docyra/
 ## License
 
 This project is licensed under the MIT License.
+

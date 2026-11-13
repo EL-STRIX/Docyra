@@ -166,3 +166,4 @@ npm run build
 
 - **Port in Use (`EADDRINUSE`)**: If port `5000`, `5173`, or `4200` is already in use, stop previous Node background instances or close lingering terminals.
 - **MongoDB Connection**: Ensure your MongoDB service is running (`mongod` or Docker container) before starting the backend server or running `npm run seed`.
+
