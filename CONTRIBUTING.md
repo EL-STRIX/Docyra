@@ -11,7 +11,7 @@ Please review this guide before submitting issues or pull requests.
 1. Fork the repository on GitHub.
 2. Clone your fork locally and configure the environment:
    ```bash
-   git clone https://github.com/<your-username>/Docyra.git
+   git clone https://github.com/EL-STRIX/Docyra.git
    cd Docyra
    ```
 3. Follow the complete installation, database seeding, and execution guide in **[SETUP.md](./SETUP.md)**.
