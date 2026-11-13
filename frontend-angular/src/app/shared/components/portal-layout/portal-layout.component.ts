@@ -41,9 +41,9 @@ interface NavMenuItem {
               <span class="portal-tag">PORTAL</span>
             </div>
           </div>
-          <div class="role-badge" [ngClass]="getRoleBadgeClass()">
-            {{ getRoleDisplay() }}
-          </div>
+          <span class="role-badge" [ngClass]="getRoleBadgeClass()">
+            {{ getRoleBadgeLabel() }}
+          </span>
         </div>
 
         <nav class="sidebar-nav">
@@ -219,17 +219,21 @@ interface NavMenuItem {
     }
 
     .sidebar-header {
-      padding: 20px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 18px 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 10px;
+      box-sizing: border-box;
     }
 
     .brand-logo {
       display: flex;
       align-items: center;
       gap: 10px;
+      min-width: 0;
+      flex-shrink: 0;
     }
 
     .logo-mark {
@@ -243,41 +247,56 @@ interface NavMenuItem {
       align-items: center;
       justify-content: center;
       border-radius: 8px;
+      flex-shrink: 0;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
 
     .brand-name {
-      font-size: 18px;
+      font-size: 17px;
       font-weight: 800;
-      letter-spacing: -0.5px;
+      letter-spacing: -0.4px;
       color: #FFFFFF;
+      line-height: 1.15;
     }
 
     .portal-tag {
       font-size: 9px;
       font-weight: 800;
       color: #F2A93B;
-      letter-spacing: 1px;
+      letter-spacing: 1.2px;
       display: block;
-      margin-top: -2px;
+      margin-top: 1px;
+      line-height: 1;
     }
 
     .role-badge {
       font-size: 10px;
       font-weight: 700;
-      padding: 2px 8px;
+      padding: 3px 9px;
       border-radius: 999px;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.6px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      line-height: 1.2;
     }
 
     .role-badge.doctor {
       background-color: #2E9E6B;
       color: #FFFFFF;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
     }
 
     .role-badge.clinic {
       background-color: #0F5C5C;
       color: #FFFFFF;
+      border: 1px solid rgba(255, 255, 255, 0.2);
     }
 
     .role-badge.admin {
@@ -801,6 +820,20 @@ export class PortalLayoutComponent {
         return 'Clinic Admin';
       case 'admin':
         return 'Platform Admin';
+      default:
+        return 'Portal';
+    }
+  }
+
+  getRoleBadgeLabel(): string {
+    const role = this.authService.userRole;
+    switch (role) {
+      case 'doctor':
+        return 'Doctor';
+      case 'clinic_admin':
+        return 'Clinic';
+      case 'admin':
+        return 'Admin';
       default:
         return 'Portal';
     }
