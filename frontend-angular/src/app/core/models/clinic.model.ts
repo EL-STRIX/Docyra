@@ -18,7 +18,11 @@ export interface Clinic {
   slug: string;
   description?: string;
   address: ClinicAddress;
+  city?: string;
   contact: ClinicContact;
+  contactEmail?: string;
+  contactPhone?: string;
+  subscriptionStatus?: string;
   specializationIds?: Array<{ _id: string; name: string } | string>;
   logoUrl?: string;
   images?: string[];

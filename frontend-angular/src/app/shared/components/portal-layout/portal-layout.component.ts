@@ -49,7 +49,7 @@ interface NavMenuItem {
         <nav class="sidebar-nav">
           <div class="nav-section-title">NAVIGATION</div>
           <ul>
-            <li *ngFor="let item of navItems">
+            <li *ngFor="let item of navItems; trackBy: trackByNav">
               <a
                 [routerLink]="item.path"
                 routerLinkActive="active"
@@ -491,12 +491,18 @@ export class PortalLayoutComponent {
   currentUser$ = this.authService.currentUser$;
   notifications$ = this.notificationService.notifications$;
   unreadCount$ = this.notificationService.unreadCount$;
+  navItems: NavMenuItem[] = [];
 
-  get navItems(): NavMenuItem[] {
-    const role = this.authService.userRole;
+  constructor() {
+    this.updateNavItems(this.authService.userRole);
+    this.authService.currentUser$.subscribe((user) => {
+      this.updateNavItems(user?.role);
+    });
+  }
 
+  private updateNavItems(role?: string | null): void {
     if (role === 'doctor') {
-      return [
+      this.navItems = [
         { label: 'Doctor Dashboard', path: '/doctor/dashboard', icon: 'dashboard' },
         { label: 'Availability Rules', path: '/doctor/availability', icon: 'event_available' },
         { label: 'Schedule & Calendar', path: '/doctor/schedule', icon: 'calendar_month' },
@@ -504,19 +510,15 @@ export class PortalLayoutComponent {
         { label: 'Patient History', path: '/doctor/patients', icon: 'people' },
         { label: 'Profile & Settings', path: '/doctor/profile', icon: 'person' },
       ];
-    }
-
-    if (role === 'clinic_admin') {
-      return [
+    } else if (role === 'clinic_admin') {
+      this.navItems = [
         { label: 'Clinic Dashboard', path: '/clinic/dashboard', icon: 'dashboard' },
         { label: 'Manage Doctors', path: '/clinic/doctors', icon: 'medical_services' },
         { label: 'Clinic Appointments', path: '/clinic/appointments', icon: 'event_note' },
         { label: 'Clinic Profile', path: '/clinic/profile', icon: 'domain' },
       ];
-    }
-
-    if (role === 'admin') {
-      return [
+    } else if (role === 'admin') {
+      this.navItems = [
         { label: 'Admin Dashboard', path: '/admin/dashboard', icon: 'analytics' },
         { label: 'Manage Clinics', path: '/admin/clinics', icon: 'domain' },
         { label: 'Doctor Applications', path: '/admin/applications', icon: 'verified_user' },
@@ -526,9 +528,13 @@ export class PortalLayoutComponent {
         { label: 'Analytics & Reports', path: '/admin/analytics', icon: 'trending_up' },
         { label: 'System Settings', path: '/admin/settings', icon: 'settings' },
       ];
+    } else {
+      this.navItems = [];
     }
+  }
 
-    return [];
+  trackByNav(index: number, item: NavMenuItem): string {
+    return item.path;
   }
 
   getRoleDisplay(): string {

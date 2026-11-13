@@ -114,7 +114,7 @@ import { format, isToday, parseISO } from 'date-fns';
           </div>
 
           <div *ngIf="!loading && todayAppointments.length > 0" class="appointment-list">
-            <div *ngFor="let apt of todayAppointments" class="appointment-row">
+            <div *ngFor="let apt of todayAppointments; trackBy: trackByAppointment" class="appointment-row">
               <div class="time-col">
                 <span class="slot-time">{{ apt.slotStart | portalDate:'h:mm a' }}</span>
                 <span class="slot-duration">{{ doctorProfile?.slotDurationMinutes || 30 }} mins</span>
@@ -495,6 +495,7 @@ export class DoctorDashboardComponent implements OnInit {
   currentUser$ = this.authService.currentUser$;
   doctorProfile: Doctor | null = null;
   appointments: Appointment[] = [];
+  todayAppointments: Appointment[] = [];
   loading = true;
   todayFormatted = format(new Date(), 'EEEE, MMMM d, yyyy');
 
@@ -524,6 +525,13 @@ export class DoctorDashboardComponent implements OnInit {
       next: (res) => {
         if (res.success && Array.isArray(res.data)) {
           this.appointments = res.data;
+          this.todayAppointments = this.appointments.filter((apt) => {
+            try {
+              return isToday(parseISO(apt.slotStart));
+            } catch {
+              return false;
+            }
+          });
         }
         this.loading = false;
       },
@@ -533,14 +541,8 @@ export class DoctorDashboardComponent implements OnInit {
     });
   }
 
-  get todayAppointments(): Appointment[] {
-    return this.appointments.filter((apt) => {
-      try {
-        return isToday(parseISO(apt.slotStart));
-      } catch {
-        return false;
-      }
-    });
+  trackByAppointment(index: number, apt: Appointment): string {
+    return apt._id;
   }
 
   get pendingCount(): number {

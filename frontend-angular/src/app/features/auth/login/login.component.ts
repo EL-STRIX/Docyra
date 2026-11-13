@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
@@ -397,6 +397,7 @@ export class LoginComponent implements OnInit {
   private notificationService = inject(NotificationService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  private cdr = inject(ChangeDetectorRef);
 
   loginForm: FormGroup = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
@@ -427,6 +428,7 @@ export class LoginComponent implements OnInit {
     this.authService.login(this.loginForm.value).subscribe({
       next: (data) => {
         this.loading = false;
+        this.cdr.markForCheck();
         const is2FA = data.requiresTwoFactor || (data as any)?.requires2FA;
         if (is2FA) {
           this.is2faRequired = true;
@@ -438,6 +440,7 @@ export class LoginComponent implements OnInit {
       error: (err) => {
         this.loading = false;
         this.errorMessage = err.message || err.error?.error?.message || err.error?.message || 'Invalid email or password';
+        this.cdr.markForCheck();
       },
     });
   }
@@ -451,12 +454,14 @@ export class LoginComponent implements OnInit {
     this.authService.verify2faLogin(this.twoFactorForm.value.code).subscribe({
       next: (user) => {
         this.loading = false;
+        this.cdr.markForCheck();
         this.notificationService.success('Two-factor authentication verified');
         this.authService.redirectAfterLogin(user.role);
       },
       error: (err) => {
         this.loading = false;
         this.errorMessage = err.message || err.error?.error?.message || err.error?.message || 'Invalid 2FA code. Please try again.';
+        this.cdr.markForCheck();
       },
     });
   }

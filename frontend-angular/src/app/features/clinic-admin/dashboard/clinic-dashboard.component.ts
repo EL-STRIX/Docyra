@@ -119,7 +119,7 @@ import { format, isToday, parseISO } from 'date-fns';
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let apt of todayAppointments">
+                <tr *ngFor="let apt of todayAppointments; trackBy: trackByAppointment">
                   <td class="font-bold text-teal-800">{{ apt.slotStart | portalDate:'h:mm a' }}</td>
                   <td>
                     <div class="font-bold text-neutral-900">{{ getPatientName(apt) }}</div>
@@ -149,7 +149,7 @@ import { format, isToday, parseISO } from 'date-fns';
           </div>
 
           <div *ngIf="doctors.length > 0" class="roster-list">
-            <div *ngFor="let doc of doctors" class="roster-item">
+            <div *ngFor="let doc of doctors; trackBy: trackByDoctor" class="roster-item">
               <div class="doc-avatar">Dr</div>
               <div class="doc-info">
                 <span class="doc-name">{{ doc.title || 'Dr.' }} {{ doc.name || 'Practitioner' }}</span>
@@ -418,6 +418,7 @@ export class ClinicDashboardComponent implements OnInit {
   clinicProfile: Clinic | null = null;
   doctors: Doctor[] = [];
   appointments: Appointment[] = [];
+  todayAppointments: Appointment[] = [];
   loading = true;
   todayFormatted = format(new Date(), 'EEEE, MMMM d, yyyy');
 
@@ -458,6 +459,13 @@ export class ClinicDashboardComponent implements OnInit {
       next: (res) => {
         if (res.success && Array.isArray(res.data)) {
           this.appointments = res.data;
+          this.todayAppointments = this.appointments.filter((apt) => {
+            try {
+              return isToday(parseISO(apt.slotStart));
+            } catch {
+              return false;
+            }
+          });
         }
         this.loading = false;
       },
@@ -467,14 +475,12 @@ export class ClinicDashboardComponent implements OnInit {
     });
   }
 
-  get todayAppointments(): Appointment[] {
-    return this.appointments.filter((apt) => {
-      try {
-        return isToday(parseISO(apt.slotStart));
-      } catch {
-        return false;
-      }
-    });
+  trackByAppointment(index: number, apt: Appointment): string {
+    return apt._id;
+  }
+
+  trackByDoctor(index: number, doc: Doctor): string {
+    return doc._id;
   }
 
   getPatientName(apt: Appointment): string {

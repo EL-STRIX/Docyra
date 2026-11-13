@@ -122,9 +122,9 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
                 <tr *ngFor="let c of clinics | slice:0:5">
                   <td>
                     <div class="font-bold text-neutral-900 text-sm">{{ c.name }}</div>
-                    <div class="text-xs text-neutral-500">{{ c.contact.phone }}</div>
+                    <div class="text-xs text-neutral-500">{{ c.contactPhone || c.contact.phone || 'N/A' }}</div>
                   </td>
-                  <td class="text-sm font-semibold text-neutral-700">{{ c.address.city || 'India' }}</td>
+                  <td class="text-sm font-semibold text-neutral-700">{{ c.city || c.address.city || 'India' }}</td>
                   <td>
                     <app-status-badge [status]="c.isActive ? 'active' : 'suspended'"></app-status-badge>
                   </td>
