@@ -208,11 +208,11 @@ class AuthService {
       );
     }
 
-    if (user.status === USER_STATUS.DEACTIVATED) {
+    if (user.status === USER_STATUS.DEACTIVATED || user.status === USER_STATUS.SUSPENDED) {
       throw new AppError(
         ERROR_CODES.ACCOUNT_DEACTIVATED,
         403,
-        'Your account has been deactivated. Please contact support.'
+        'Your account has been suspended or deactivated. Please contact support.'
       );
     }
 

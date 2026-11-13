@@ -20,6 +20,7 @@ import {
   triggerSlotGenerationJob,
 } from '../../controllers/settings.controller.js';
 import { getAuditLogs } from '../../controllers/audit.controller.js';
+import { listUsers, updateUserStatus, getUserDetail } from '../../controllers/user.controller.js';
 import { auditLogger } from '../../middleware/auditLogger.js';
 import { authenticate } from '../../middleware/auth.js';
 import { requireRole } from '../../middleware/rbac.js';
@@ -63,5 +64,10 @@ router.post('/jobs/generate-slots', auditLogger('SLOT_GENERATION_TRIGGERED', 'Ap
 
 // Compliance & Security Audit Logs
 router.get('/audit-logs', getAuditLogs);
+
+// Patient Management (Admin alias)
+router.get('/patients', listUsers);
+router.get('/patients/:id', getUserDetail);
+router.patch('/patients/:id/status', auditLogger('PATIENT_STATUS_UPDATE', 'User'), updateUserStatus);
 
 export default router;

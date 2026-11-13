@@ -135,6 +135,13 @@ export class AdminService {
     );
   }
 
+  getPatientDetail(userId: string): Observable<ApiResponse<{ user: User; dependents: any[]; appointments: any[] }>> {
+    return this.http.get<ApiResponse<{ user: User; dependents: any[]; appointments: any[] }>>(
+      `${environment.apiBaseUrl}/users/${userId}`,
+      { withCredentials: true }
+    );
+  }
+
   // Audit Logs
   getAuditLogs(params?: PaginationParams): Observable<ApiResponse<AuditLogEntry[]>> {
     let httpParams = new HttpParams();

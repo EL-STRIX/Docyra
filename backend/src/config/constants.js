@@ -10,6 +10,7 @@ export const USER_STATUS = {
   ACTIVE: 'active',
   LOCKED: 'locked',
   DEACTIVATED: 'deactivated',
+  SUSPENDED: 'suspended',
 };
 
 export const CLINIC_SUBSCRIPTION_STATUS = {

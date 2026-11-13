@@ -15,6 +15,10 @@ export interface User {
   phone?: string;
   isEmailVerified: boolean;
   isTwoFactorEnabled: boolean;
+  twoFactorEnabled?: boolean;
+  emailVerifiedAt?: string;
+  appointmentsCount?: number;
+  dependentsCount?: number;
   clinicId?: string; // Set for clinic_admin and clinic-affiliated doctors
   status?: 'active' | 'suspended' | 'pending';
   timezone?: string;
