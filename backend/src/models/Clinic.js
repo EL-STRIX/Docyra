@@ -20,6 +20,21 @@ const clinicSchema = new mongoose.Schema(
       required: [true, 'City is required'],
       trim: true,
     },
+    state: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    postalCode: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    country: {
+      type: String,
+      trim: true,
+      default: 'India',
+    },
     contactEmail: {
       type: String,
       required: [true, 'Contact email is required'],
@@ -31,6 +46,11 @@ const clinicSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Contact phone is required'],
       trim: true,
+    },
+    website: {
+      type: String,
+      trim: true,
+      default: '',
     },
     subscriptionStatus: {
       type: String,

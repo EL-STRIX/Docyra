@@ -19,9 +19,13 @@ export interface Clinic {
   description?: string;
   address: ClinicAddress;
   city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
   contact: ClinicContact;
   contactEmail?: string;
   contactPhone?: string;
+  website?: string;
   subscriptionStatus?: string;
   specializationIds?: Array<{ _id: string; name: string } | string>;
   logoUrl?: string;
