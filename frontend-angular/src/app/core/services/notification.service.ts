@@ -21,10 +21,29 @@ export class NotificationService {
   private snackBar = inject(MatSnackBar);
   private socket: Socket | null = null;
 
-  private notificationsSubject = new BehaviorSubject<PortalNotification[]>([]);
+  private defaultNotifications: PortalNotification[] = [
+    {
+      id: 'ntf-1',
+      title: 'Clinic Workspace Synchronized',
+      message: 'Unified physician roster and appointment schedule are active.',
+      type: 'success',
+      timestamp: new Date(Date.now() - 1000 * 60 * 12),
+      read: false,
+    },
+    {
+      id: 'ntf-2',
+      title: 'Appointment Service Ready',
+      message: 'Real-time patient bookings and status changes are synced with the clinic.',
+      type: 'info',
+      timestamp: new Date(Date.now() - 1000 * 60 * 55),
+      read: true,
+    },
+  ];
+
+  private notificationsSubject = new BehaviorSubject<PortalNotification[]>(this.defaultNotifications);
   public notifications$: Observable<PortalNotification[]> = this.notificationsSubject.asObservable();
 
-  private unreadCountSubject = new BehaviorSubject<number>(0);
+  private unreadCountSubject = new BehaviorSubject<number>(1);
   public unreadCount$: Observable<number> = this.unreadCountSubject.asObservable();
 
   /**
@@ -95,10 +114,24 @@ export class NotificationService {
     this.unreadCountSubject.next(list.filter((n) => !n.read).length);
   }
 
+  markAsRead(id: string): void {
+    const updated = this.notificationsSubject.value.map((n) =>
+      n.id === id ? { ...n, read: true } : n
+    );
+    this.notificationsSubject.next(updated);
+    this.unreadCountSubject.next(updated.filter((n) => !n.read).length);
+  }
+
   markAllAsRead(): void {
     const updated = this.notificationsSubject.value.map((n) => ({ ...n, read: true }));
     this.notificationsSubject.next(updated);
     this.unreadCountSubject.next(0);
+  }
+
+  deleteNotification(id: string): void {
+    const updated = this.notificationsSubject.value.filter((n) => n.id !== id);
+    this.notificationsSubject.next(updated);
+    this.unreadCountSubject.next(updated.filter((n) => !n.read).length);
   }
 
   clearNotifications(): void {

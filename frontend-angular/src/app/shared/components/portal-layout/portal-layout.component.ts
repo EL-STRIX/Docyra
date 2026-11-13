@@ -99,24 +99,83 @@ interface NavMenuItem {
               </mat-icon>
             </button>
 
-            <mat-menu #notificationMenu="matMenu" class="notification-menu-panel">
-              <div class="notification-header" (click)="$event.stopPropagation()">
-                <h3>Notifications</h3>
-                <button mat-button color="primary" (click)="markAllAsRead()">Mark all as read</button>
-              </div>
-              <mat-divider></mat-divider>
-              <div class="notification-list" (click)="$event.stopPropagation()">
-                <div *ngIf="(notifications$ | async)?.length === 0" class="no-notifications">
-                  No new notifications
+            <mat-menu #notificationMenu="matMenu" class="custom-notification-menu" xPosition="before">
+              <div class="notification-panel" (click)="$event.stopPropagation()">
+                <!-- Notification Header -->
+                <div class="notification-header">
+                  <div class="header-left">
+                    <h3 class="panel-title">Notifications</h3>
+                    <span *ngIf="(unreadCount$ | async) as count" class="unread-pill">
+                      {{ count }} new
+                    </span>
+                  </div>
+                  <div class="header-actions">
+                    <button
+                      *ngIf="(unreadCount$ | async) as count"
+                      mat-button
+                      class="mark-all-btn"
+                      (click)="markAllAsRead()"
+                    >
+                      <mat-icon class="action-icon">done_all</mat-icon>
+                      <span>Mark all read</span>
+                    </button>
+                  </div>
                 </div>
-                <div
-                  *ngFor="let ntf of notifications$ | async"
-                  class="notification-item"
-                  [ngClass]="{ unread: !ntf.read }"
-                >
-                  <div class="ntf-title">{{ ntf.title }}</div>
-                  <div class="ntf-msg">{{ ntf.message }}</div>
-                  <div class="ntf-time">{{ ntf.timestamp | date:'shortTime' }}</div>
+
+                <div class="panel-divider"></div>
+
+                <!-- Notifications List -->
+                <div class="notification-list">
+                  <div *ngIf="(notifications$ | async)?.length === 0" class="no-notifications">
+                    <div class="empty-bell-icon">
+                      <mat-icon>notifications_none</mat-icon>
+                    </div>
+                    <h4>No notifications right now</h4>
+                    <p>You're all caught up with your clinic schedule and appointments.</p>
+                  </div>
+
+                  <div
+                    *ngFor="let ntf of notifications$ | async"
+                    class="notification-item"
+                    [ngClass]="{ unread: !ntf.read }"
+                    (click)="markAsRead(ntf.id)"
+                  >
+                    <div class="ntf-icon-wrap" [ngClass]="ntf.type || 'info'">
+                      <mat-icon *ngIf="ntf.type === 'success'">check_circle</mat-icon>
+                      <mat-icon *ngIf="ntf.type === 'warning'">warning</mat-icon>
+                      <mat-icon *ngIf="ntf.type === 'error'">error</mat-icon>
+                      <mat-icon *ngIf="!ntf.type || ntf.type === 'info'">event_available</mat-icon>
+                    </div>
+
+                    <div class="ntf-content">
+                      <div class="ntf-header-row">
+                        <span class="ntf-title">{{ ntf.title }}</span>
+                        <span *ngIf="!ntf.read" class="unread-dot"></span>
+                      </div>
+                      <p class="ntf-msg">{{ ntf.message }}</p>
+                      <div class="ntf-footer-row">
+                        <span class="ntf-time">
+                          <mat-icon class="clock-icon">schedule</mat-icon>
+                          {{ formatNotificationTime(ntf.timestamp) }}
+                        </span>
+                        <button
+                          mat-icon-button
+                          class="delete-ntf-btn"
+                          title="Dismiss"
+                          (click)="deleteNotification($event, ntf.id)"
+                        >
+                          <mat-icon>close</mat-icon>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="panel-footer" *ngIf="((notifications$ | async)?.length || 0) > 0">
+                  <button mat-button class="clear-all-btn" (click)="clearAll()">
+                    Clear all notifications
+                  </button>
                 </div>
               </div>
             </mat-menu>
@@ -150,100 +209,95 @@ interface NavMenuItem {
     }
 
     .portal-sidebar {
-      width: 260px;
-      background-color: #0B4747;
+      width: 250px;
+      background-color: #1A2E2E;
       color: #FFFFFF;
       display: flex;
       flex-direction: column;
       flex-shrink: 0;
-      position: sticky;
-      top: 0;
-      height: 100vh;
-      box-shadow: 2px 0 12px rgba(0, 0, 0, 0.08);
-      z-index: 20;
+      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
     }
 
     .sidebar-header {
-      padding: 24px 20px;
+      padding: 20px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
 
     .brand-logo {
       display: flex;
       align-items: center;
-      gap: 12px;
-      margin-bottom: 12px;
+      gap: 10px;
     }
 
     .logo-mark {
-      width: 36px;
-      height: 36px;
-      border-radius: 10px;
+      width: 32px;
+      height: 32px;
       background-color: #F2A93B;
       color: #1A2E2E;
+      font-weight: 900;
+      font-size: 18px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 20px;
-      font-weight: 800;
+      border-radius: 8px;
     }
 
     .brand-name {
       font-size: 18px;
       font-weight: 800;
       letter-spacing: -0.5px;
-      display: block;
       color: #FFFFFF;
     }
 
     .portal-tag {
       font-size: 9px;
-      font-weight: 700;
-      letter-spacing: 1.5px;
-      color: #A0C6C6;
+      font-weight: 800;
+      color: #F2A93B;
+      letter-spacing: 1px;
       display: block;
+      margin-top: -2px;
     }
 
     .role-badge {
-      display: inline-block;
-      padding: 4px 10px;
-      border-radius: 999px;
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
 
     .role-badge.doctor {
-      background-color: rgba(242, 169, 59, 0.2);
-      color: #F2A93B;
-      border: 1px solid rgba(242, 169, 59, 0.4);
+      background-color: #2E9E6B;
+      color: #FFFFFF;
     }
 
     .role-badge.clinic {
-      background-color: rgba(46, 158, 107, 0.2);
-      color: #6EE7B7;
-      border: 1px solid rgba(46, 158, 107, 0.4);
+      background-color: #0F5C5C;
+      color: #FFFFFF;
     }
 
     .role-badge.admin {
-      background-color: rgba(217, 83, 79, 0.2);
-      color: #FCA5A5;
-      border: 1px solid rgba(217, 83, 79, 0.4);
+      background-color: #F2A93B;
+      color: #1A2E2E;
     }
 
     .sidebar-nav {
       flex: 1;
-      padding: 20px 12px;
+      padding: 20px 14px;
       overflow-y: auto;
     }
 
     .nav-section-title {
       font-size: 10px;
       font-weight: 800;
-      letter-spacing: 1.5px;
-      color: #7AA5A5;
-      padding: 0 12px 8px;
+      color: #8BA8A8;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+      padding-left: 10px;
     }
 
     .sidebar-nav ul {
@@ -430,57 +484,258 @@ interface NavMenuItem {
       box-sizing: border-box;
     }
 
+    /* Notification Panel Styles */
+    .notification-panel {
+      width: 380px;
+      max-width: 90vw;
+      background: #FFFFFF;
+      border-radius: 14px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+      overflow: hidden;
+    }
+
     .notification-header {
-      padding: 12px 16px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #FFFFFF;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .panel-title {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 800;
+      color: #1A2E2E;
+    }
+
+    .unread-pill {
+      font-size: 10px;
+      font-weight: 700;
+      background: #E6F4F1;
+      color: #0F5C5C;
+      padding: 2px 8px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .mark-all-btn {
+      font-size: 11px !important;
+      font-weight: 700 !important;
+      color: #0F5C5C !important;
+      height: 28px !important;
+      line-height: 28px !important;
+      padding: 0 8px !important;
+    }
+
+    .action-icon {
+      font-size: 15px;
+      width: 15px;
+      height: 15px;
+      margin-right: 4px;
+    }
+
+    .panel-divider {
+      height: 1px;
+      background-color: #E7E5E0;
+    }
+
+    .notification-list {
+      max-height: 380px;
+      overflow-y: auto;
+    }
+
+    .no-notifications {
+      padding: 40px 24px;
+      text-align: center;
+    }
+
+    .empty-bell-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: #F4F7F6;
+      color: #A0C6C6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 12px;
+    }
+
+    .empty-bell-icon mat-icon {
+      font-size: 28px;
+      width: 28px;
+      height: 28px;
+    }
+
+    .no-notifications h4 {
+      font-size: 14px;
+      font-weight: 700;
+      color: #1A2E2E;
+      margin: 0 0 4px;
+    }
+
+    .no-notifications p {
+      font-size: 12px;
+      color: #5C6B6B;
+      margin: 0;
+    }
+
+    .notification-item {
+      padding: 14px 18px;
+      border-bottom: 1px solid #F1F3F5;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      cursor: pointer;
+      transition: background 0.15s ease;
+      position: relative;
+    }
+
+    .notification-item:hover {
+      background-color: #FAFAF8;
+    }
+
+    .notification-item.unread {
+      background-color: #F4FAF9;
+      border-left: 3px solid #0F5C5C;
+    }
+
+    .ntf-icon-wrap {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .ntf-icon-wrap mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+
+    .ntf-icon-wrap.info {
+      background: #E6F4F1;
+      color: #0F5C5C;
+    }
+
+    .ntf-icon-wrap.success {
+      background: #ECFDF5;
+      color: #059669;
+    }
+
+    .ntf-icon-wrap.warning {
+      background: #FEF6EC;
+      color: #D97706;
+    }
+
+    .ntf-icon-wrap.error {
+      background: #FEF2F2;
+      color: #DC2626;
+    }
+
+    .ntf-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .ntf-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .ntf-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1A2E2E;
+    }
+
+    .unread-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background-color: #0F5C5C;
+      flex-shrink: 0;
+    }
+
+    .ntf-msg {
+      font-size: 12px;
+      color: #5C6B6B;
+      line-height: 1.4;
+      margin: 3px 0 6px 0;
+    }
+
+    .ntf-footer-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
 
-    .notification-header h3 {
-      margin: 0;
-      font-size: 14px;
-      font-weight: 700;
-    }
-
-    .notification-list {
-      max-height: 320px;
-      overflow-y: auto;
-      width: 320px;
-    }
-
-    .no-notifications {
-      padding: 24px;
-      text-align: center;
-      color: #5C6B6B;
-      font-size: 12px;
-    }
-
-    .notification-item {
-      padding: 12px 16px;
-      border-bottom: 1px solid #F1F3F5;
-    }
-
-    .notification-item.unread {
-      background-color: #F0FDF4;
-    }
-
-    .ntf-title {
-      font-size: 12px;
-      font-weight: 700;
-      color: #1A2E2E;
-    }
-
-    .ntf-msg {
-      font-size: 11px;
-      color: #5C6B6B;
-      margin-top: 2px;
-    }
-
     .ntf-time {
       font-size: 10px;
-      color: #9CA3AF;
-      margin-top: 4px;
+      color: #8BA8A8;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-weight: 600;
+    }
+
+    .clock-icon {
+      font-size: 12px;
+      width: 12px;
+      height: 12px;
+    }
+
+    .delete-ntf-btn {
+      width: 22px !important;
+      height: 22px !important;
+      line-height: 22px !important;
+      color: #A0C6C6 !important;
+      opacity: 0.6;
+      transition: opacity 0.2s;
+    }
+
+    .delete-ntf-btn:hover {
+      opacity: 1;
+      color: #E05252 !important;
+    }
+
+    .delete-ntf-btn mat-icon {
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+      line-height: 14px;
+    }
+
+    .panel-footer {
+      padding: 8px 16px;
+      background: #FAFAF8;
+      border-top: 1px solid #E7E5E0;
+      text-align: center;
+    }
+
+    .clear-all-btn {
+      font-size: 11px !important;
+      font-weight: 600 !important;
+      color: #8BA8A8 !important;
+      width: 100%;
+    }
+
+    .clear-all-btn:hover {
+      color: #E05252 !important;
     }
   `],
 })
@@ -567,6 +822,35 @@ export class PortalLayoutComponent {
 
   markAllAsRead(): void {
     this.notificationService.markAllAsRead();
+  }
+
+  markAsRead(id: string): void {
+    this.notificationService.markAsRead(id);
+  }
+
+  deleteNotification(event: MouseEvent, id: string): void {
+    event.stopPropagation();
+    this.notificationService.deleteNotification(id);
+  }
+
+  clearAll(): void {
+    this.notificationService.clearNotifications();
+  }
+
+  formatNotificationTime(timestamp: Date | string): string {
+    try {
+      const d = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
+      const now = new Date();
+      const diffMs = now.getTime() - d.getTime();
+      const diffMins = Math.floor(diffMs / 60000);
+      if (diffMins < 1) return 'Just now';
+      if (diffMins < 60) return `${diffMins}m ago`;
+      const diffHours = Math.floor(diffMins / 60);
+      if (diffHours < 24) return `${diffHours}h ago`;
+      return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+    } catch {
+      return '';
+    }
   }
 
   logout(): void {

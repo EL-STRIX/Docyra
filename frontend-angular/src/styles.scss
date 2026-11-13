@@ -47,13 +47,39 @@ html, body {
   }
 }
 
-.btn-portal-accent {
-  background-color: $brand-accent !important;
-  color: $text-primary !important;
-  border-radius: 8px !important;
-  font-weight: 600 !important;
-  transition: all 0.2s ease;
-  &:hover {
-    background-color: $brand-accent-hover !important;
+// Notification Menu Panel Overrides
+.custom-notification-menu.mat-mdc-menu-panel {
+  max-width: 420px !important;
+  width: 380px !important;
+  border-radius: 14px !important;
+  padding: 0 !important;
+  background: #FFFFFF !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+  border: 1px solid #E7E5E0 !important;
+  overflow: hidden !important;
+
+  .mat-mdc-menu-content {
+    padding: 0 !important;
   }
+}
+
+// Toast notification styles
+.toast-success {
+  --mdc-snackbar-container-color: #065F46 !important;
+  --mdc-snackbar-supporting-text-color: #FFFFFF !important;
+}
+
+.toast-error {
+  --mdc-snackbar-container-color: #991B1B !important;
+  --mdc-snackbar-supporting-text-color: #FFFFFF !important;
+}
+
+.toast-info {
+  --mdc-snackbar-container-color: #0F5C5C !important;
+  --mdc-snackbar-supporting-text-color: #FFFFFF !important;
+}
+
+.toast-warning {
+  --mdc-snackbar-container-color: #92400E !important;
+  --mdc-snackbar-supporting-text-color: #FFFFFF !important;
 }
