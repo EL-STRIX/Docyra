@@ -81,6 +81,13 @@ const doctorProfileSchema = new mongoose.Schema(
       type: Boolean,
       default: false, // If true, doctor manually accepts/rejects appointments
     },
+    unavailabilityOverrides: [
+      {
+        date: { type: String, required: true },
+        reason: { type: String, default: 'Emergency' },
+        declaredAt: { type: Date, default: Date.now },
+      },
+    ],
   },
   {
     timestamps: true,

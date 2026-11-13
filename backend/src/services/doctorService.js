@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt';
 import mongoose from 'mongoose';
-import { User, DoctorProfile, Clinic, Specialization } from '../models/index.js';
+import { User, DoctorProfile, Clinic, Specialization, AvailabilityRule } from '../models/index.js';
 import { ROLES, USER_STATUS, ERROR_CODES } from '../config/constants.js';
 import { env } from '../config/env.js';
 import { NotFoundError, ConflictError, AppError } from '../utils/AppError.js';
@@ -180,6 +180,22 @@ class DoctorService {
       throw new NotFoundError('Doctor profile not found for current user', ERROR_CODES.DOCTOR_NOT_FOUND);
     }
 
+    const rules = await AvailabilityRule.find({ doctorId: doctor._id, isActive: true })
+      .sort({ dayOfWeek: 1, startTime: 1 })
+      .lean();
+
+    const dayMap = {};
+    for (let i = 0; i <= 6; i++) {
+      dayMap[i] = { dayOfWeek: i, isActive: false, slots: [] };
+    }
+    let slotDurationMinutes = 30;
+    for (const r of rules) {
+      if (r.slotDurationMinutes) slotDurationMinutes = r.slotDurationMinutes;
+      dayMap[r.dayOfWeek].isActive = true;
+      dayMap[r.dayOfWeek].slots.push({ start: r.startTime, end: r.endTime });
+    }
+    const weeklySchedule = Object.values(dayMap);
+
     return {
       ...doctor,
       name: doctor.userId?.name || 'Doctor',
@@ -188,6 +204,9 @@ class DoctorService {
       profilePhotoUrl: doctor.userId?.profilePhotoUrl || null,
       experienceYears: doctor.yearsExperience ?? doctor.experienceYears ?? 0,
       yearsExperience: doctor.yearsExperience ?? doctor.experienceYears ?? 0,
+      weeklySchedule,
+      slotDurationMinutes,
+      autoAcceptAppointments: !doctor.manualApprovalMode,
     };
   }
 
@@ -209,6 +228,22 @@ class DoctorService {
       throw new NotFoundError('Doctor profile not found', ERROR_CODES.DOCTOR_NOT_FOUND);
     }
 
+    const rules = await AvailabilityRule.find({ doctorId: doctor._id, isActive: true })
+      .sort({ dayOfWeek: 1, startTime: 1 })
+      .lean();
+
+    const dayMap = {};
+    for (let i = 0; i <= 6; i++) {
+      dayMap[i] = { dayOfWeek: i, isActive: false, slots: [] };
+    }
+    let slotDurationMinutes = 30;
+    for (const r of rules) {
+      if (r.slotDurationMinutes) slotDurationMinutes = r.slotDurationMinutes;
+      dayMap[r.dayOfWeek].isActive = true;
+      dayMap[r.dayOfWeek].slots.push({ start: r.startTime, end: r.endTime });
+    }
+    const weeklySchedule = Object.values(dayMap);
+
     return {
       ...doctor,
       name: doctor.userId?.name || 'Doctor',
@@ -217,6 +252,9 @@ class DoctorService {
       profilePhotoUrl: doctor.userId?.profilePhotoUrl || null,
       experienceYears: doctor.yearsExperience ?? doctor.experienceYears ?? 0,
       yearsExperience: doctor.yearsExperience ?? doctor.experienceYears ?? 0,
+      weeklySchedule,
+      slotDurationMinutes,
+      autoAcceptAppointments: !doctor.manualApprovalMode,
     };
   }
 
@@ -484,6 +522,9 @@ class DoctorService {
     if (updateData.experienceYears !== undefined) doctorProfile.yearsExperience = updateData.experienceYears;
     if (updateData.licenseNumber !== undefined) doctorProfile.licenseNumber = updateData.licenseNumber;
     if (updateData.clinicAddress !== undefined) doctorProfile.clinicAddress = updateData.clinicAddress;
+    if (updateData.autoAcceptAppointments !== undefined) {
+      doctorProfile.manualApprovalMode = !updateData.autoAcceptAppointments;
+    }
     if (updateData.manualApprovalMode !== undefined) doctorProfile.manualApprovalMode = updateData.manualApprovalMode;
     if (updateData.status !== undefined) {
       doctorProfile.status = updateData.status;
@@ -496,7 +537,7 @@ class DoctorService {
     }
 
     await doctorProfile.save();
-    return doctorProfile;
+    return this.getDoctorProfile(doctorProfile._id);
   }
 }
 

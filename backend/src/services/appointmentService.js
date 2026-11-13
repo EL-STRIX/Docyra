@@ -278,22 +278,44 @@ class AppointmentService {
     }
 
     // Access control
-    const isPatientOwner = currentUser.role === ROLES.PATIENT && appointment.patientId._id.toString() === currentUser.id;
-    const isDoctorOwner =
-      currentUser.role === ROLES.DOCTOR &&
-      appointment.doctorId?.userId?._id?.toString() === currentUser.id;
+    const currentUserIdStr = (currentUser._id || currentUser.id || '').toString();
+    const docUserIdStr = (
+      appointment.doctorId?.userId?._id ||
+      appointment.doctorId?.userId ||
+      ''
+    ).toString();
+    const isPatientOwner = currentUser.role === ROLES.PATIENT && (appointment.patientId?._id || appointment.patientId)?.toString() === currentUserIdStr;
+    const isDoctorOwner = currentUser.role === ROLES.DOCTOR && docUserIdStr === currentUserIdStr;
     const isClinicAdmin =
       currentUser.role === ROLES.CLINIC_ADMIN &&
       appointment.clinicId &&
       currentUser.clinicId &&
-      appointment.clinicId._id.toString() === currentUser.clinicId.toString();
+      (appointment.clinicId._id || appointment.clinicId).toString() === currentUser.clinicId.toString();
     const isPlatformAdmin = currentUser.role === ROLES.ADMIN;
 
     if (!isPatientOwner && !isDoctorOwner && !isClinicAdmin && !isPlatformAdmin) {
       throw new ForbiddenError('You do not have permission to view this appointment', ERROR_CODES.FORBIDDEN);
     }
 
-    return appointment;
+    const aptObj = appointment.toObject ? appointment.toObject() : appointment;
+    const bookedFor = aptObj.bookedFor || (aptObj.bookedForType === 'dependent' && aptObj.bookedForId ? {
+      name: aptObj.bookedForId.name,
+      relationship: aptObj.bookedForId.relationship,
+      dateOfBirth: aptObj.bookedForId.dateOfBirth,
+      type: 'dependent',
+    } : {
+      name: aptObj.patientId?.name || 'Patient',
+      type: 'self',
+    });
+    const consultationFee = aptObj.consultationFee || aptObj.doctorId?.consultationFee || 500;
+    const feeCurrency = aptObj.feeCurrency || aptObj.doctorId?.feeCurrency || 'INR';
+
+    return {
+      ...aptObj,
+      bookedFor,
+      consultationFee,
+      feeCurrency,
+    };
   }
 
   /**
@@ -567,15 +589,16 @@ class AppointmentService {
   /**
    * Emergency unavailability: bulk cancels all today's confirmed/pending appointments
    */
-  async emergencyUnavailable(doctorId, currentUser) {
+  async emergencyUnavailable(doctorId, currentUser, data = {}) {
     const doctor = await DoctorProfile.findById(doctorId);
     if (!doctor) {
       throw new NotFoundError('Doctor not found', ERROR_CODES.DOCTOR_NOT_FOUND);
     }
 
     // Check authorization
+    const currentUserIdStr = (currentUser._id || currentUser.id || '').toString();
     const isDoctorOwner =
-      currentUser.role === ROLES.DOCTOR && doctor.userId.toString() === currentUser.id;
+      currentUser.role === ROLES.DOCTOR && doctor.userId.toString() === currentUserIdStr;
     const isClinicAdmin =
       currentUser.role === ROLES.CLINIC_ADMIN &&
       doctor.clinicId &&
@@ -590,15 +613,40 @@ class AppointmentService {
       );
     }
 
-    const now = new Date();
-    const startOfToday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
-    const endOfToday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59, 999));
+    const { date, reason } = data;
+    let targetStart, targetEnd, dateStr;
+    if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      targetStart = new Date(`${date}T00:00:00.000Z`);
+      targetEnd = new Date(`${date}T23:59:59.999Z`);
+      dateStr = date;
+    } else {
+      const now = new Date();
+      targetStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
+      targetEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59, 999));
+      dateStr = now.toISOString().split('T')[0];
+    }
 
-    // Find all today's appointments
+    const cancellationReason = reason || 'Doctor emergency unavailability';
+
+    // Store override in doctor profile
+    if (!doctor.unavailabilityOverrides) {
+      doctor.unavailabilityOverrides = [];
+    }
+    doctor.unavailabilityOverrides.unshift({
+      date: dateStr,
+      reason: cancellationReason,
+      declaredAt: new Date(),
+    });
+    if (doctor.unavailabilityOverrides.length > 20) {
+      doctor.unavailabilityOverrides = doctor.unavailabilityOverrides.slice(0, 20);
+    }
+    await doctor.save();
+
+    // Find all matching appointments
     const affectedAppointments = await Appointment.find({
       doctorId: doctor._id,
       status: { $in: [APPOINTMENT_STATUS.CONFIRMED, APPOINTMENT_STATUS.PENDING] },
-      slotStart: { $gte: startOfToday, $lte: endOfToday },
+      slotStart: { $gte: targetStart, $lte: targetEnd },
     });
 
     const appointmentIds = affectedAppointments.map((a) => a._id);
@@ -611,7 +659,7 @@ class AppointmentService {
           $set: {
             status: APPOINTMENT_STATUS.CANCELLED,
             cancelledBy: 'doctor-emergency',
-            cancellationReason: 'Doctor emergency unavailability',
+            cancellationReason,
             cancelledAt: new Date(),
           },
         }
@@ -625,11 +673,13 @@ class AppointmentService {
     }
 
     logger.info(
-      `Emergency unavailability triggered for Doctor ${doctor._id}. Cancelled ${appointmentIds.length} appointments today.`
+      `Emergency unavailability triggered for Doctor ${doctor._id} on ${dateStr}. Cancelled ${appointmentIds.length} appointments.`
     );
 
     return {
       doctorId: doctor._id,
+      date: dateStr,
+      reason: cancellationReason,
       affectedAppointmentsCount: appointmentIds.length,
       cancelledAppointmentIds: appointmentIds,
     };

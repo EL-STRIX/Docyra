@@ -17,10 +17,28 @@ export const availabilityRuleItemSchema = z.object({
   path: ['endTime'],
 });
 
+export const weeklyScheduleSlotSchema = z.object({
+  start: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Invalid start time format (HH:mm)'),
+  end: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Invalid end time format (HH:mm)'),
+});
+
+export const dayScheduleItemSchema = z.object({
+  dayOfWeek: z.number().int().min(0).max(6),
+  isActive: z.boolean(),
+  slots: z.array(weeklyScheduleSlotSchema).optional(),
+});
+
 export const setAvailabilitySchema = z.object({
   body: z.object({
-    rules: z.array(availabilityRuleItemSchema).min(1, 'At least one availability rule is required'),
-  }),
+    rules: z.array(availabilityRuleItemSchema).optional(),
+    weeklySchedule: z.array(dayScheduleItemSchema).optional(),
+    slotDurationMinutes: z.number().int().min(10).max(120).optional(),
+  }).refine(
+    (data) => (Array.isArray(data.rules) && data.rules.length > 0) || (Array.isArray(data.weeklySchedule) && data.weeklySchedule.length > 0),
+    {
+      message: 'At least one availability rule or weekly schedule configuration is required',
+    }
+  ),
 });
 
 export const getDoctorSlotsSchema = z.object({

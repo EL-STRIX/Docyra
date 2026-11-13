@@ -124,13 +124,13 @@ import { isToday, isTomorrow, isPast, parseISO } from 'date-fns';
 
                 <td class="patient-cell">
                   <div class="patient-title">
-                    <span class="font-bold text-neutral-900">{{ apt.bookedFor.name || 'Patient' }}</span>
-                    <span *ngIf="apt.bookedFor.type === 'dependent'" class="dependent-tag">
-                      {{ apt.bookedFor.relationship || 'Family' }}
+                    <span class="font-bold text-neutral-900">{{ getPatientName(apt) }}</span>
+                    <span *ngIf="apt.bookedFor?.type === 'dependent'" class="dependent-tag">
+                      {{ apt.bookedFor?.relationship || 'Family' }}
                     </span>
                   </div>
-                  <div class="text-xs text-neutral-500" *ngIf="apt.bookedFor.dateOfBirth">
-                    DOB: {{ apt.bookedFor.dateOfBirth | portalDate:'dd MMM yyyy' }}
+                  <div class="text-xs text-neutral-500" *ngIf="apt.bookedFor?.dateOfBirth">
+                    DOB: {{ apt.bookedFor?.dateOfBirth | portalDate:'dd MMM yyyy' }}
                   </div>
                 </td>
 
@@ -376,10 +376,10 @@ export class ScheduleCalendarComponent implements OnInit {
 
     // Search filter
     if (this.searchTerm.trim()) {
-      const term = this.searchTerm.toLowerCase();
+      const term = this.searchTerm.toLowerCase().trim();
       result = result.filter(
         (a) =>
-          a.bookedFor?.name?.toLowerCase().includes(term) ||
+          this.getPatientName(a).toLowerCase().includes(term) ||
           a.reasonForVisit?.toLowerCase().includes(term)
       );
     }
@@ -425,6 +425,14 @@ export class ScheduleCalendarComponent implements OnInit {
     }
 
     this.filteredAppointments = result;
+  }
+
+  getPatientName(apt: Appointment): string {
+    if (apt?.bookedFor?.name) return apt.bookedFor.name;
+    if (typeof apt?.patientId === 'object' && apt?.patientId && (apt.patientId as any).name) {
+      return (apt.patientId as any).name;
+    }
+    return 'Patient';
   }
 
   markCompleted(id: string): void {

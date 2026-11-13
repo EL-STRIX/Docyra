@@ -42,11 +42,11 @@ router.get('/:id/slots', validate(getDoctorSlotsSchema), getDoctorSlots);
 // Public: Apply as independent practitioner with license document upload
 router.post('/apply', uploadMiddleware, validate(applyDoctorSchema), applyIndependentDoctor);
 
-// Doctor: Update own profile
+// Doctor / Clinic Admin / Platform Admin: Update profile
 router.patch('/me', authenticate, requireRole(ROLES.DOCTOR), updateMyProfile);
 router.put('/me', authenticate, requireRole(ROLES.DOCTOR), updateMyProfile);
-router.patch('/:id', authenticate, requireRole(ROLES.DOCTOR, ROLES.ADMIN), updateProfile);
-router.put('/:id', authenticate, requireRole(ROLES.DOCTOR, ROLES.ADMIN), updateProfile);
+router.patch('/:id', authenticate, requireRole(ROLES.DOCTOR, ROLES.CLINIC_ADMIN, ROLES.ADMIN), updateProfile);
+router.put('/:id', authenticate, requireRole(ROLES.DOCTOR, ROLES.CLINIC_ADMIN, ROLES.ADMIN), updateProfile);
 
 // Clinic Admin / Platform Admin: Update doctor status (activate / suspend)
 router.patch('/:id/status', authenticate, requireRole(ROLES.CLINIC_ADMIN, ROLES.ADMIN), updateDoctorStatus);

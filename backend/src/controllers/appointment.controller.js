@@ -71,12 +71,12 @@ export const getDoctorAppointments = asyncHandler(async (req, res) => {
   // Find doctorProfile for logged-in doctor
   let doctorProfileId;
   if (req.user.role === ROLES.DOCTOR) {
-    const profile = await DoctorProfile.findOne({ userId: req.user.id });
+    const profile = await DoctorProfile.findOne({ userId: req.user._id || req.user.id });
     if (!profile) {
       throw new ForbiddenError('Doctor profile not found for current user', ERROR_CODES.FORBIDDEN);
     }
     doctorProfileId = profile._id;
-  } else if (req.user.role === ROLES.ADMIN && req.query.doctorId) {
+  } else if ((req.user.role === ROLES.ADMIN || req.user.role === ROLES.CLINIC_ADMIN) && req.query.doctorId) {
     doctorProfileId = req.query.doctorId;
   } else {
     throw new ForbiddenError('Doctor profile identifier required', ERROR_CODES.FORBIDDEN);
@@ -165,13 +165,20 @@ export const cancelAppointment = asyncHandler(async (req, res) => {
  * Doctor / Clinic Admin / Platform Admin: Emergency Unavailability
  */
 export const emergencyUnavailable = asyncHandler(async (req, res) => {
-  const { id } = req.params;
+  let { id } = req.params;
+  if (id === 'me') {
+    const profile = await DoctorProfile.findOne({ userId: req.user._id || req.user.id });
+    if (!profile) {
+      throw new NotFoundError('Doctor profile not found for current user', ERROR_CODES.DOCTOR_NOT_FOUND);
+    }
+    id = profile._id.toString();
+  }
 
-  const result = await appointmentService.emergencyUnavailable(id, req.user);
+  const result = await appointmentService.emergencyUnavailable(id, req.user, req.body);
 
   res.status(200).json({
     success: true,
-    message: `Emergency unavailability recorded. ${result.affectedAppointmentsCount} appointment(s) cancelled for today.`,
+    message: `Emergency unavailability recorded. ${result.affectedAppointmentsCount} appointment(s) cancelled.`,
     data: result,
   });
 });

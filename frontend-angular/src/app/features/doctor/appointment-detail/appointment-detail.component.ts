@@ -102,16 +102,16 @@ import { MatDialogModule } from '@angular/material/dialog';
               <div class="info-row">
                 <span class="info-lbl">Booked For:</span>
                 <span class="info-val font-bold">
-                  {{ appointment.bookedFor.name }}
-                  <span class="type-chip" [class.dependent]="appointment.bookedFor.type === 'dependent'">
-                    {{ appointment.bookedFor.type === 'dependent' ? 'Dependent (' + appointment.bookedFor.relationship + ')' : 'Self' }}
+                  {{ getPatientName() }}
+                  <span class="type-chip" [class.dependent]="appointment.bookedFor?.type === 'dependent'">
+                    {{ appointment.bookedFor?.type === 'dependent' ? 'Dependent (' + (appointment.bookedFor?.relationship || 'Family') + ')' : 'Self' }}
                   </span>
                 </span>
               </div>
 
-              <div class="info-row" *ngIf="appointment.bookedFor.dateOfBirth">
+              <div class="info-row" *ngIf="appointment.bookedFor?.dateOfBirth">
                 <span class="info-lbl">Date of Birth:</span>
-                <span class="info-val">{{ appointment.bookedFor.dateOfBirth | portalDate:'dd MMM yyyy' }}</span>
+                <span class="info-val">{{ appointment.bookedFor?.dateOfBirth | portalDate:'dd MMM yyyy' }}</span>
               </div>
 
               <div class="info-row">
@@ -432,6 +432,14 @@ export class DoctorAppointmentDetailComponent implements OnInit {
         this.notificationService.error('Failed to load appointment details');
       },
     });
+  }
+
+  getPatientName(): string {
+    if (this.appointment?.bookedFor?.name) return this.appointment.bookedFor.name;
+    if (typeof this.appointment?.patientId === 'object' && this.appointment?.patientId && (this.appointment.patientId as any).name) {
+      return (this.appointment.patientId as any).name;
+    }
+    return 'Patient';
   }
 
   getPatientId(): string | null {

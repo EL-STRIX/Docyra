@@ -471,10 +471,18 @@ export class PatientHistoryComponent implements OnInit {
     });
   }
 
+  getPatientName(apt: Appointment): string {
+    if (apt.bookedFor && apt.bookedFor.name) return apt.bookedFor.name;
+    if (typeof apt.patientId === 'object' && apt.patientId && (apt.patientId as any).name) {
+      return (apt.patientId as any).name;
+    }
+    return 'Unknown Patient';
+  }
+
   extractUniquePatients(): void {
     const patientMap = new Map<string, number>();
     this.allAppointments.forEach((apt) => {
-      const name = apt.bookedFor?.name || 'Unknown Patient';
+      const name = this.getPatientName(apt);
       patientMap.set(name, (patientMap.get(name) || 0) + 1);
     });
 
@@ -484,6 +492,24 @@ export class PatientHistoryComponent implements OnInit {
     }));
 
     this.filteredPatients = [...this.uniquePatients];
+
+    const routeId = this.route.snapshot.paramMap.get('id');
+    if (routeId) {
+      const matchApt = this.allAppointments.find(
+        (a) =>
+          (typeof a.patientId === 'object' && (a.patientId as any)._id === routeId) ||
+          String(a.patientId) === routeId ||
+          a._id === routeId
+      );
+      if (matchApt) {
+        const pName = this.getPatientName(matchApt);
+        const p = this.uniquePatients.find((up) => up.name === pName);
+        if (p) {
+          this.selectPatient(p);
+          return;
+        }
+      }
+    }
 
     if (this.uniquePatients.length > 0) {
       this.selectPatient(this.uniquePatients[0]);
@@ -504,7 +530,7 @@ export class PatientHistoryComponent implements OnInit {
   selectPatient(p: { name: string }): void {
     this.selectedPatientName = p.name;
     this.selectedPatientVisits = this.allAppointments.filter(
-      (apt) => apt.bookedFor?.name === p.name
+      (apt) => this.getPatientName(apt) === p.name
     );
   }
 }
