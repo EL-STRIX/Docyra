@@ -236,9 +236,13 @@ class AppointmentService {
         name: apt.patientId?.name || 'Patient',
         type: 'self',
       });
+      const consultationFee = apt.consultationFee || apt.doctorId?.consultationFee || 500;
+      const feeCurrency = apt.feeCurrency || apt.doctorId?.feeCurrency || 'INR';
       return {
         ...apt,
         bookedFor,
+        consultationFee,
+        feeCurrency,
       };
     });
 
@@ -336,9 +340,13 @@ class AppointmentService {
         name: apt.patientId?.name || 'Patient',
         type: 'self',
       });
+      const consultationFee = apt.consultationFee || apt.doctorId?.consultationFee || 500;
+      const feeCurrency = apt.feeCurrency || apt.doctorId?.feeCurrency || 'INR';
       return {
         ...apt,
         bookedFor,
+        consultationFee,
+        feeCurrency,
       };
     });
 
@@ -406,9 +414,13 @@ class AppointmentService {
         name: apt.patientId?.name || 'Patient',
         type: 'self',
       });
+      const consultationFee = apt.consultationFee || apt.doctorId?.consultationFee || 500;
+      const feeCurrency = apt.feeCurrency || apt.doctorId?.feeCurrency || 'INR';
       return {
         ...apt,
         bookedFor,
+        consultationFee,
+        feeCurrency,
       };
     });
 

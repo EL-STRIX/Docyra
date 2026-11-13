@@ -44,8 +44,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
         <div class="filter-grid">
           <div class="filter-item">
             <mat-form-field appearance="outline" class="w-full">
-              <mat-label>Search patient name...</mat-label>
-              <input matInput [(ngModel)]="searchTerm" (ngModelChange)="applyFilters()" />
+              <mat-label>Search patient, doctor, reason...</mat-label>
+              <input matInput [(ngModel)]="searchTerm" (ngModelChange)="applyFilters()" placeholder="Type to filter..." />
               <mat-icon matPrefix class="mr-2 text-neutral-400">search</mat-icon>
             </mat-form-field>
           </div>
@@ -56,7 +56,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
               <mat-select [(ngModel)]="selectedDoctorId" (selectionChange)="applyFilters()">
                 <mat-option value="all">All Physicians</mat-option>
                 <mat-option *ngFor="let doc of doctors" [value]="doc._id">
-                  {{ doc.title || 'Dr.' }} {{ doc.name || 'Doctor' }}
+                  {{ getDoctorDisplayName(doc) }}
                 </mat-option>
               </mat-select>
             </mat-form-field>
@@ -121,19 +121,29 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
                   </div>
                 </td>
 
-                <td class="text-sm font-semibold text-neutral-800">
-                  {{ getDoctorName(apt) }}
-                </td>
-
-                <td class="text-sm text-neutral-600">
-                  {{ apt.reasonForVisit || 'General Visit' }}
+                <td>
+                  <div class="font-bold text-neutral-900 text-sm">
+                    {{ getDoctorName(apt) }}
+                  </div>
+                  <div *ngIf="getDoctorSpecialization(apt)" class="text-xs font-semibold text-teal-700 mt-0.5">
+                    {{ getDoctorSpecialization(apt) }}
+                  </div>
                 </td>
 
                 <td>
-                  <div class="font-bold text-sm text-neutral-800">₹{{ apt.consultationFee }}</div>
-                  <div class="text-xs capitalize" [class.text-emerald-600]="apt.paymentStatus === 'completed'">
-                    {{ apt.paymentStatus }}
+                  <div class="font-medium text-neutral-800 text-sm">
+                    {{ apt.reasonForVisit || apt.notes || 'General Consultation' }}
                   </div>
+                  <div *ngIf="apt.reasonForVisit && apt.notes && apt.notes !== apt.reasonForVisit" class="text-xs text-neutral-500 mt-0.5">
+                    Note: {{ apt.notes }}
+                  </div>
+                </td>
+
+                <td>
+                  <div class="font-bold text-sm text-neutral-900">₹{{ getAppointmentPrice(apt) }}</div>
+                  <span class="payment-badge" [ngClass]="getPaymentStatusClass(apt)">
+                    {{ getPaymentStatusDisplay(apt) }}
+                  </span>
                 </td>
 
                 <td>
@@ -229,6 +239,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       padding: 14px 16px;
       border-bottom: 1px solid #E7E5E0;
       font-size: 13px;
+      vertical-align: middle;
     }
 
     .dependent-pill {
@@ -239,6 +250,33 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       padding: 2px 6px;
       border-radius: 4px;
       margin-left: 4px;
+    }
+
+    .payment-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      margin-top: 4px;
+    }
+
+    .payment-paid {
+      background-color: #ECFDF5;
+      color: #065F46;
+      border: 1px solid #A7F3D0;
+    }
+
+    .payment-pending {
+      background-color: #FFFBEB;
+      color: #92400E;
+      border: 1px solid #FDE68A;
+    }
+
+    .payment-refunded {
+      background-color: #FEF2F2;
+      color: #991B1B;
+      border: 1px solid #FECACA;
     }
 
     .w-full {
@@ -293,7 +331,7 @@ export class ClinicAppointmentsComponent implements OnInit {
   }
 
   loadAppointments(clinicId: string): void {
-    this.appointmentService.getClinicAppointments(clinicId).subscribe({
+    this.appointmentService.getClinicAppointments(clinicId, { limit: 50 }).subscribe({
       next: (res) => {
         if (res.success && Array.isArray(res.data)) {
           this.appointments = res.data;
@@ -315,16 +353,16 @@ export class ClinicAppointmentsComponent implements OnInit {
       result = result.filter(
         (a) =>
           a.bookedFor?.name?.toLowerCase().includes(term) ||
-          a.reasonForVisit?.toLowerCase().includes(term)
+          a.reasonForVisit?.toLowerCase().includes(term) ||
+          a.notes?.toLowerCase().includes(term) ||
+          this.getDoctorName(a).toLowerCase().includes(term)
       );
     }
 
     if (this.selectedDoctorId !== 'all') {
       result = result.filter((a) => {
-        if (typeof a.doctorId === 'object') {
-          return (a.doctorId as any)._id === this.selectedDoctorId;
-        }
-        return a.doctorId === this.selectedDoctorId;
+        const docId = typeof a.doctorId === 'object' ? (a.doctorId as any)._id : a.doctorId;
+        return String(docId) === String(this.selectedDoctorId);
       });
     }
 
@@ -335,11 +373,77 @@ export class ClinicAppointmentsComponent implements OnInit {
     this.filteredAppointments = result;
   }
 
+  getDoctorDisplayName(doc: any): string {
+    if (!doc) return 'Physician';
+    let name = '';
+    if (doc.userId && typeof doc.userId === 'object' && doc.userId.name) {
+      name = doc.userId.name;
+    } else if (doc.name) {
+      name = doc.name;
+    } else {
+      name = 'Physician';
+    }
+
+    if (!/^dr\.?\s+/i.test(name)) {
+      name = `Dr. ${name}`;
+    }
+
+    const spec = doc.specializationId?.name || (typeof doc.specializationId === 'string' ? doc.specializationId : '');
+    if (spec) {
+      return `${name} (${spec})`;
+    }
+    return name;
+  }
+
   getDoctorName(apt: Appointment): string {
     if (apt.doctorId && typeof apt.doctorId === 'object') {
       const d = apt.doctorId as any;
-      return `${d.title || 'Dr.'} ${d.name || 'Practitioner'}`;
+      let name = '';
+      if (d.userId && typeof d.userId === 'object' && d.userId.name) {
+        name = d.userId.name;
+      } else if (d.name) {
+        name = d.name;
+      }
+      if (name) {
+        if (!/^dr\.?\s+/i.test(name)) {
+          name = `Dr. ${name}`;
+        }
+        return name;
+      }
     }
     return 'Physician';
+  }
+
+  getDoctorSpecialization(apt: Appointment): string {
+    if (apt.doctorId && typeof apt.doctorId === 'object') {
+      const d = apt.doctorId as any;
+      return d.specializationId?.name || '';
+    }
+    return '';
+  }
+
+  getAppointmentPrice(apt: Appointment): number {
+    if (apt.consultationFee !== undefined && apt.consultationFee !== null) {
+      return apt.consultationFee;
+    }
+    if (apt.doctorId && typeof apt.doctorId === 'object') {
+      const d = apt.doctorId as any;
+      if (d.consultationFee !== undefined && d.consultationFee !== null) {
+        return d.consultationFee;
+      }
+    }
+    return 500;
+  }
+
+  getPaymentStatusClass(apt: Appointment): string {
+    if (apt.paymentStatus === 'completed') return 'payment-paid';
+    if (apt.paymentStatus === 'refunded') return 'payment-refunded';
+    return 'payment-pending';
+  }
+
+  getPaymentStatusDisplay(apt: Appointment): string {
+    if (apt.paymentStatus === 'completed') return 'Paid Online';
+    if (apt.paymentStatus === 'refunded') return 'Refunded';
+    return 'Pay at Clinic';
   }
 }
