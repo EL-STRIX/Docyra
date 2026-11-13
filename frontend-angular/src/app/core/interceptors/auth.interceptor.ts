@@ -1,12 +1,12 @@
 import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
-import { inject } from '@angular/core';
+import { inject, Injector } from '@angular/core';
 import { AuthService } from '../services/auth.service';
 import { catchError, switchMap, throwError } from 'rxjs';
 
 let isRefreshing = false;
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  const authService = inject(AuthService);
+  const injector = inject(Injector);
 
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
@@ -17,6 +17,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
       if (error.status === 401 && !isAuthEndpoint && !isRefreshing) {
         isRefreshing = true;
+        const authService = injector.get(AuthService);
         return authService.refreshToken().pipe(
           switchMap(() => {
             isRefreshing = false;

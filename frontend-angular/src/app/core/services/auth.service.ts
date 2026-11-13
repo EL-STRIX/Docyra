@@ -94,6 +94,7 @@ export class AuthService {
           this.pending2faUser = data.user || null;
         } else if (data.user) {
           this.currentUserSubject.next(data.user);
+          this.isAuthLoadingSubject.next(false);
           this.temp2faToken = null;
           this.pending2faUser = null;
           this.notificationService.connectSocket();
@@ -119,6 +120,7 @@ export class AuthService {
       map((res) => res.data.user),
       tap((user) => {
         this.currentUserSubject.next(user);
+        this.isAuthLoadingSubject.next(false);
         this.temp2faToken = null;
         this.pending2faUser = null;
         this.notificationService.connectSocket();

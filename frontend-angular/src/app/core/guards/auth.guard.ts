@@ -7,6 +7,11 @@ export const authGuard: CanActivateFn = (route, state) => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
+  // If already authenticated in memory, allow navigation immediately
+  if (authService.isAuthenticated) {
+    return true;
+  }
+
   return authService.isAuthLoading$.pipe(
     filter((loading) => !loading),
     take(1),

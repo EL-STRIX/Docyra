@@ -44,7 +44,7 @@ export const csrfProtection = (req, res, next) => {
     req.path.includes('/forgot-password') ||
     req.path.includes('/reset-password') ||
     req.path.includes('/2fa/login');
-  if (isPublicAuth && !req.headers['x-csrf-token'] && !req.headers['x-xsrf-token']) {
+  if (isPublicAuth) {
     return next();
   }
 
