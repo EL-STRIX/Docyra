@@ -41,7 +41,7 @@ export function LoginPage() {
         navigate(from, { replace: true });
       }
     } catch (err) {
-      setError(err.response?.data?.error?.message || 'Invalid email or password');
+      setError(err.response?.data?.error?.message || err.message || 'Invalid email or password');
     } finally {
       setLoading(false);
     }
@@ -189,6 +189,16 @@ export function LoginPage() {
             <Link to="/register" className="text-brand-primary font-bold hover:underline">
               Create Account
             </Link>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-teal-50 border border-teal-200 text-teal-800 text-xs flex items-center justify-between">
+            <span className="font-medium">Doctor or Clinic Admin?</span>
+            <a
+              href="http://localhost:4200/login"
+              className="font-bold text-teal-700 hover:text-teal-900 underline flex items-center gap-1"
+            >
+              Operations Portal &rarr;
+            </a>
           </div>
         </div>
       </div>

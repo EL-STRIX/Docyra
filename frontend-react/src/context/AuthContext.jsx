@@ -13,6 +13,11 @@ export function AuthProvider({ children }) {
     try {
       const res = await authApi.getMe();
       if (res.success && res.data.user) {
+        // Patient Portal only allows patients
+        if (res.data.user.role !== 'patient') {
+          setUser(null);
+          return;
+        }
         setUser(res.data.user);
       } else {
         setUser(null);
@@ -42,11 +47,19 @@ export function AuthProvider({ children }) {
     const res = await authApi.login(credentials);
     if (res.success) {
       if (res.data.requires2FA) {
+        if (res.data.user && res.data.user.role !== 'patient') {
+          await logout();
+          throw new Error('Access denied. Clinic Administrators, Doctors, and Platform Staff must log in through the Operations Portal (http://localhost:4200/login).');
+        }
         return {
           requires2FA: true,
           tempToken: res.data.tempToken,
           user: res.data.user,
         };
+      }
+      if (res.data.user?.role && res.data.user.role !== 'patient') {
+        await logout();
+        throw new Error('Access denied. Clinic Administrators, Doctors, and Platform Staff must log in through the Operations Portal (http://localhost:4200/login).');
       }
       setUser(res.data.user);
       return { requires2FA: false, user: res.data.user };
@@ -57,6 +70,10 @@ export function AuthProvider({ children }) {
   const login2FA = async ({ tempToken, code }) => {
     const res = await authApi.login2FA({ tempToken, code });
     if (res.success && res.data.user) {
+      if (res.data.user.role !== 'patient') {
+        await logout();
+        throw new Error('Access denied. Clinic Administrators, Doctors, and Platform Staff must log in through the Operations Portal (http://localhost:4200/login).');
+      }
       setUser(res.data.user);
       return res.data.user;
     }

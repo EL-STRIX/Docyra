@@ -3,7 +3,7 @@ import useAuth from '../../context/useAuth.js';
 
 
 export function ProtectedRoute({ children }) {
-  const { isAuthenticated, loading } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -17,7 +17,7 @@ export function ProtectedRoute({ children }) {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || user?.role !== 'patient') {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

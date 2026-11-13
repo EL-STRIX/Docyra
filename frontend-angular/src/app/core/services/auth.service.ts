@@ -103,6 +103,12 @@ export class AuthService {
       map((res) => {
         if (res.success && res.data?.user) {
           const user = res.data.user;
+          // Operations Portal is strictly for clinic_admin, doctor, and admin
+          if (user.role === 'patient') {
+            this.clearTokens();
+            this.currentUserSubject.next(null);
+            return null;
+          }
           this.currentUserSubject.next(user);
           this.notificationService.connectSocket();
           return user;
@@ -125,7 +131,14 @@ export class AuthService {
    */
   login(credentials: { email: string; password: string }): Observable<LoginResponse> {
     return this.http.post<ApiResponse<LoginResponse>>(`${this.API_URL}/login`, credentials, { withCredentials: true }).pipe(
-      map((res) => res.data),
+      map((res) => {
+        const data = res.data;
+        if (data.user && data.user.role === 'patient') {
+          this.clearTokens();
+          throw new Error('Access denied. Patient accounts must log in via the Patient Portal (http://localhost:5173/login).');
+        }
+        return data;
+      }),
       tap((data) => {
         const requires2FA = data.requiresTwoFactor || (data as any)?.requires2FA;
         if (requires2FA) {
@@ -159,6 +172,10 @@ export class AuthService {
       { withCredentials: true }
     ).pipe(
       map((res) => {
+        if (res.data?.user?.role === 'patient') {
+          this.clearTokens();
+          throw new Error('Access denied. Patient accounts must log in via the Patient Portal (http://localhost:5173/login).');
+        }
         if (res.data?.accessToken) {
           this.saveTokens(res.data.accessToken, res.data.refreshToken);
         }

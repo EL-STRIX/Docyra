@@ -162,6 +162,13 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
         </mat-card>
 
         <!-- Compliance & Security Notice Footer -->
+        <div class="patient-portal-switch">
+          <span>Looking for patient appointments?</span>
+          <a href="http://localhost:5173/login" class="patient-portal-link">
+            Sign in via Patient Portal &rarr;
+          </a>
+        </div>
+
         <div class="portal-footer-notice">
           <mat-icon class="lock-mini">lock</mat-icon>
           <span>End-to-End Encrypted Session. Authorized Clinical Personnel Only.</span>
@@ -340,8 +347,30 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       font-size: 13px !important;
     }
 
+    .patient-portal-switch {
+      margin-top: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      color: #A0C6C6;
+    }
+
+    .patient-portal-link {
+      color: #F2A93B;
+      font-weight: 700;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .patient-portal-link:hover {
+      text-decoration: underline;
+      color: #FBBF24;
+    }
+
     .portal-footer-notice {
-      margin-top: 24px;
+      margin-top: 16px;
       display: flex;
       align-items: center;
       gap: 6px;
@@ -408,7 +437,7 @@ export class LoginComponent implements OnInit {
       },
       error: (err) => {
         this.loading = false;
-        this.errorMessage = err.error?.error?.message || err.error?.message || 'Invalid email or password';
+        this.errorMessage = err.message || err.error?.error?.message || err.error?.message || 'Invalid email or password';
       },
     });
   }
@@ -427,7 +456,7 @@ export class LoginComponent implements OnInit {
       },
       error: (err) => {
         this.loading = false;
-        this.errorMessage = err.error?.error?.message || err.error?.message || 'Invalid 2FA code. Please try again.';
+        this.errorMessage = err.message || err.error?.error?.message || err.error?.message || 'Invalid 2FA code. Please try again.';
       },
     });
   }
