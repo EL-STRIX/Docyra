@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import { doctorService } from '../services/doctorService.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
-import { Appointment, Clinic, DoctorProfile, User, Specialization } from '../models/index.js';
+import { Appointment, Clinic, DoctorProfile, User } from '../models/index.js';
 import { APPOINTMENT_STATUS, ROLES } from '../config/constants.js';
 
 export const approveDoctorApplication = asyncHandler(async (req, res) => {

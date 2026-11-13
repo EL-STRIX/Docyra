@@ -2,6 +2,8 @@ import multer from 'multer';
 import { DoctorProfile } from '../models/DoctorProfile.js';
 import { doctorService } from '../services/doctorService.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
+import { UnauthorizedError, NotFoundError } from '../utils/AppError.js';
+import { ERROR_CODES } from '../config/constants.js';
 
 // Multer memory storage for file uploads
 const upload = multer({

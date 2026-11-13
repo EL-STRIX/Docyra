@@ -1,7 +1,7 @@
 import { appointmentService } from '../services/appointmentService.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { DoctorProfile } from '../models/index.js';
-import { ForbiddenError } from '../utils/AppError.js';
+import { ForbiddenError, NotFoundError } from '../utils/AppError.js';
 import { ERROR_CODES, ROLES } from '../config/constants.js';
 
 /**

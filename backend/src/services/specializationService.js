@@ -1,4 +1,4 @@
-import { Specialization, DoctorProfile, Appointment } from '../models/index.js';
+import { Specialization, DoctorProfile } from '../models/index.js';
 import { NotFoundError, ConflictError } from '../utils/AppError.js';
 import { ERROR_CODES } from '../config/constants.js';
 
@@ -88,7 +88,7 @@ class SpecializationService {
     };
   }
 
-  async create({ name, description, iconName = 'Stethoscope', slug }) {
+  async create({ name, description, iconName = 'Stethoscope' }) {
     const existing = await Specialization.findOne({ name: { $regex: new RegExp(`^${name}$`, 'i') } });
     if (existing) {
       throw new ConflictError('Specialization with this name already exists', ERROR_CODES.CONFLICT);
@@ -103,7 +103,7 @@ class SpecializationService {
     return formatSpecialization(created.toObject ? created.toObject() : created, 0, 0);
   }
 
-  async update(id, { name, description, iconName, slug }) {
+  async update(id, { name, description, iconName }) {
     const spec = await Specialization.findById(id);
     if (!spec) {
       throw new NotFoundError('Specialization not found', ERROR_CODES.NOT_FOUND);
