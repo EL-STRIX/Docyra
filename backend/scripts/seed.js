@@ -308,6 +308,59 @@ export const seedDatabase = async (overrideUri = null) => {
       status: 'published',
     });
 
+    console.log('Seeding Initial Compliance Audit Logs...');
+    const now = Date.now();
+    await AuditLog.create([
+      {
+        actorId: admin._id,
+        actorEmail: admin.email,
+        actorRole: 'admin',
+        action: 'PLATFORM_INITIALIZATION',
+        resourceType: 'SystemSettings',
+        resourceId: 'initial_deployment',
+        ipAddress: '127.0.0.1',
+        userAgent: 'Docyra-InitScript/v2.0',
+        metadata: { version: '2.0.0', defaultCurrency: 'INR' },
+        timestamp: new Date(now - 7 * 24 * 3600 * 1000),
+      },
+      {
+        actorId: admin._id,
+        actorEmail: admin.email,
+        actorRole: 'admin',
+        action: 'CLINIC_ONBOARD',
+        resourceType: 'Clinic',
+        resourceId: clinics[0]._id.toString(),
+        ipAddress: '103.21.244.18',
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',
+        metadata: { name: 'Apollo City Care Center', city: 'Bengaluru' },
+        timestamp: new Date(now - 3 * 24 * 3600 * 1000),
+      },
+      {
+        actorId: admin._id,
+        actorEmail: admin.email,
+        actorRole: 'admin',
+        action: 'DOCTOR_CREDENTIAL_VERIFIED',
+        resourceType: 'DoctorProfile',
+        resourceId: doc1._id.toString(),
+        ipAddress: '103.21.244.18',
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',
+        metadata: { doctorName: 'Dr. Sarah Jenkins', licenseNumber: 'MCI-2018-8472', verificationStatus: 'approved' },
+        timestamp: new Date(now - 12 * 3600 * 1000),
+      },
+      {
+        actorId: admin._id,
+        actorEmail: admin.email,
+        actorRole: 'admin',
+        action: 'USER_LOGIN',
+        resourceType: 'Auth',
+        resourceId: admin._id.toString(),
+        ipAddress: '103.21.244.18',
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',
+        metadata: { loginMethod: 'password', portal: 'admin_portal' },
+        timestamp: new Date(now - 15 * 60 * 1000),
+      },
+    ]);
+
     console.log('✅ Seed completed successfully!');
     console.log('--------------------------------------------------');
     console.log('Admin Account:        admin@docyra.app / Password@123');

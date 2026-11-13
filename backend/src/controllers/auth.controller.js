@@ -1,4 +1,5 @@
 import { authService } from '../services/authService.js';
+import { auditService } from '../services/auditService.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { env } from '../config/env.js';
 
@@ -67,6 +68,23 @@ export const login = asyncHandler(async (req, res) => {
   res.cookie('accessToken', result.accessToken, getCookieOptions(15 * 60 * 1000));
   res.cookie('refreshToken', result.refreshToken, getCookieOptions(7 * 24 * 60 * 60 * 1000));
 
+  // Non-blocking security audit log
+  auditService.log({
+    actorId: result.user?._id || result.user?.id,
+    actorEmail: result.user?.email,
+    actorRole: result.user?.role || 'user',
+    action: 'USER_LOGIN',
+    resourceType: 'Auth',
+    resourceId: (result.user?._id || result.user?.id || '').toString(),
+    ipAddress: (req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1').toString().replace('::ffff:', ''),
+    userAgent: req.headers['user-agent'] || 'Docyra-Client',
+    metadata: {
+      email: result.user?.email,
+      role: result.user?.role,
+      loginMethod: 'password',
+    },
+  });
+
   res.status(200).json({
     success: true,
     data: {
@@ -99,6 +117,20 @@ export const refresh = asyncHandler(async (req, res) => {
 export const logout = asyncHandler(async (req, res) => {
   res.clearCookie('accessToken', getCookieOptions(0));
   res.clearCookie('refreshToken', getCookieOptions(0));
+
+  if (req.user) {
+    auditService.log({
+      actorId: req.user.id || req.user._id,
+      actorEmail: req.user.email,
+      actorRole: req.user.role || 'user',
+      action: 'USER_LOGOUT',
+      resourceType: 'Auth',
+      resourceId: (req.user.id || req.user._id || '').toString(),
+      ipAddress: (req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1').toString().replace('::ffff:', ''),
+      userAgent: req.headers['user-agent'] || 'Docyra-Client',
+      metadata: { email: req.user.email },
+    });
+  }
 
   res.status(200).json({
     success: true,
@@ -163,6 +195,23 @@ export const login2FA = asyncHandler(async (req, res) => {
   // Set HTTP-only cookies
   res.cookie('accessToken', result.accessToken, getCookieOptions(15 * 60 * 1000));
   res.cookie('refreshToken', result.refreshToken, getCookieOptions(7 * 24 * 60 * 60 * 1000));
+
+  // Non-blocking security audit log
+  auditService.log({
+    actorId: result.user?._id || result.user?.id,
+    actorEmail: result.user?.email,
+    actorRole: result.user?.role || 'user',
+    action: 'USER_LOGIN',
+    resourceType: 'Auth',
+    resourceId: (result.user?._id || result.user?.id || '').toString(),
+    ipAddress: (req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1').toString().replace('::ffff:', ''),
+    userAgent: req.headers['user-agent'] || 'Docyra-Client',
+    metadata: {
+      email: result.user?.email,
+      role: result.user?.role,
+      loginMethod: 'password',
+    },
+  });
 
   res.status(200).json({
     success: true,

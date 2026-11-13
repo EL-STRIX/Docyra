@@ -5,7 +5,7 @@ import { asyncHandler } from '../utils/asyncHandler.js';
  * Platform Admin: Get audit logs with search and pagination
  */
 export const getAuditLogs = asyncHandler(async (req, res) => {
-  const { page, limit, actorId, actorEmail, action, resourceType, dateFrom, dateTo } = req.query;
+  const { page, limit, actorId, actorEmail, action, resourceType, dateFrom, dateTo, search, role } = req.query;
 
   const result = await auditService.getAuditLogs({
     page,
@@ -16,6 +16,8 @@ export const getAuditLogs = asyncHandler(async (req, res) => {
     resourceType,
     dateFrom,
     dateTo,
+    search,
+    role,
   });
 
   res.status(200).json({
