@@ -152,3 +152,4 @@ To guarantee rapid queries under high volume, compound indexes are maintained on
 - **`AuditLog`**:
   - `{ action: 1, createdAt: -1 }` — Real-time administrative audit filtering.
   - `{ actorId: 1, createdAt: -1 }` — User action traceability.
+

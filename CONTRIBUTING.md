@@ -109,3 +109,4 @@ npm run build
    - Any relevant issue numbers or screenshots (for UI changes).
    - Confirmation that all unit tests, linters, and builds pass.
 4. CI checks (GitHub Actions) will automatically run and must pass before review.
+

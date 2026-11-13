@@ -57,3 +57,4 @@ If you discover a potential security vulnerability within Docyra, **do not open 
 
 - **GDPR / HIPAA Alignment**: Patients have full self-service rights to inspect, export, and request erasure of their personal healthcare profile and consultation records.
 - **Immutable Audit Logging**: Every critical security and clinical action (authentication attempts, appointment status changes, emergency overrides, and medical profile access) is immutably logged with actor ID, timestamp, IP address, and changed parameters.
+
