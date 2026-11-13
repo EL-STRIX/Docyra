@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, NgZone } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
@@ -14,9 +14,12 @@ import { NotificationService } from './notification.service';
 export class AuthService {
   private http = inject(HttpClient);
   private router = inject(Router);
+  private ngZone = inject(NgZone);
   private notificationService = inject(NotificationService);
 
   private readonly API_URL = `${environment.apiBaseUrl}/auth`;
+  private readonly ACCESS_TOKEN_KEY = 'docyra_access_token';
+  private readonly REFRESH_TOKEN_KEY = 'docyra_refresh_token';
 
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$: Observable<User | null> = this.currentUserSubject.asObservable();
@@ -49,6 +52,40 @@ export class AuthService {
     return r === 'doctor' || r === 'clinic_admin' || r === 'admin';
   }
 
+  getAccessToken(): string | null {
+    try {
+      return localStorage.getItem(this.ACCESS_TOKEN_KEY);
+    } catch {
+      return null;
+    }
+  }
+
+  getRefreshToken(): string | null {
+    try {
+      return localStorage.getItem(this.REFRESH_TOKEN_KEY);
+    } catch {
+      return null;
+    }
+  }
+
+  saveTokens(accessToken?: string, refreshToken?: string): void {
+    try {
+      if (accessToken) localStorage.setItem(this.ACCESS_TOKEN_KEY, accessToken);
+      if (refreshToken) localStorage.setItem(this.REFRESH_TOKEN_KEY, refreshToken);
+    } catch (e) {
+      console.warn('Failed to save tokens to localStorage', e);
+    }
+  }
+
+  clearTokens(): void {
+    try {
+      localStorage.removeItem(this.ACCESS_TOKEN_KEY);
+      localStorage.removeItem(this.REFRESH_TOKEN_KEY);
+    } catch (e) {
+      console.warn('Failed to clear tokens from localStorage', e);
+    }
+  }
+
   getTemp2faToken(): string | null {
     return this.temp2faToken;
   }
@@ -70,10 +107,12 @@ export class AuthService {
           this.notificationService.connectSocket();
           return user;
         }
+        this.clearTokens();
         this.currentUserSubject.next(null);
         return null;
       }),
       catchError(() => {
+        this.clearTokens();
         this.currentUserSubject.next(null);
         return of(null);
       }),
@@ -93,12 +132,14 @@ export class AuthService {
           this.temp2faToken = data.tempToken || null;
           this.pending2faUser = data.user || null;
         } else if (data.user) {
+          if (data.accessToken) {
+            this.saveTokens(data.accessToken, data.refreshToken);
+          }
           this.currentUserSubject.next(data.user);
           this.isAuthLoadingSubject.next(false);
           this.temp2faToken = null;
           this.pending2faUser = null;
           this.notificationService.connectSocket();
-          this.redirectAfterLogin(data.user.role);
         }
       })
     );
@@ -112,19 +153,23 @@ export class AuthService {
       return throwError(() => new Error('2FA session expired. Please log in again.'));
     }
 
-    return this.http.post<ApiResponse<{ user: User }>>(
+    return this.http.post<ApiResponse<{ user: User; accessToken?: string; refreshToken?: string }>>(
       `${this.API_URL}/2fa/login`,
       { tempToken: this.temp2faToken, code },
       { withCredentials: true }
     ).pipe(
-      map((res) => res.data.user),
+      map((res) => {
+        if (res.data?.accessToken) {
+          this.saveTokens(res.data.accessToken, res.data.refreshToken);
+        }
+        return res.data.user;
+      }),
       tap((user) => {
         this.currentUserSubject.next(user);
         this.isAuthLoadingSubject.next(false);
         this.temp2faToken = null;
         this.pending2faUser = null;
         this.notificationService.connectSocket();
-        this.redirectAfterLogin(user.role);
       })
     );
   }
@@ -183,16 +228,29 @@ export class AuthService {
   }
 
   /**
-   * Silent refresh of session token via HttpOnly cookie
+   * Silent refresh of session token via HttpOnly cookie or refreshToken payload
    */
   refreshToken(): Observable<boolean> {
+    const refreshToken = this.getRefreshToken();
     return this.http.post<ApiResponse<any>>(
       `${this.API_URL}/refresh`,
-      {},
+      { refreshToken },
       { withCredentials: true }
     ).pipe(
-      map((res) => res.success),
+      map((res) => {
+        if (res.success && res.data) {
+          if (res.data.accessToken) {
+            this.saveTokens(res.data.accessToken, res.data.refreshToken);
+          }
+          if (res.data.user) {
+            this.currentUserSubject.next(res.data.user);
+          }
+          return true;
+        }
+        return false;
+      }),
       catchError((err) => {
+        this.clearTokens();
         this.currentUserSubject.next(null);
         return throwError(() => err);
       })
@@ -221,17 +279,20 @@ export class AuthService {
       map(() => true),
       catchError(() => of(true)),
       tap(() => {
+        this.clearTokens();
         this.currentUserSubject.next(null);
         this.temp2faToken = null;
         this.pending2faUser = null;
         this.notificationService.disconnectSocket();
-        this.router.navigate(['/login']);
+        this.ngZone.run(() => {
+          this.router.navigate(['/login']);
+        });
       })
     );
   }
 
   /**
-   * Redirect user based on their role
+   * Redirect user based on their role inside Angular zone
    */
   redirectAfterLogin(role: UserRole): void {
     let target = '/login';
@@ -246,10 +307,12 @@ export class AuthService {
         target = '/admin/dashboard';
         break;
     }
-    this.router.navigate([target]).then((success) => {
-      if (!success) {
-        this.router.navigate(['/']);
-      }
+    this.ngZone.run(() => {
+      this.router.navigate([target]).then((success) => {
+        if (!success) {
+          this.router.navigate(['/']);
+        }
+      });
     });
   }
 }

@@ -78,7 +78,7 @@ export const login = asyncHandler(async (req, res) => {
 });
 
 export const refresh = asyncHandler(async (req, res) => {
-  const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
+  const refreshToken = req.body?.refreshToken || req.cookies?.refreshToken;
 
   const result = await authService.refreshTokens(refreshToken);
 

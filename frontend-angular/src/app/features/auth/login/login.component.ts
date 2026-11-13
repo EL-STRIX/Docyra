@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
@@ -362,7 +362,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     }
   `],
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
   private notificationService = inject(NotificationService);
@@ -383,6 +383,12 @@ export class LoginComponent {
   errorMessage: string | null = null;
   is2faRequired = false;
 
+  ngOnInit(): void {
+    if (this.authService.isAuthenticated && this.authService.userRole) {
+      this.authService.redirectAfterLogin(this.authService.userRole);
+    }
+  }
+
   onSubmit(): void {
     if (this.loginForm.invalid) return;
 
@@ -397,6 +403,7 @@ export class LoginComponent {
           this.is2faRequired = true;
         } else {
           this.notificationService.success('Logged in successfully');
+          this.authService.redirectAfterLogin(data.user.role);
         }
       },
       error: (err) => {
@@ -413,9 +420,10 @@ export class LoginComponent {
     this.errorMessage = null;
 
     this.authService.verify2faLogin(this.twoFactorForm.value.code).subscribe({
-      next: () => {
+      next: (user) => {
         this.loading = false;
         this.notificationService.success('Two-factor authentication verified');
+        this.authService.redirectAfterLogin(user.role);
       },
       error: (err) => {
         this.loading = false;

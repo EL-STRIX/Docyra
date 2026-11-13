@@ -27,6 +27,8 @@ export interface LoginResponse {
   user: User;
   requiresTwoFactor?: boolean;
   tempToken?: string;
+  accessToken?: string;
+  refreshToken?: string;
 }
 
 export interface TwoFactorSetupResponse {
