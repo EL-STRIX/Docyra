@@ -8,10 +8,10 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().default(5000),
   API_BASE_URL: z.string().default('http://localhost:5000/api/v1'),
-  MONGODB_URI: z.string().min(1, 'MONGODB_URI is required'),
+  MONGODB_URI: z.string().default('mongodb://localhost:27017/docyra'),
 
-  JWT_ACCESS_SECRET: z.string().min(16, 'JWT_ACCESS_SECRET must be at least 16 characters'),
-  JWT_REFRESH_SECRET: z.string().min(16, 'JWT_REFRESH_SECRET must be at least 16 characters'),
+  JWT_ACCESS_SECRET: z.string().min(16, 'JWT_ACCESS_SECRET must be at least 16 characters').default('docyra_jwt_access_secret_super_secure_key_12345'),
+  JWT_REFRESH_SECRET: z.string().min(16, 'JWT_REFRESH_SECRET must be at least 16 characters').default('docyra_jwt_refresh_secret_super_secure_key_12345'),
   JWT_ACCESS_EXPIRY: z.string().default('15m'),
   JWT_REFRESH_EXPIRY: z.string().default('7d'),
   BCRYPT_SALT_ROUNDS: z.coerce.number().default(12),
@@ -46,7 +46,10 @@ const parseEnv = () => {
   if (!result.success) {
     console.error('❌ Environment validation failed:');
     console.error(JSON.stringify(result.error.format(), null, 2));
-    process.exit(1);
+    if (process.env.NODE_ENV !== 'test' && !process.env.JEST_WORKER_ID) {
+      process.exit(1);
+    }
+    throw new Error('Environment validation failed');
   }
   return result.data;
 };

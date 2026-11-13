@@ -80,11 +80,10 @@ export const getDoctorAvailability = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
-    data: {
-      rules,
-      weeklySchedule,
-      slotDurationMinutes,
-    },
+    data: rules,
+    rules,
+    weeklySchedule,
+    slotDurationMinutes,
   });
 });
 

@@ -31,6 +31,11 @@ jobs:
 
       - name: Run test suites with MongoDB Memory Server
         working-directory: backend
+        env:
+          NODE_ENV: test
+          MONGODB_URI: mongodb://localhost:27017/docyra_test
+          JWT_ACCESS_SECRET: docyra_test_jwt_access_secret_key_12345
+          JWT_REFRESH_SECRET: docyra_test_jwt_refresh_secret_key_12345
         run: npm test
 
   frontend-react-ci:
