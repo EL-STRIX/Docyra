@@ -10,6 +10,10 @@ import {
   uploadMiddleware,
 } from '../../controllers/doctor.controller.js';
 import {
+  approveDoctorApplication,
+  listPendingDoctorApplications,
+} from '../../controllers/admin.controller.js';
+import {
   setDoctorAvailability,
   getDoctorAvailability,
   getDoctorSlots,
@@ -32,6 +36,10 @@ router.get('/', searchDoctors);
 
 // Doctor: Get my profile (placed before /:id to prevent matching 'me' as id parameter)
 router.get('/me', authenticate, requireRole(ROLES.DOCTOR, ROLES.ADMIN), getMyDoctorProfile);
+
+// Platform Admin: Doctor applications listing & review (placed before /:id to prevent matching 'applications' as id parameter)
+router.get('/applications', authenticate, requireRole(ROLES.ADMIN), listPendingDoctorApplications);
+router.post('/applications/:id/review', authenticate, requireRole(ROLES.ADMIN), approveDoctorApplication);
 
 // Public: Doctor profile detail by ID
 router.get('/:id', getDoctorProfile);

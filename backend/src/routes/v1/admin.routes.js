@@ -7,6 +7,7 @@ import {
 import {
   approveDoctorApplication,
   listPendingDoctorApplications,
+  getPlatformAnalytics,
 } from '../../controllers/admin.controller.js';
 import {
   createSpecialization,
@@ -41,6 +42,11 @@ router.patch('/clinics/:id', validate(updateClinicSchema), updateClinic);
 // Independent Doctor Application Reviews
 router.get('/doctors/applications', listPendingDoctorApplications);
 router.patch('/doctors/:id/approve', validate(approveDoctorSchema), approveDoctorApplication);
+router.post('/doctors/applications/:id/review', approveDoctorApplication);
+router.post('/doctors/:id/review', approveDoctorApplication);
+
+// Platform Analytics & Intelligence
+router.get('/analytics', getPlatformAnalytics);
 
 // Specialization Management
 router.post('/specializations', validate(createSpecializationSchema), createSpecialization);
