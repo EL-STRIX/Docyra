@@ -103,15 +103,15 @@ import { MatDialogModule } from '@angular/material/dialog';
                 <span class="info-lbl">Booked For:</span>
                 <span class="info-val font-bold">
                   {{ getPatientName() }}
-                  <span class="type-chip" [class.dependent]="appointment.bookedFor?.type === 'dependent'">
-                    {{ appointment.bookedFor?.type === 'dependent' ? 'Dependent (' + (appointment.bookedFor?.relationship || 'Family') + ')' : 'Self' }}
+                  <span class="type-chip" [class.dependent]="appointment.bookedFor.type === 'dependent'">
+                    {{ appointment.bookedFor.type === 'dependent' ? 'Dependent (' + (appointment.bookedFor.relationship || 'Family') + ')' : 'Self' }}
                   </span>
                 </span>
               </div>
 
-              <div class="info-row" *ngIf="appointment.bookedFor?.dateOfBirth">
+              <div class="info-row" *ngIf="appointment.bookedFor.dateOfBirth">
                 <span class="info-lbl">Date of Birth:</span>
-                <span class="info-val">{{ appointment.bookedFor?.dateOfBirth | portalDate:'dd MMM yyyy' }}</span>
+                <span class="info-val">{{ appointment.bookedFor.dateOfBirth | portalDate:'dd MMM yyyy' }}</span>
               </div>
 
               <div class="info-row">

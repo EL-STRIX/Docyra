@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useSearchParams, useNavigate, Link } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { format, addDays } from 'date-fns';
 import {
   Building2,
@@ -14,8 +14,6 @@ import {
   Calendar,
   Clock,
   Stethoscope,
-  MapPin,
-  Sparkles,
 } from 'lucide-react';
 import doctorsApi from '../../services/doctors.api.js';
 import clinicsApi from '../../services/clinics.api.js';
@@ -26,7 +24,6 @@ import { formatAddress } from '../../utils/formatAddress.js';
 
 export function BookingFlowPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
   const { user } = useAuth();
 
   const queryDoctorId = searchParams.get('doctorId');
@@ -59,7 +56,6 @@ export function BookingFlowPage() {
   // Step 4: Confirmed Success
   const [currentStep, setCurrentStep] = useState(queryDoctorId && querySlotId ? 2 : 1);
   const [loadingInitial, setLoadingInitial] = useState(true);
-  const [loadingDoctor, setLoadingDoctor] = useState(false);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [bookingInProgress, setBookingInProgress] = useState(false);
   const [confirmedAppointment, setConfirmedAppointment] = useState(null);
@@ -109,7 +105,6 @@ export function BookingFlowPage() {
     }
 
     async function fetchDoctor() {
-      setLoadingDoctor(true);
       try {
         const res = await doctorsApi.getDoctorById(selectedDoctorId);
         if (res.success) {
@@ -119,8 +114,6 @@ export function BookingFlowPage() {
         }
       } catch (err) {
         setError('Failed to fetch doctor details.');
-      } finally {
-        setLoadingDoctor(false);
       }
     }
     fetchDoctor();

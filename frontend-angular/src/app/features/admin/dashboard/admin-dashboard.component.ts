@@ -122,7 +122,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
                 <tr *ngFor="let c of clinics | slice:0:5">
                   <td class="td-clinic">
                     <div class="clinic-title">{{ c.name }}</div>
-                    <div class="clinic-phone">{{ c.contactPhone || c.contact?.phone || 'N/A' }}</div>
+                    <div class="clinic-phone">{{ c.contactPhone || c.contact.phone || 'N/A' }}</div>
                   </td>
                   <td class="td-city">
                     <span class="city-text">{{ getClinicCity(c) }}</span>

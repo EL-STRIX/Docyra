@@ -125,12 +125,12 @@ import { isToday, isTomorrow, isPast, parseISO } from 'date-fns';
                 <td class="patient-cell">
                   <div class="patient-title">
                     <span class="font-bold text-neutral-900">{{ getPatientName(apt) }}</span>
-                    <span *ngIf="apt.bookedFor?.type === 'dependent'" class="dependent-tag">
-                      {{ apt.bookedFor?.relationship || 'Family' }}
+                    <span *ngIf="apt.bookedFor.type === 'dependent'" class="dependent-tag">
+                      {{ apt.bookedFor.relationship || 'Family' }}
                     </span>
                   </div>
-                  <div class="text-xs text-neutral-500" *ngIf="apt.bookedFor?.dateOfBirth">
-                    DOB: {{ apt.bookedFor?.dateOfBirth | portalDate:'dd MMM yyyy' }}
+                  <div class="text-xs text-neutral-500" *ngIf="apt.bookedFor.dateOfBirth">
+                    DOB: {{ apt.bookedFor.dateOfBirth | portalDate:'dd MMM yyyy' }}
                   </div>
                 </td>
 
