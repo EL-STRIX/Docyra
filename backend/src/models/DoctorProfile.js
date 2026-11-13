@@ -18,6 +18,14 @@ const doctorProfileSchema = new mongoose.Schema(
       ref: 'Specialization',
       required: true,
     },
+    title: {
+      type: String,
+      default: 'Dr.',
+    },
+    licenseNumber: {
+      type: String,
+      default: '',
+    },
     qualifications: {
       type: [String],
       default: [],

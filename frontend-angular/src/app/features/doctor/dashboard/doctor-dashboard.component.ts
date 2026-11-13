@@ -33,7 +33,7 @@ import { format, isToday, parseISO } from 'date-fns';
       <!-- Welcome Header -->
       <div class="header-section">
         <div>
-          <h1 class="page-title">Welcome back, Dr. {{ (currentUser$ | async)?.name }}</h1>
+          <h1 class="page-title">Welcome back, {{ getDoctorWelcomeName() }}</h1>
           <p class="page-subtitle">Here is what is scheduled for your practice today, {{ todayFormatted }}.</p>
         </div>
         <div class="header-actions">
@@ -122,8 +122,8 @@ import { format, isToday, parseISO } from 'date-fns';
 
               <div class="patient-col">
                 <div class="patient-name">
-                  {{ apt.bookedFor.name || 'Patient' }}
-                  <span *ngIf="apt.bookedFor.type === 'dependent'" class="dependent-pill">Dependent</span>
+                  {{ getPatientName(apt) }}
+                  <span *ngIf="apt.bookedFor?.type === 'dependent'" class="dependent-pill">Dependent</span>
                 </div>
                 <div class="patient-reason">
                   {{ apt.reasonForVisit || 'General Consultation' }}
@@ -543,6 +543,23 @@ export class DoctorDashboardComponent implements OnInit {
 
   trackByAppointment(index: number, apt: Appointment): string {
     return apt._id;
+  }
+
+  getDoctorWelcomeName(): string {
+    const user = this.authService.currentUser;
+    let name = user?.name || (this.doctorProfile as any)?.name || 'Doctor';
+    if (!/^dr\.?\s+/i.test(name)) {
+      name = `Dr. ${name}`;
+    }
+    return name;
+  }
+
+  getPatientName(apt: Appointment): string {
+    if (apt.bookedFor && apt.bookedFor.name) return apt.bookedFor.name;
+    if (typeof apt.patientId === 'object' && apt.patientId && (apt.patientId as any).name) {
+      return (apt.patientId as any).name;
+    }
+    return 'Patient';
   }
 
   get pendingCount(): number {

@@ -39,6 +39,20 @@ router.get('/doctor', requireRole(ROLES.DOCTOR, ROLES.ADMIN), getDoctorAppointme
 // Clinic Admin routes
 router.get('/clinic', requireRole(ROLES.CLINIC_ADMIN, ROLES.ADMIN), getClinicAppointments);
 
+// General appointments listing by role
+router.get('/', (req, res, next) => {
+  if (req.user.role === ROLES.DOCTOR) {
+    return getDoctorAppointments(req, res, next);
+  }
+  if (req.user.role === ROLES.CLINIC_ADMIN) {
+    return getClinicAppointments(req, res, next);
+  }
+  if (req.user.role === ROLES.PATIENT) {
+    return getMyAppointments(req, res, next);
+  }
+  return getDoctorAppointments(req, res, next);
+});
+
 // Single Appointment Details & ICS export
 router.get('/:id', getAppointmentById);
 router.get('/:id/ics', exportAppointmentIcs);

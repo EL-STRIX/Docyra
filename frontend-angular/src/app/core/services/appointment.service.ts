@@ -30,7 +30,7 @@ export class AppointmentService {
       });
     }
 
-    return this.http.get<ApiResponse<Appointment[]>>(this.API_URL, { params: httpParams, withCredentials: true }).pipe(
+    return this.http.get<ApiResponse<Appointment[]>>(`${this.API_URL}/doctor`, { params: httpParams, withCredentials: true }).pipe(
       tap((res) => {
         if (res.success && Array.isArray(res.data)) {
           this.appointmentsSubject.next(res.data);

@@ -167,11 +167,40 @@ class DoctorService {
   }
 
   /**
+   * Doctor: Get profile of logged-in doctor by their User ID
+   */
+  async getDoctorProfileByUserId(userId) {
+    const doctor = await DoctorProfile.findOne({ userId })
+      .populate('userId', 'name email phone profilePhotoUrl status')
+      .populate('clinicId', 'name city address contactPhone contactEmail')
+      .populate('specializationId', 'name iconName description')
+      .lean();
+
+    if (!doctor) {
+      throw new NotFoundError('Doctor profile not found for current user', ERROR_CODES.DOCTOR_NOT_FOUND);
+    }
+
+    return {
+      ...doctor,
+      name: doctor.userId?.name || 'Doctor',
+      email: doctor.userId?.email || '',
+      phone: doctor.userId?.phone || '',
+      profilePhotoUrl: doctor.userId?.profilePhotoUrl || null,
+      experienceYears: doctor.yearsExperience ?? doctor.experienceYears ?? 0,
+      yearsExperience: doctor.yearsExperience ?? doctor.experienceYears ?? 0,
+    };
+  }
+
+  /**
    * Public: Get doctor profile detail by ID
    */
   async getDoctorProfile(doctorId) {
+    if (!mongoose.Types.ObjectId.isValid(doctorId)) {
+      throw new NotFoundError('Doctor profile not found', ERROR_CODES.DOCTOR_NOT_FOUND);
+    }
+
     const doctor = await DoctorProfile.findById(doctorId)
-      .populate('userId', 'name email phone profilePhotoUrl')
+      .populate('userId', 'name email phone profilePhotoUrl status')
       .populate('clinicId', 'name city address contactPhone contactEmail')
       .populate('specializationId', 'name iconName description')
       .lean();
@@ -180,7 +209,15 @@ class DoctorService {
       throw new NotFoundError('Doctor profile not found', ERROR_CODES.DOCTOR_NOT_FOUND);
     }
 
-    return doctor;
+    return {
+      ...doctor,
+      name: doctor.userId?.name || 'Doctor',
+      email: doctor.userId?.email || '',
+      phone: doctor.userId?.phone || '',
+      profilePhotoUrl: doctor.userId?.profilePhotoUrl || null,
+      experienceYears: doctor.yearsExperience ?? doctor.experienceYears ?? 0,
+      yearsExperience: doctor.yearsExperience ?? doctor.experienceYears ?? 0,
+    };
   }
 
   /**
@@ -439,10 +476,13 @@ class DoctorService {
       }
     }
 
+    if (updateData.title !== undefined) doctorProfile.title = updateData.title;
     if (updateData.consultationFee !== undefined) doctorProfile.consultationFee = updateData.consultationFee;
     if (updateData.bio !== undefined) doctorProfile.bio = updateData.bio;
     if (updateData.qualifications !== undefined) doctorProfile.qualifications = updateData.qualifications;
     if (updateData.yearsExperience !== undefined) doctorProfile.yearsExperience = updateData.yearsExperience;
+    if (updateData.experienceYears !== undefined) doctorProfile.yearsExperience = updateData.experienceYears;
+    if (updateData.licenseNumber !== undefined) doctorProfile.licenseNumber = updateData.licenseNumber;
     if (updateData.clinicAddress !== undefined) doctorProfile.clinicAddress = updateData.clinicAddress;
     if (updateData.manualApprovalMode !== undefined) doctorProfile.manualApprovalMode = updateData.manualApprovalMode;
     if (updateData.status !== undefined) {

@@ -2,8 +2,10 @@ import express from 'express';
 import {
   searchDoctors,
   getDoctorProfile,
+  getMyDoctorProfile,
   applyIndependentDoctor,
   updateProfile,
+  updateMyProfile,
   updateDoctorStatus,
   uploadMiddleware,
 } from '../../controllers/doctor.controller.js';
@@ -25,8 +27,13 @@ import { ROLES } from '../../config/constants.js';
 
 const router = express.Router();
 
-// Public: Doctor search and profile detail
+// Public: Doctor search
 router.get('/', searchDoctors);
+
+// Doctor: Get my profile (placed before /:id to prevent matching 'me' as id parameter)
+router.get('/me', authenticate, requireRole(ROLES.DOCTOR, ROLES.ADMIN), getMyDoctorProfile);
+
+// Public: Doctor profile detail by ID
 router.get('/:id', getDoctorProfile);
 
 // Public: Doctor available slots lookup
@@ -36,7 +43,10 @@ router.get('/:id/slots', validate(getDoctorSlotsSchema), getDoctorSlots);
 router.post('/apply', uploadMiddleware, validate(applyDoctorSchema), applyIndependentDoctor);
 
 // Doctor: Update own profile
-router.patch('/:id', authenticate, requireRole(ROLES.DOCTOR), updateProfile);
+router.patch('/me', authenticate, requireRole(ROLES.DOCTOR), updateMyProfile);
+router.put('/me', authenticate, requireRole(ROLES.DOCTOR), updateMyProfile);
+router.patch('/:id', authenticate, requireRole(ROLES.DOCTOR, ROLES.ADMIN), updateProfile);
+router.put('/:id', authenticate, requireRole(ROLES.DOCTOR, ROLES.ADMIN), updateProfile);
 
 // Clinic Admin / Platform Admin: Update doctor status (activate / suspend)
 router.patch('/:id/status', authenticate, requireRole(ROLES.CLINIC_ADMIN, ROLES.ADMIN), updateDoctorStatus);
