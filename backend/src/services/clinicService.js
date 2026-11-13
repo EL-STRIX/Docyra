@@ -3,6 +3,46 @@ import { CLINIC_SUBSCRIPTION_STATUS, ERROR_CODES } from '../config/constants.js'
 import { NotFoundError, ConflictError } from '../utils/AppError.js';
 import logger from '../utils/logger.js';
 
+function formatClinicForOutput(c, doctorCount = 0) {
+  const isAct = c.subscriptionStatus === CLINIC_SUBSCRIPTION_STATUS.ACTIVE || c.status === 'active';
+  const streetStr = typeof c.address === 'string' ? c.address : (c.address?.street || '');
+  const cityStr = c.city || (typeof c.address === 'object' ? c.address?.city : '') || '';
+  const stateStr = c.state || (typeof c.address === 'object' ? c.address?.state : '') || '';
+  const postalCodeStr = c.postalCode || (typeof c.address === 'object' ? c.address?.postalCode : '') || '';
+  const countryStr = c.country || (typeof c.address === 'object' ? c.address?.country : '') || 'India';
+  const phoneStr = c.contactPhone || (typeof c.contact === 'object' ? c.contact?.phone : '') || '';
+  const emailStr = c.contactEmail || (typeof c.contact === 'object' ? c.contact?.email : '') || '';
+
+  return {
+    ...c,
+    isActive: isAct,
+    status: isAct ? 'active' : 'suspended',
+    subscriptionStatus: c.subscriptionStatus || (isAct ? 'active' : 'suspended'),
+    doctorCount,
+    rating: c.avgRating || 5.0,
+    reviewCount: c.totalReviews || 0,
+    address: {
+      street: streetStr,
+      city: cityStr,
+      state: stateStr,
+      postalCode: postalCodeStr,
+      country: countryStr,
+    },
+    street: streetStr,
+    city: cityStr,
+    state: stateStr,
+    postalCode: postalCodeStr,
+    country: countryStr,
+    contactPhone: phoneStr,
+    contactEmail: emailStr,
+    contact: {
+      phone: phoneStr,
+      email: emailStr,
+      website: c.website || '',
+    },
+  };
+}
+
 class ClinicService {
   /**
    * Public: List active clinics with search & pagination (No geo-search, B2B onboarded model)
@@ -49,10 +89,9 @@ class ClinicService {
       countMap[dc._id.toString()] = dc.count;
     });
 
-    const enrichedClinics = clinics.map((c) => ({
-      ...c,
-      doctorCount: countMap[c._id.toString()] || 0,
-    }));
+    const enrichedClinics = clinics.map((c) =>
+      formatClinicForOutput(c, countMap[c._id.toString()] || 0)
+    );
 
     return {
       clinics: enrichedClinics,
@@ -91,7 +130,7 @@ class ClinicService {
     }));
 
     return {
-      clinic,
+      clinic: formatClinicForOutput(clinic, doctors.length),
       doctors,
     };
   }
@@ -179,7 +218,7 @@ class ClinicService {
     ]);
 
     return {
-      clinics,
+      clinics: clinics.map((c) => formatClinicForOutput(c)),
       meta: {
         page: safePage,
         limit: safeLimit,

@@ -79,17 +79,17 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
                 </td>
 
                 <td>
-                  <div class="text-sm font-semibold text-neutral-800">{{ c.address.city || 'India' }}</div>
-                  <div class="text-xs text-neutral-500">{{ c.address.street }}</div>
+                  <div class="text-sm font-semibold text-neutral-800">{{ getClinicCity(c) }}</div>
+                  <div class="text-xs text-neutral-500">{{ getClinicStreet(c) }}</div>
                 </td>
 
                 <td>
-                  <div class="text-xs font-semibold text-neutral-800">{{ c.contact.phone || '-' }}</div>
-                  <div class="text-xs text-neutral-500">{{ c.contact.email || '-' }}</div>
+                  <div class="text-xs font-semibold text-neutral-800">{{ getClinicPhone(c) }}</div>
+                  <div class="text-xs text-neutral-500">{{ getClinicEmail(c) }}</div>
                 </td>
 
                 <td>
-                  <app-status-badge [status]="c.isActive ? 'active' : 'suspended'"></app-status-badge>
+                  <app-status-badge [status]="isClinicActive(c) ? 'active' : 'suspended'"></app-status-badge>
                 </td>
 
                 <td class="text-sm font-bold text-amber-600">
@@ -98,7 +98,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
                 <td class="text-right actions-col">
                   <button
-                    *ngIf="c.isActive"
+                    *ngIf="isClinicActive(c)"
                     mat-stroked-button
                     color="warn"
                     (click)="toggleClinicStatus(c._id, 'suspended')"
@@ -107,7 +107,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
                     Suspend
                   </button>
                   <button
-                    *ngIf="!c.isActive"
+                    *ngIf="!isClinicActive(c)"
                     mat-flat-button
                     color="primary"
                     (click)="toggleClinicStatus(c._id, 'active')"
@@ -398,6 +398,36 @@ export class ManageClinicsComponent implements OnInit {
     });
   }
 
+  isClinicActive(c: any): boolean {
+    if (typeof c?.isActive === 'boolean') return c.isActive;
+    return c?.subscriptionStatus === 'active' || c?.status === 'active';
+  }
+
+  getClinicCity(c: any): string {
+    if (c?.city) return c.city;
+    if (typeof c?.address === 'object' && c?.address?.city) return c.address.city;
+    if (typeof c?.address === 'string' && c?.address) return c.address;
+    return 'India';
+  }
+
+  getClinicStreet(c: any): string {
+    if (typeof c?.address === 'object' && c?.address?.street) return c.address.street;
+    if (c?.street) return c.street;
+    return '';
+  }
+
+  getClinicPhone(c: any): string {
+    if (c?.contactPhone) return c.contactPhone;
+    if (typeof c?.contact === 'object' && c?.contact?.phone) return c.contact.phone;
+    return '-';
+  }
+
+  getClinicEmail(c: any): string {
+    if (c?.contactEmail) return c.contactEmail;
+    if (typeof c?.contact === 'object' && c?.contact?.email) return c.contact.email;
+    return '-';
+  }
+
   applySearch(): void {
     if (!this.searchTerm.trim()) {
       this.filteredClinics = [...this.clinics];
@@ -407,8 +437,8 @@ export class ManageClinicsComponent implements OnInit {
     this.filteredClinics = this.clinics.filter(
       (c) =>
         c.name.toLowerCase().includes(term) ||
-        c.address?.city?.toLowerCase().includes(term) ||
-        c.contact?.phone?.includes(term)
+        this.getClinicCity(c).toLowerCase().includes(term) ||
+        this.getClinicPhone(c).includes(term)
     );
   }
 

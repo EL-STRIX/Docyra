@@ -63,7 +63,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
           </div>
           <div class="stat-info">
             <span class="stat-label">Consultation Volume</span>
-            <span class="stat-value">₹{{ (analytics?.totalAppointments || 0) * 500 | number }}</span>
+            <span class="stat-value">₹{{ (analytics?.revenueEstimated || (analytics?.totalAppointments || 0) * 500) | number }}</span>
           </div>
         </mat-card>
       </div>
@@ -98,10 +98,10 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
                   <td>
                     <div class="font-bold text-neutral-900 text-sm">{{ c.name }}</div>
                   </td>
-                  <td class="text-sm text-neutral-700">{{ c.address.city || 'India' }}</td>
+                  <td class="text-sm text-neutral-700">{{ getClinicCity(c) }}</td>
                   <td>
-                    <span class="status-chip" [class.active]="c.isActive">
-                      {{ c.isActive ? 'Active' : 'Suspended' }}
+                    <span class="status-chip" [class.active]="isClinicActive(c)">
+                      {{ isClinicActive(c) ? 'Active' : 'Suspended' }}
                     </span>
                   </td>
                   <td class="text-sm font-bold text-amber-600">
@@ -129,7 +129,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
             </div>
             <div class="dist-row">
               <span class="dist-lbl">Active Clinics</span>
-              <span class="dist-val text-teal-800 font-bold">{{ clinics.length }}</span>
+              <span class="dist-val text-teal-800 font-bold">{{ getActiveClinicsCount() }}</span>
             </div>
           </div>
         </mat-card>
@@ -338,6 +338,22 @@ export class AnalyticsReportsComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadAnalytics();
+  }
+
+  isClinicActive(c: any): boolean {
+    if (typeof c?.isActive === 'boolean') return c.isActive;
+    return c?.subscriptionStatus === 'active' || c?.status === 'active';
+  }
+
+  getClinicCity(c: any): string {
+    if (c?.city) return c.city;
+    if (typeof c?.address === 'object' && c?.address?.city) return c.address.city;
+    if (typeof c?.address === 'string' && c?.address) return c.address;
+    return 'India';
+  }
+
+  getActiveClinicsCount(): number {
+    return this.clinics.filter((c) => this.isClinicActive(c)).length;
   }
 
   loadAnalytics(): void {

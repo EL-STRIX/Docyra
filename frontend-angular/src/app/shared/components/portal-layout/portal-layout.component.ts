@@ -219,13 +219,15 @@ interface NavMenuItem {
     }
 
     .sidebar-header {
-      padding: 18px 16px;
+      padding: 16px 14px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.08);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 10px;
+      gap: 8px;
       box-sizing: border-box;
+      width: 100%;
+      min-width: 0;
     }
 
     .brand-logo {
@@ -278,13 +280,17 @@ interface NavMenuItem {
     .role-badge {
       font-size: 10px;
       font-weight: 700;
-      padding: 3px 9px;
+      padding: 2.5px 8px;
       border-radius: 999px;
       text-transform: uppercase;
       letter-spacing: 0.6px;
       white-space: nowrap;
       flex-shrink: 0;
       line-height: 1.2;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-left: auto;
     }
 
     .role-badge.doctor {
