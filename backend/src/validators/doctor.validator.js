@@ -6,7 +6,7 @@ export const applyDoctorSchema = z.object({
     email: z.string().trim().email('Invalid email').toLowerCase(),
     password: z.string().min(8, 'Password must be at least 8 characters'),
     phone: z.string().trim().optional(),
-    clinicId: z.string().min(1, 'Target clinic selection is required'),
+    clinicId: z.string().trim().optional(),
     specializationId: z.string().min(1, 'Specialization is required'),
     qualifications: z.union([z.string(), z.array(z.string())]).optional(),
     bio: z.string().trim().optional(),

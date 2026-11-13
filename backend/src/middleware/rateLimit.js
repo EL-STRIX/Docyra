@@ -4,7 +4,10 @@ import { ERROR_CODES } from '../config/constants.js';
 
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: env.NODE_ENV === 'production' ? 10 : 1000, // relaxed for development testing
+  max: (req) => {
+    if (req.headers && req.headers['x-test-ratelimit']) return 5;
+    return env.NODE_ENV === 'production' ? 10 : 1000;
+  },
   standardHeaders: true,
   legacyHeaders: false,
   validate: { xForwardedForHeader: false, trustProxy: false },

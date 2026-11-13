@@ -271,13 +271,12 @@ class DoctorService {
       throw new AppError(ERROR_CODES.VALIDATION_ERROR, 400, 'License or qualification document upload is mandatory for doctor application');
     }
 
-    if (!clinicId) {
-      throw new AppError(ERROR_CODES.VALIDATION_ERROR, 400, 'Target clinic selection is required');
-    }
-
-    const clinic = await Clinic.findById(clinicId);
-    if (!clinic) {
-      throw new NotFoundError('Selected clinic not found', ERROR_CODES.NOT_FOUND);
+    let clinic = null;
+    if (clinicId) {
+      clinic = await Clinic.findById(clinicId);
+      if (!clinic) {
+        throw new NotFoundError('Selected clinic not found', ERROR_CODES.NOT_FOUND);
+      }
     }
 
     // Verify specialization exists
@@ -297,8 +296,8 @@ class DoctorService {
       passwordHash,
       phone,
       role: ROLES.DOCTOR,
-      clinicId: clinic._id,
-      status: USER_STATUS.UNVERIFIED, // Account created, but clinic approval pending
+      clinicId: clinic ? clinic._id : null,
+      status: USER_STATUS.UNVERIFIED, // Account created, but approval pending
     });
 
     const parsedQualifications = Array.isArray(qualifications)
@@ -307,32 +306,37 @@ class DoctorService {
       ? qualifications.split(',').map((q) => q.trim())
       : [];
 
-    const computedClinicAddress = clinic.name + (clinic.address?.street ? `, ${clinic.address.street}, ${clinic.address.city}` : '');
+    const computedClinicAddress = clinic
+      ? (typeof clinic.address === 'string' ? `${clinic.name}, ${clinic.address}` : `${clinic.name}, ${clinic.address?.street || ''}`)
+      : (clinicAddress || 'Independent Practice');
 
     const doctorProfile = await DoctorProfile.create({
       userId: user._id,
-      clinicId: clinic._id,
+      clinicId: clinic ? clinic._id : null,
       specializationId: spec._id,
       qualifications: parsedQualifications,
       bio: bio || '',
       licenseDocumentUrl,
       consultationFee: parseFloat(consultationFee) || 500,
       feeCurrency: 'INR',
-      clinicAddress: computedClinicAddress || clinicAddress || clinic.name,
+      clinicAddress: computedClinicAddress || clinicAddress || (clinic ? clinic.name : 'Independent Practice'),
       yearsExperience: parseInt(yearsExperience, 10) || 0,
-      isApproved: false, // Must be approved by Clinic Admin
+      isIndependent: !clinic,
+      isApproved: false, // Must be approved by Clinic Admin or Platform Admin
       status: 'pending',
     });
 
-    logger.info(`Doctor application submitted to clinic "${clinic.name}": ${user.email} (${doctorProfile._id})`);
+    logger.info(`Doctor application submitted${clinic ? ` to clinic "${clinic.name}"` : ' as independent'}: ${user.email} (${doctorProfile._id})`);
 
     return {
       applicationId: doctorProfile._id,
       userId: user._id,
-      clinicId: clinic._id,
-      clinicName: clinic.name,
+      clinicId: clinic ? clinic._id : null,
+      clinicName: clinic ? clinic.name : null,
       status: 'pending_review',
-      message: `Application submitted successfully to ${clinic.name}. It will be reviewed by the clinic administration.`,
+      message: clinic
+        ? `Application submitted successfully to ${clinic.name}. It will be reviewed by the clinic administration.`
+        : 'Doctor application submitted successfully. It will be reviewed by platform administration.',
     };
   }
 
