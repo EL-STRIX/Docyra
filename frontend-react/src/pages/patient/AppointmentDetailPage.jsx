@@ -15,6 +15,7 @@ import {
 import appointmentsApi from '../../services/appointments.api.js';
 import reviewsApi from '../../services/reviews.api.js';
 import useSocketEvent from '../../context/useSocketEvent.js';
+import { formatAddress } from '../../utils/formatAddress.js';
 
 export function AppointmentDetailPage() {
   const { id } = useParams();
@@ -212,7 +213,7 @@ export function AppointmentDetailPage() {
               </h4>
               <p className="text-neutral-text-secondary flex items-start gap-1">
                 <MapPin className="w-3.5 h-3.5 text-brand-primary shrink-0 mt-0.5" />
-                <span>{clinic.address || doctorProfile.clinicAddress || 'Address on file'}</span>
+                <span>{formatAddress(clinic.address, doctorProfile.clinicAddress || 'Address on file')}</span>
               </p>
               {clinic.contactPhone && (
                 <p className="text-neutral-text-secondary pt-1">

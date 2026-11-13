@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { Building2, MapPin, Phone, Mail, ShieldCheck, Calendar, ArrowLeft, Stethoscope } from 'lucide-react';
 import clinicsApi from '../../services/clinics.api.js';
 import RatingStars from '../../components/common/RatingStars.jsx';
+import { formatAddress } from '../../utils/formatAddress.js';
 
 export function ClinicDetailPage() {
   const { id } = useParams();
@@ -82,7 +83,7 @@ export function ClinicDetailPage() {
 
               <div className="flex items-start gap-2 text-sm text-neutral-text-secondary max-w-2xl">
                 <MapPin className="w-4 h-4 text-brand-primary shrink-0 mt-0.5" />
-                <span>{clinic.address}</span>
+                <span>{formatAddress(clinic.address)}</span>
               </div>
             </div>
 

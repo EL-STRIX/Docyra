@@ -298,7 +298,7 @@ export function DoctorApplyPage() {
                   <option value="">Select Clinic to Join</option>
                   {clinics.map((c) => (
                     <option key={c._id} value={c._id}>
-                      {c.name} {c.address?.city ? `(${c.address.city})` : ''}
+                      {c.name} {c.city ? `(${c.city})` : (c.address?.city ? `(${c.address.city})` : '')}
                     </option>
                   ))}
                 </select>

@@ -21,6 +21,7 @@ import clinicsApi from '../../services/clinics.api.js';
 import specializationsApi from '../../services/specializations.api.js';
 import statsApi from '../../services/stats.api.js';
 import RatingStars from '../../components/common/RatingStars.jsx';
+import { formatAddress } from '../../utils/formatAddress.js';
 
 export function HomePage() {
   const navigate = useNavigate();
@@ -337,7 +338,7 @@ export function HomePage() {
                     {clinic.name}
                   </h3>
                   <p className="text-xs text-neutral-text-secondary leading-relaxed">
-                    {clinic.address}
+                    {formatAddress(clinic.address)}
                   </p>
                 </div>
 
@@ -374,7 +375,7 @@ export function HomePage() {
                     {clinic.name}
                   </h3>
                   <p className="text-xs text-neutral-text-secondary leading-relaxed">
-                    {clinic.address}
+                    {formatAddress(clinic.address)}
                   </p>
                 </div>
 

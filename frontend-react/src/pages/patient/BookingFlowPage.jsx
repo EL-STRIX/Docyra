@@ -22,6 +22,7 @@ import clinicsApi from '../../services/clinics.api.js';
 import dependentsApi from '../../services/dependents.api.js';
 import appointmentsApi from '../../services/appointments.api.js';
 import useAuth from '../../context/useAuth.js';
+import { formatAddress } from '../../utils/formatAddress.js';
 
 export function BookingFlowPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -794,7 +795,7 @@ export function BookingFlowPage() {
               <div className="flex justify-between items-center">
                 <span className="text-neutral-text-secondary">Clinic Address:</span>
                 <span className="text-neutral-text-primary">
-                  {clinic.address || doctor?.clinicAddress || 'Indiranagar Medical Hub'}
+                  {formatAddress(clinic.address, doctor?.clinicAddress || 'Indiranagar Medical Hub')}
                 </span>
               </div>
               <div className="flex justify-between items-center pt-2 border-t border-neutral-border/70">

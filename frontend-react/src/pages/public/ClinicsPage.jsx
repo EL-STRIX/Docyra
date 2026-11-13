@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Building2, MapPin, Phone, Mail, ArrowRight, ShieldCheck } from 'lucide-react';
 import clinicsApi from '../../services/clinics.api.js';
+import { formatAddress } from '../../utils/formatAddress.js';
 
 export function ClinicsPage() {
   const [clinics, setClinics] = useState([]);
@@ -28,9 +29,10 @@ export function ClinicsPage() {
   const cities = Array.from(new Set(clinics.map((c) => c.city).filter(Boolean)));
 
   const filteredClinics = clinics.filter((c) => {
+    const addr = formatAddress(c.address, '');
     const matchesSearch =
       c.name.toLowerCase().includes(search.toLowerCase()) ||
-      (c.address && c.address.toLowerCase().includes(search.toLowerCase())) ||
+      addr.toLowerCase().includes(search.toLowerCase()) ||
       (c.city && c.city.toLowerCase().includes(search.toLowerCase()));
     const matchesCity = !selectedCity || c.city === selectedCity;
     return matchesSearch && matchesCity;
@@ -128,7 +130,7 @@ export function ClinicsPage() {
                     </h3>
                     <div className="flex items-start gap-2 text-xs text-neutral-text-secondary mt-2">
                       <MapPin className="w-4 h-4 text-brand-primary shrink-0 mt-0.5" />
-                      <span>{clinic.address || 'Address on file'}</span>
+                      <span>{formatAddress(clinic.address)}</span>
                     </div>
                   </div>
 

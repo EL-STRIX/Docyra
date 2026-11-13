@@ -15,6 +15,7 @@ import {
 import doctorsApi from '../../services/doctors.api.js';
 import reviewsApi from '../../services/reviews.api.js';
 import RatingStars from '../../components/common/RatingStars.jsx';
+import { formatAddress } from '../../utils/formatAddress.js';
 
 export function DoctorProfilePage() {
   const { id } = useParams();
@@ -110,7 +111,7 @@ export function DoctorProfilePage() {
   const doctorName = doctor.name || docUser.name || 'Doctor';
   const specName = doctor.specializationName || docSpec.name || 'Medical Specialist';
   const clinicName = doctor.clinicName || docClinic.name || doctor.clinicAddress || 'Independent Practice';
-  const clinicAddress = doctor.clinicAddress || docClinic.address || 'Verified Clinic Location';
+  const clinicAddress = doctor.clinicAddress || formatAddress(docClinic.address, 'Verified Clinic Location');
 
   return (
     <div className="space-y-12 pb-20">

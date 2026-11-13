@@ -25,9 +25,15 @@ export class ErrorBoundary extends React.Component {
               </svg>
             </div>
             <h2 className="text-xl font-bold text-neutral-text-primary mb-2">Something went wrong</h2>
-            <p className="text-sm text-neutral-text-secondary mb-6">
+            <p className="text-sm text-neutral-text-secondary mb-4">
               The application encountered an unexpected display error.
             </p>
+            {import.meta.env.DEV && this.state.error && (
+              <pre className="text-left text-xs bg-red-50 text-red-700 p-3 rounded-lg overflow-auto max-h-48 mb-4 font-mono whitespace-pre-wrap break-all border border-red-200">
+                {this.state.error.toString()}
+                {this.state.error.stack && `\n\n${this.state.error.stack}`}
+              </pre>
+            )}
             <button
               onClick={() => window.location.reload()}
               className="btn-accent w-full py-2.5 px-4 rounded-xl text-sm font-semibold"

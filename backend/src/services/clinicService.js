@@ -21,7 +21,8 @@ function formatClinicForOutput(c, doctorCount = 0) {
     doctorCount,
     rating: c.avgRating || 5.0,
     reviewCount: c.totalReviews || 0,
-    address: {
+    address: streetStr,
+    addressObject: {
       street: streetStr,
       city: cityStr,
       state: stateStr,
