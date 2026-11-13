@@ -27,28 +27,28 @@ export class AdminService {
         }
       });
     }
-    return this.http.get<ApiResponse<Clinic[]>>(`${environment.apiBaseUrl}/clinics`, {
+    return this.http.get<ApiResponse<Clinic[]>>(`${environment.apiBaseUrl}/admin/clinics`, {
       params: httpParams,
       withCredentials: true,
     });
   }
 
-  createClinic(clinicData: Partial<Clinic>): Observable<ApiResponse<Clinic>> {
-    return this.http.post<ApiResponse<Clinic>>(`${environment.apiBaseUrl}/clinics`, clinicData, {
+  createClinic(clinicData: any): Observable<ApiResponse<Clinic>> {
+    return this.http.post<ApiResponse<Clinic>>(`${environment.apiBaseUrl}/admin/clinics`, clinicData, {
       withCredentials: true,
     });
   }
 
-  updateClinic(id: string, clinicData: Partial<Clinic>): Observable<ApiResponse<Clinic>> {
-    return this.http.put<ApiResponse<Clinic>>(`${environment.apiBaseUrl}/clinics/${id}`, clinicData, {
+  updateClinic(id: string, clinicData: any): Observable<ApiResponse<Clinic>> {
+    return this.http.patch<ApiResponse<Clinic>>(`${environment.apiBaseUrl}/admin/clinics/${id}`, clinicData, {
       withCredentials: true,
     });
   }
 
   updateClinicStatus(id: string, status: string): Observable<ApiResponse<Clinic>> {
     return this.http.patch<ApiResponse<Clinic>>(
-      `${environment.apiBaseUrl}/clinics/${id}/status`,
-      { status },
+      `${environment.apiBaseUrl}/admin/clinics/${id}`,
+      { subscriptionStatus: status, status },
       { withCredentials: true }
     );
   }

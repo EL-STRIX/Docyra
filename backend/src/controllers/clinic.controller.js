@@ -24,17 +24,35 @@ export const getClinicDetail = asyncHandler(async (req, res) => {
 });
 
 export const onboardClinic = asyncHandler(async (req, res) => {
-  const { name, address, city, contactEmail, contactPhone, subscriptionStatus, description } = req.body;
-  const adminId = req.user._id;
+  let { name, address, city, state, postalCode, country, contactEmail, contactPhone, website, subscriptionStatus, description, contact } = req.body;
+  const adminId = req.user._id || req.user.id;
+
+  if (contact && typeof contact === 'object') {
+    contactEmail = contactEmail || contact.email;
+    contactPhone = contactPhone || contact.phone;
+    website = website || contact.website;
+  }
+
+  if (address && typeof address === 'object') {
+    city = city || address.city;
+    state = state || address.state;
+    postalCode = postalCode || address.postalCode;
+    country = country || address.country;
+    address = address.street || address.formatted || `${address.street || ''}, ${address.city || ''}`;
+  }
 
   const clinic = await clinicService.onboardClinic({
     name,
-    address,
-    city,
-    contactEmail,
-    contactPhone,
-    subscriptionStatus,
-    description,
+    address: typeof address === 'string' ? address : 'Clinic Address',
+    city: city || 'City',
+    state: state || '',
+    postalCode: postalCode || '',
+    country: country || 'India',
+    contactEmail: contactEmail || 'clinic@docyra.app',
+    contactPhone: contactPhone || '+91 9876543210',
+    website: website || '',
+    subscriptionStatus: subscriptionStatus || 'active',
+    description: description || '',
     adminId,
   });
 
@@ -58,6 +76,10 @@ export const updateClinic = asyncHandler(async (req, res) => {
   }
 
   const payload = { ...req.body };
+
+  if (payload.status) {
+    payload.subscriptionStatus = payload.status;
+  }
 
   // Normalize contact object to top-level fields if provided
   if (payload.contact && typeof payload.contact === 'object') {

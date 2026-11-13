@@ -138,7 +138,7 @@ class ClinicService {
   /**
    * Platform Admin: Onboard a new clinic
    */
-  async onboardClinic({ name, address, city, contactEmail, contactPhone, subscriptionStatus = CLINIC_SUBSCRIPTION_STATUS.ACTIVE, description, adminId }) {
+  async onboardClinic({ name, address, city, state, postalCode, country, website, contactEmail, contactPhone, subscriptionStatus = CLINIC_SUBSCRIPTION_STATUS.ACTIVE, description, adminId }) {
     const existing = await Clinic.findOne({ name: { $regex: new RegExp(`^${name}$`, 'i') } });
     if (existing) {
       throw new ConflictError('A clinic with this name already exists', ERROR_CODES.CONFLICT);
@@ -148,6 +148,10 @@ class ClinicService {
       name,
       address,
       city,
+      state: state || '',
+      postalCode: postalCode || '',
+      country: country || 'India',
+      website: website || '',
       contactEmail,
       contactPhone,
       subscriptionStatus,

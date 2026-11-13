@@ -20,6 +20,7 @@ router.post('/:id/doctors', authenticate, requireRole(ROLES.CLINIC_ADMIN, ROLES.
 // Authenticated: Update clinic details (clinic_admin can update own clinic, admin can update any)
 router.put('/:id', authenticate, requireRole(ROLES.CLINIC_ADMIN, ROLES.ADMIN), updateClinic);
 router.patch('/:id', authenticate, requireRole(ROLES.CLINIC_ADMIN, ROLES.ADMIN), updateClinic);
+router.patch('/:id/status', authenticate, requireRole(ROLES.ADMIN), updateClinic);
 
 // Public: Get clinic details with doctor roster
 router.get('/:id', getClinicDetail);
