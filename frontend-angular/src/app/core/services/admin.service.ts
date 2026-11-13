@@ -111,6 +111,13 @@ export class AdminService {
     );
   }
 
+  getSpecializationDetail(id: string): Observable<ApiResponse<{ specialization: Specialization; doctors: any[] }>> {
+    return this.http.get<ApiResponse<{ specialization: Specialization; doctors: any[] }>>(
+      `${environment.apiBaseUrl}/specializations/${id}`,
+      { withCredentials: true }
+    );
+  }
+
   // Patients Management
   getPatients(params?: PaginationParams): Observable<ApiResponse<User[]>> {
     let httpParams = new HttpParams().set('role', 'patient');

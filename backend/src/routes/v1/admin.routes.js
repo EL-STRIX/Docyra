@@ -52,6 +52,7 @@ router.get('/analytics', getPlatformAnalytics);
 
 // Specialization Management
 router.post('/specializations', validate(createSpecializationSchema), auditLogger('SPECIALIZATION_CREATED', 'Specialization'), createSpecialization);
+router.put('/specializations/:id', validate(updateSpecializationSchema), auditLogger('SPECIALIZATION_UPDATED', 'Specialization'), updateSpecialization);
 router.patch('/specializations/:id', validate(updateSpecializationSchema), auditLogger('SPECIALIZATION_UPDATED', 'Specialization'), updateSpecialization);
 router.delete('/specializations/:id', auditLogger('SPECIALIZATION_DELETED', 'Specialization'), deleteSpecialization);
 
