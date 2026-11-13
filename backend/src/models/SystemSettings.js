@@ -17,12 +17,21 @@ const systemSettingsSchema = new mongoose.Schema(
     defaultCurrency: {
       type: String,
       default: 'INR',
+      enum: ['INR'],
     },
     maxAdvanceBookingDays: {
       type: Number,
       default: 60,
       min: 1,
       max: 365,
+    },
+    allowIndependentDoctors: {
+      type: Boolean,
+      default: true,
+    },
+    twoFactorEnforcedForStaff: {
+      type: Boolean,
+      default: true,
     },
     autoApproveReviews: {
       type: Boolean,

@@ -60,29 +60,44 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
                 <mat-option [value]="45">45 Minutes</mat-option>
                 <mat-option [value]="60">60 Minutes</mat-option>
               </mat-select>
-              <mat-hint>Applied as the default when a new doctor is created.</mat-hint>
+              <mat-hint>Applied as default when a new doctor is created or onboarded.</mat-hint>
             </mat-form-field>
           </div>
 
           <div class="form-group mt-4">
             <label class="form-label">Patient Cancellation Window (Hours)</label>
             <mat-form-field appearance="outline" class="w-full">
-              <input matInput type="number" [(ngModel)]="settings.cancellationWindowHours" />
-              <mat-hint>Minimum hours before scheduled slot time that a patient can cancel free of charge.</mat-hint>
+              <input matInput type="number" [(ngModel)]="settings.cancellationWindowHours" min="1" max="168" />
+              <mat-hint>Minimum hours before scheduled slot time that a patient can cancel free of penalty.</mat-hint>
             </mat-form-field>
           </div>
 
           <div class="form-group mt-4">
-            <label class="form-label">Billing Currency Symbol</label>
+            <label class="form-label">Advance Booking Horizon (Days)</label>
             <mat-form-field appearance="outline" class="w-full">
-              <input matInput [(ngModel)]="settings.currency" placeholder="INR / ₹" />
+              <mat-select [(ngModel)]="settings.maxAdvanceBookingDays">
+                <mat-option [value]="30">30 Days Ahead</mat-option>
+                <mat-option [value]="60">60 Days Ahead (Default)</mat-option>
+                <mat-option [value]="90">90 Days Ahead</mat-option>
+              </mat-select>
+              <mat-hint>Maximum advance window for which booking slots are generated.</mat-hint>
+            </mat-form-field>
+          </div>
+
+          <div class="form-group mt-4">
+            <label class="form-label">Platform Billing Currency</label>
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-select [(ngModel)]="settings.currency" [disabled]="true">
+                <mat-option value="INR">INR (₹) - Indian Rupee (Exclusive Currency)</mat-option>
+              </mat-select>
+              <mat-hint>Docyra operates exclusively in Indian Rupees (INR). Multi-currency is disabled.</mat-hint>
             </mat-form-field>
           </div>
         </mat-card>
 
         <!-- Access & Security Enforcement Card -->
         <mat-card class="settings-card">
-          <h2 class="card-title">Security & Onboarding Policies</h2>
+          <h2 class="card-title">Security & Policy Enforcement</h2>
 
           <div class="toggle-list mt-4">
             <div class="toggle-item">
@@ -103,11 +118,36 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
             <div class="toggle-item">
               <div class="toggle-meta">
+                <span class="t-title">Auto-Approve Patient Reviews</span>
+                <span class="t-desc">Automatically publish patient consultation reviews without manual approval gate.</span>
+              </div>
+              <mat-slide-toggle [(ngModel)]="settings.autoApproveReviews" color="primary"></mat-slide-toggle>
+            </div>
+
+            <div class="toggle-item">
+              <div class="toggle-meta">
                 <span class="t-title">Platform Maintenance Mode</span>
                 <span class="t-desc">Temporarily freeze new appointment bookings for planned maintenance windows.</span>
               </div>
               <mat-slide-toggle [(ngModel)]="settings.maintenanceMode" color="warn"></mat-slide-toggle>
             </div>
+          </div>
+        </mat-card>
+
+        <!-- Slot Generator Maintenance Card -->
+        <mat-card class="settings-card col-span-full">
+          <div class="slot-job-header">
+            <div>
+              <h2 class="card-title">Rolling Slot Generation Engine</h2>
+              <p class="t-desc mt-1">
+                The rolling slot generation cron runs nightly at 00:00 UTC to maintain availability. You can also trigger an immediate execution across all active doctors.
+              </p>
+            </div>
+            <button mat-stroked-button color="primary" (click)="triggerSlotJob()" [disabled]="triggeringJob">
+              <mat-spinner *ngIf="triggeringJob" diameter="16" class="mr-2"></mat-spinner>
+              <mat-icon *ngIf="!triggeringJob">autorenew</mat-icon>
+              <span>Run Slot Generation Job Now</span>
+            </button>
           </div>
         </mat-card>
       </div>
@@ -220,6 +260,18 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       line-height: 1.4;
     }
 
+    .col-span-full {
+      grid-column: 1 / -1;
+    }
+
+    .slot-job-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
     .w-full {
       width: 100%;
     }
@@ -231,13 +283,16 @@ export class SystemSettingsComponent implements OnInit {
 
   loading = true;
   saving = false;
+  triggeringJob = false;
 
   settings: SystemSettings = {
     slotDurationDefaultMinutes: 30,
     cancellationWindowHours: 24,
     currency: 'INR',
+    maxAdvanceBookingDays: 60,
     allowIndependentDoctors: true,
     twoFactorEnforcedForStaff: true,
+    autoApproveReviews: true,
     maintenanceMode: false,
   };
 
@@ -250,7 +305,17 @@ export class SystemSettingsComponent implements OnInit {
     this.adminService.getSystemSettings().subscribe({
       next: (res) => {
         if (res.success && res.data) {
-          this.settings = { ...this.settings, ...res.data };
+          const d: any = res.data;
+          this.settings = {
+            slotDurationDefaultMinutes: d.defaultSlotDurationMinutes ?? d.slotDurationDefaultMinutes ?? 30,
+            cancellationWindowHours: d.cancellationWindowHours ?? 24,
+            currency: 'INR',
+            maxAdvanceBookingDays: d.maxAdvanceBookingDays ?? 60,
+            allowIndependentDoctors: d.allowIndependentDoctors !== false,
+            twoFactorEnforcedForStaff: d.twoFactorEnforcedForStaff !== false,
+            autoApproveReviews: d.autoApproveReviews !== false,
+            maintenanceMode: Boolean(d.maintenanceMode),
+          };
         }
         this.loading = false;
       },
@@ -262,14 +327,41 @@ export class SystemSettingsComponent implements OnInit {
 
   saveSettings(): void {
     this.saving = true;
-    this.adminService.updateSystemSettings(this.settings).subscribe({
+    const payload: Partial<SystemSettings> = {
+      defaultSlotDurationMinutes: Number(this.settings.slotDurationDefaultMinutes),
+      slotDurationDefaultMinutes: Number(this.settings.slotDurationDefaultMinutes),
+      cancellationWindowHours: Number(this.settings.cancellationWindowHours),
+      defaultCurrency: 'INR',
+      currency: 'INR',
+      maxAdvanceBookingDays: Number(this.settings.maxAdvanceBookingDays || 60),
+      allowIndependentDoctors: this.settings.allowIndependentDoctors,
+      twoFactorEnforcedForStaff: this.settings.twoFactorEnforcedForStaff,
+      autoApproveReviews: this.settings.autoApproveReviews,
+      maintenanceMode: this.settings.maintenanceMode,
+    };
+
+    this.adminService.updateSystemSettings(payload).subscribe({
       next: () => {
         this.saving = false;
-        this.notificationService.success('Platform system settings saved successfully');
+        this.notificationService.success('Platform system settings saved successfully (INR Currency Enforced)');
       },
       error: (err) => {
         this.saving = false;
         this.notificationService.error(err.error?.error?.message || 'Failed to save system settings');
+      },
+    });
+  }
+
+  triggerSlotJob(): void {
+    this.triggeringJob = true;
+    this.adminService.triggerSlotGeneration().subscribe({
+      next: (res) => {
+        this.triggeringJob = false;
+        this.notificationService.success(res.message || 'Slot generation job executed successfully');
+      },
+      error: (err) => {
+        this.triggeringJob = false;
+        this.notificationService.error(err.error?.error?.message || 'Failed to trigger slot generation');
       },
     });
   }

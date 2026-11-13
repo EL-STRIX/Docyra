@@ -176,4 +176,12 @@ export class AdminService {
       withCredentials: true,
     });
   }
+
+  triggerSlotGeneration(): Observable<ApiResponse<any>> {
+    return this.http.post<ApiResponse<any>>(
+      `${this.API_URL}/jobs/generate-slots`,
+      {},
+      { withCredentials: true }
+    );
+  }
 }

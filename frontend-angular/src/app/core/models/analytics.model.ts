@@ -28,9 +28,13 @@ export interface AnalyticsSummary {
 
 export interface SystemSettings {
   slotDurationDefaultMinutes: number;
+  defaultSlotDurationMinutes?: number;
   cancellationWindowHours: number;
   currency: string;
+  defaultCurrency?: string;
+  maxAdvanceBookingDays?: number;
   allowIndependentDoctors: boolean;
   twoFactorEnforcedForStaff: boolean;
+  autoApproveReviews?: boolean;
   maintenanceMode: boolean;
 }

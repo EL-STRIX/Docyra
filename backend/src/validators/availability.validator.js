@@ -51,9 +51,13 @@ export const getDoctorSlotsSchema = z.object({
 export const updateSettingsSchema = z.object({
   body: z.object({
     defaultSlotDurationMinutes: z.number().int().min(10).max(120).optional(),
+    slotDurationDefaultMinutes: z.number().int().min(10).max(120).optional(),
     cancellationWindowHours: z.number().int().min(1).max(168).optional(),
-    defaultCurrency: z.string().min(2).max(5).optional(),
+    defaultCurrency: z.string().optional(),
+    currency: z.string().optional(),
     maxAdvanceBookingDays: z.number().int().min(1).max(365).optional(),
+    allowIndependentDoctors: z.boolean().optional(),
+    twoFactorEnforcedForStaff: z.boolean().optional(),
     autoApproveReviews: z.boolean().optional(),
     maintenanceMode: z.boolean().optional(),
   }),
