@@ -47,8 +47,44 @@ export const updateClinicDoctor = asyncHandler(async (req, res) => {
   });
 });
 
+export const listClinicDoctorApplications = asyncHandler(async (req, res) => {
+  const clinicId = req.user.clinicId;
+  const { page, limit, status } = req.query;
+
+  const result = await doctorService.listClinicDoctorApplications({
+    clinicId,
+    page,
+    limit,
+    status,
+  });
+
+  res.status(200).json({
+    success: true,
+    data: result.applications,
+    meta: result.meta,
+  });
+});
+
+export const reviewClinicDoctorApplication = asyncHandler(async (req, res) => {
+  const clinicId = req.user.clinicId;
+  const { id } = req.params;
+  const { isApproved, reason } = req.body;
+
+  const result = await doctorService.reviewClinicDoctorApplication(id, clinicId, {
+    isApproved,
+    reason,
+  });
+
+  res.status(200).json({
+    success: true,
+    data: result,
+  });
+});
+
 export default {
   addDoctorToClinic,
   listClinicDoctors,
   updateClinicDoctor,
+  listClinicDoctorApplications,
+  reviewClinicDoctorApplication,
 };

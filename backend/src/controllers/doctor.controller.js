@@ -9,7 +9,18 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB limit
 });
 
-export const uploadMiddleware = upload.single('licenseFile');
+export const uploadMiddleware = (req, res, next) => {
+  upload.fields([
+    { name: 'licenseFile', maxCount: 1 },
+    { name: 'licenseDocument', maxCount: 1 },
+  ])(req, res, (err) => {
+    if (err) return next(err);
+    if (req.files) {
+      req.file = req.files['licenseFile']?.[0] || req.files['licenseDocument']?.[0];
+    }
+    next();
+  });
+};
 
 export const searchDoctors = asyncHandler(async (req, res) => {
   const { page, limit, search, specializationId, specialization, clinicId, isIndependent, minRating } = req.query;

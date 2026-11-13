@@ -87,4 +87,26 @@ export class ClinicService {
       withCredentials: true,
     });
   }
+
+  getDoctorApplications(params?: { page?: number; limit?: number; status?: string }): Observable<ApiResponse<any[]>> {
+    let query = '';
+    if (params) {
+      const q = new URLSearchParams();
+      if (params.page) q.set('page', params.page.toString());
+      if (params.limit) q.set('limit', params.limit.toString());
+      if (params.status && params.status !== 'all') q.set('status', params.status);
+      query = `?${q.toString()}`;
+    }
+    return this.http.get<ApiResponse<any[]>>(`${environment.apiBaseUrl}/clinic-admin/doctor-applications${query}`, {
+      withCredentials: true,
+    });
+  }
+
+  reviewDoctorApplication(applicationId: string, isApproved: boolean, reason?: string): Observable<ApiResponse<any>> {
+    return this.http.post<ApiResponse<any>>(
+      `${environment.apiBaseUrl}/clinic-admin/doctor-applications/${applicationId}/review`,
+      { isApproved, reason },
+      { withCredentials: true }
+    );
+  }
 }

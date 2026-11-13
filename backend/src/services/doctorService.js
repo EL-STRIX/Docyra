@@ -259,16 +259,25 @@ class DoctorService {
   }
 
   /**
-   * Public / Doctor: Apply as independent practitioner with mandatory license upload
+   * Public / Doctor: Apply to join a Clinic facility with mandatory license upload
    */
-  async applyIndependentDoctor({ name, email, password, phone, specializationId, qualifications = [], bio, consultationFee = 500, clinicAddress, yearsExperience = 0 }, licenseFile) {
+  async applyIndependentDoctor({ name, email, password, phone, clinicId, specializationId, qualifications = [], bio, consultationFee = 500, clinicAddress, yearsExperience = 0 }, licenseFile) {
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
       throw new ConflictError('An account with this email already exists', ERROR_CODES.EMAIL_ALREADY_EXISTS);
     }
 
     if (!licenseFile) {
-      throw new AppError(ERROR_CODES.VALIDATION_ERROR, 400, 'License or qualification document upload is mandatory for independent doctor application');
+      throw new AppError(ERROR_CODES.VALIDATION_ERROR, 400, 'License or qualification document upload is mandatory for doctor application');
+    }
+
+    if (!clinicId) {
+      throw new AppError(ERROR_CODES.VALIDATION_ERROR, 400, 'Target clinic selection is required');
+    }
+
+    const clinic = await Clinic.findById(clinicId);
+    if (!clinic) {
+      throw new NotFoundError('Selected clinic not found', ERROR_CODES.NOT_FOUND);
     }
 
     // Verify specialization exists
@@ -288,7 +297,8 @@ class DoctorService {
       passwordHash,
       phone,
       role: ROLES.DOCTOR,
-      status: USER_STATUS.ACTIVE, // Account created, but profile approval pending
+      clinicId: clinic._id,
+      status: USER_STATUS.UNVERIFIED, // Account created, but clinic approval pending
     });
 
     const parsedQualifications = Array.isArray(qualifications)
@@ -297,27 +307,145 @@ class DoctorService {
       ? qualifications.split(',').map((q) => q.trim())
       : [];
 
+    const computedClinicAddress = clinic.name + (clinic.address?.street ? `, ${clinic.address.street}, ${clinic.address.city}` : '');
+
     const doctorProfile = await DoctorProfile.create({
       userId: user._id,
-      clinicId: null, // Independent doctor
+      clinicId: clinic._id,
       specializationId: spec._id,
       qualifications: parsedQualifications,
       bio: bio || '',
       licenseDocumentUrl,
       consultationFee: parseFloat(consultationFee) || 500,
       feeCurrency: 'INR',
-      clinicAddress: clinicAddress || '',
+      clinicAddress: computedClinicAddress || clinicAddress || clinic.name,
       yearsExperience: parseInt(yearsExperience, 10) || 0,
-      isApproved: false, // Must be approved by Platform Admin
+      isApproved: false, // Must be approved by Clinic Admin
+      status: 'pending',
     });
 
-    logger.info(`Independent doctor application submitted: ${user.email} (${doctorProfile._id})`);
+    logger.info(`Doctor application submitted to clinic "${clinic.name}": ${user.email} (${doctorProfile._id})`);
 
     return {
       applicationId: doctorProfile._id,
       userId: user._id,
+      clinicId: clinic._id,
+      clinicName: clinic.name,
       status: 'pending_review',
-      message: 'Application submitted successfully. It will be reviewed by platform administration.',
+      message: `Application submitted successfully to ${clinic.name}. It will be reviewed by the clinic administration.`,
+    };
+  }
+
+  /**
+   * Clinic Admin: List doctor applications submitted to this clinic
+   */
+  async listClinicDoctorApplications({ clinicId, page = 1, limit = 10, status = 'all' }) {
+    if (!clinicId) {
+      throw new AppError(ERROR_CODES.VALIDATION_ERROR, 400, 'Clinic ID is required');
+    }
+
+    const query = {
+      clinicId: new mongoose.Types.ObjectId(clinicId),
+    };
+
+    if (status === 'pending') {
+      query.isApproved = false;
+      query.status = { $ne: 'suspended' };
+    } else if (status === 'approved') {
+      query.isApproved = true;
+    } else if (status === 'rejected' || status === 'suspended') {
+      query.status = 'suspended';
+      query.isApproved = false;
+    }
+
+    const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 10, 1), 50);
+    const safePage = Math.max(parseInt(page, 10) || 1, 1);
+    const skip = (safePage - 1) * safeLimit;
+
+    const [applications, total] = await Promise.all([
+      DoctorProfile.find(query)
+        .populate('userId', 'name email phone createdAt profilePhotoUrl status')
+        .populate('specializationId', 'name')
+        .populate('clinicId', 'name email phone address')
+        .sort({ isApproved: 1, createdAt: -1 })
+        .skip(skip)
+        .limit(safeLimit)
+        .lean(),
+      DoctorProfile.countDocuments(query),
+    ]);
+
+    const formattedApps = applications.map((doc) => {
+      let appStatus = 'pending';
+      if (doc.isApproved) {
+        appStatus = 'approved';
+      } else if (doc.status === 'suspended') {
+        appStatus = 'rejected';
+      }
+
+      return {
+        _id: doc._id,
+        id: doc._id,
+        userId: doc.userId,
+        name: doc.userId?.name || 'Dr. Practitioner',
+        email: doc.userId?.email || '',
+        phone: doc.userId?.phone || '',
+        specialization: doc.specializationId?.name || 'General Medicine',
+        specializationId: doc.specializationId,
+        qualifications: doc.qualifications || [],
+        yearsExperience: doc.yearsExperience || 0,
+        consultationFee: doc.consultationFee || 500,
+        feeCurrency: doc.feeCurrency || 'INR',
+        clinicAddress: doc.clinicAddress,
+        licenseDocumentUrl: doc.licenseDocumentUrl,
+        bio: doc.bio,
+        status: appStatus,
+        isApproved: !!doc.isApproved,
+        createdAt: doc.createdAt,
+      };
+    });
+
+    return {
+      applications: formattedApps,
+      meta: {
+        page: safePage,
+        limit: safeLimit,
+        total,
+        totalPages: Math.ceil(total / safeLimit),
+      },
+    };
+  }
+
+  /**
+   * Clinic Admin: Review (Approve / Reject) Doctor Application for their clinic
+   */
+  async reviewClinicDoctorApplication(doctorProfileId, clinicId, { isApproved, reason }) {
+    const doctorProfile = await DoctorProfile.findById(doctorProfileId).populate('userId');
+    if (!doctorProfile) {
+      throw new NotFoundError('Doctor application not found', ERROR_CODES.NOT_FOUND);
+    }
+
+    if (doctorProfile.clinicId?.toString() !== clinicId?.toString()) {
+      throw new AppError(ERROR_CODES.FORBIDDEN, 403, 'You do not have permission to review applications for other clinics');
+    }
+
+    doctorProfile.isApproved = !!isApproved;
+    doctorProfile.status = isApproved ? 'active' : 'suspended';
+    await doctorProfile.save();
+
+    if (doctorProfile.userId) {
+      await User.findByIdAndUpdate(doctorProfile.userId._id, {
+        status: isApproved ? USER_STATUS.ACTIVE : USER_STATUS.SUSPENDED,
+        clinicId: clinicId,
+      });
+    }
+
+    logger.info(`Clinic doctor application ${doctorProfileId} review updated to isApproved=${isApproved} by clinic ${clinicId}`);
+
+    return {
+      doctorProfile,
+      message: isApproved
+        ? 'Doctor application approved successfully. The doctor is now affiliated with your clinic.'
+        : `Doctor application rejected. Reason: ${reason || 'Not specified'}`,
     };
   }
 

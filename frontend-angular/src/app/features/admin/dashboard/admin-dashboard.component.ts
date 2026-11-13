@@ -37,9 +37,9 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
             <mat-icon>add_business</mat-icon>
             <span>Onboard Clinic</span>
           </a>
-          <a routerLink="/admin/applications" mat-stroked-button color="primary">
-            <mat-icon>verified</mat-icon>
-            <span>Doctor Applications</span>
+          <a routerLink="/admin/specializations" mat-stroked-button color="primary">
+            <mat-icon>category</mat-icon>
+            <span>Specializations</span>
           </a>
         </div>
       </div>
@@ -77,17 +77,17 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
         </mat-card>
 
         <mat-card class="stat-card">
-          <div class="stat-icon-wrap warn">
-            <mat-icon>pending_actions</mat-icon>
+          <div class="stat-icon-wrap purple">
+            <mat-icon>groups</mat-icon>
           </div>
           <div class="stat-info">
-            <span class="stat-label">Pending Applications</span>
-            <span class="stat-value">{{ pendingApplications.length }}</span>
+            <span class="stat-label">Registered Patients</span>
+            <span class="stat-value">{{ summary?.totalPatients || 0 }}</span>
           </div>
         </mat-card>
       </div>
 
-      <!-- Split Layout: Recent Onboardings & Pending Doctor Applications -->
+      <!-- Split Layout: Recent Onboardings & Platform Governance -->
       <div class="content-split">
         <!-- Recent Clinics -->
         <mat-card class="main-card">
@@ -137,32 +137,70 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
           </div>
         </mat-card>
 
-        <!-- Pending Doctor Applications -->
+        <!-- Platform Governance & Quick Navigation -->
         <mat-card class="side-card">
           <div class="card-header-bar">
             <div>
-              <h2 class="card-title">Pending Doctor Applications</h2>
-              <p class="card-desc">Independent physician licenses requiring review</p>
+              <h2 class="card-title">Platform Operations</h2>
+              <p class="card-desc">Quick governance tools and administrative control</p>
             </div>
-            <a routerLink="/admin/applications" class="view-all-link">Review All →</a>
           </div>
 
-          <div *ngIf="pendingApplications.length === 0 && !loading" class="empty-side">
-            <mat-icon class="check-icon">verified</mat-icon>
-            <p>All independent doctor applications have been reviewed.</p>
-          </div>
+          <div class="quick-nav-list">
+            <a routerLink="/admin/clinics" class="quick-nav-item">
+              <div class="nav-item-icon clinic-ic">
+                <mat-icon>domain</mat-icon>
+              </div>
+              <div class="nav-item-info">
+                <span class="nav-item-title">Manage Clinics</span>
+                <span class="nav-item-sub">Onboard, configure facilities, and manage status</span>
+              </div>
+              <mat-icon class="nav-arrow">chevron_right</mat-icon>
+            </a>
 
-          <div *ngIf="pendingApplications.length > 0" class="apps-list">
-            <div *ngFor="let app of pendingApplications | slice:0:4" class="app-item">
-              <div class="app-top">
-                <span class="app-doc-name">{{ app.user?.name || 'Doctor Applicant' }}</span>
-                <span class="app-date">{{ app.appliedAt | portalDate:'dd MMM' }}</span>
+            <a routerLink="/admin/specializations" class="quick-nav-item">
+              <div class="nav-item-icon spec-ic">
+                <mat-icon>category</mat-icon>
               </div>
-              <div class="app-license">License: <code>{{ app.licenseNumber }}</code></div>
-              <div class="app-actions">
-                <a routerLink="/admin/applications" class="review-btn">Review License Document →</a>
+              <div class="nav-item-info">
+                <span class="nav-item-title">Specializations</span>
+                <span class="nav-item-sub">Manage clinical departments and disciplines</span>
               </div>
-            </div>
+              <mat-icon class="nav-arrow">chevron_right</mat-icon>
+            </a>
+
+            <a routerLink="/admin/patients" class="quick-nav-item">
+              <div class="nav-item-icon patient-ic">
+                <mat-icon>groups</mat-icon>
+              </div>
+              <div class="nav-item-info">
+                <span class="nav-item-title">Manage Patients</span>
+                <span class="nav-item-sub">Directory, profiles, and account safety controls</span>
+              </div>
+              <mat-icon class="nav-arrow">chevron_right</mat-icon>
+            </a>
+
+            <a routerLink="/admin/audit-logs" class="quick-nav-item">
+              <div class="nav-item-icon audit-ic">
+                <mat-icon>history</mat-icon>
+              </div>
+              <div class="nav-item-info">
+                <span class="nav-item-title">Compliance Audit Logs</span>
+                <span class="nav-item-sub">Live streaming security and operational audit trail</span>
+              </div>
+              <mat-icon class="nav-arrow">chevron_right</mat-icon>
+            </a>
+
+            <a routerLink="/admin/settings" class="quick-nav-item">
+              <div class="nav-item-icon set-ic">
+                <mat-icon>settings</mat-icon>
+              </div>
+              <div class="nav-item-info">
+                <span class="nav-item-title">System Settings</span>
+                <span class="nav-item-sub">Slot engine interval, currency, and security policies</span>
+              </div>
+              <mat-icon class="nav-arrow">chevron_right</mat-icon>
+            </a>
           </div>
         </mat-card>
       </div>
@@ -243,6 +281,11 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       color: #2E9E6B;
     }
 
+    .stat-icon-wrap.purple {
+      background-color: #F3E8FF;
+      color: #7E22CE;
+    }
+
     .stat-icon-wrap.warn {
       background-color: #FDF2F2;
       color: #D9534F;
@@ -302,9 +345,9 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     }
 
     .card-desc {
-      font-size: 12px;
+      font-size: 11.5px;
       color: #5C6B6B;
-      margin: 2px 0 0;
+      margin: 0;
     }
 
     .view-all-link {
@@ -314,111 +357,75 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       text-decoration: none;
     }
 
-    .loading-wrap {
-      display: flex;
-      justify-content: center;
-      padding: 40px;
-    }
-
-    .empty-state, .empty-side {
-      text-align: center;
-      padding: 36px 16px;
-      color: #5C6B6B;
-      font-size: 13px;
-    }
-
-    .empty-icon {
-      font-size: 40px;
-      width: 40px;
-      height: 40px;
-      color: #A0C6C6;
-      margin-bottom: 8px;
-    }
-
-    .check-icon {
-      font-size: 36px;
-      width: 36px;
-      height: 36px;
-      color: #2E9E6B;
-      margin-bottom: 8px;
-    }
-
-    .clinics-table-wrap {
-      overflow-x: auto;
-    }
-
-    .admin-table {
-      width: 100%;
-      border-collapse: collapse;
-      text-align: left;
-    }
-
-    .admin-table th {
-      padding: 10px 14px;
-      font-size: 11px;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: #5C6B6B;
-      border-bottom: 2px solid #E7E5E0;
-    }
-
-    .admin-table td {
-      padding: 12px 14px;
-      border-bottom: 1px solid #E7E5E0;
-      font-size: 13px;
-    }
-
-    .apps-list {
+    .quick-nav-list {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
     }
 
-    .app-item {
-      padding: 12px 14px;
-      border-radius: 8px;
-      background: #FAFAF8;
-      border: 1px solid #E7E5E0;
-    }
-
-    .app-top {
+    .quick-nav-item {
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: #FAFAF8;
+      border: 1px solid #F0EFEA;
+      text-decoration: none;
+      transition: all 0.2s ease;
     }
 
-    .app-doc-name {
-      font-size: 13px;
+    .quick-nav-item:hover {
+      background: #F4FAF9;
+      border-color: #0F5C5C;
+      transform: translateX(3px);
+    }
+
+    .nav-item-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .nav-item-icon.clinic-ic { background: #E6F2F1; color: #0F5C5C; }
+    .nav-item-icon.spec-ic { background: #FEF6EC; color: #B57416; }
+    .nav-item-icon.patient-ic { background: #F3E8FF; color: #7E22CE; }
+    .nav-item-icon.audit-ic { background: #EEF2F6; color: #1E3A8A; }
+    .nav-item-icon.set-ic { background: #F3F4F6; color: #374151; }
+
+    .nav-item-icon mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+
+    .nav-item-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .nav-item-title {
+      font-size: 12.5px;
       font-weight: 700;
       color: #1A2E2E;
     }
 
-    .app-date {
+    .nav-item-sub {
       font-size: 11px;
-      color: #5C6B6B;
+      color: #718096;
+      line-height: 1.3;
     }
 
-    .app-license {
-      font-size: 11px;
-      color: #5C6B6B;
-      margin-top: 4px;
-    }
-
-    .app-license code {
-      font-weight: 700;
-      color: #0F5C5C;
-    }
-
-    .app-actions {
-      margin-top: 8px;
-    }
-
-    .review-btn {
-      font-size: 12px;
-      font-weight: 700;
-      color: #0F5C5C;
-      text-decoration: none;
+    .nav-arrow {
+      color: #A0AEC0;
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
     }
   `],
 })
@@ -427,7 +434,6 @@ export class AdminDashboardComponent implements OnInit {
 
   summary: AnalyticsSummary | null = null;
   clinics: Clinic[] = [];
-  pendingApplications: DoctorApplication[] = [];
   loading = true;
 
   ngOnInit(): void {
@@ -460,14 +466,6 @@ export class AdminDashboardComponent implements OnInit {
       next: (res) => {
         if (res.success && Array.isArray(res.data)) {
           this.clinics = res.data;
-        }
-      },
-    });
-
-    this.adminService.getDoctorApplications().subscribe({
-      next: (res) => {
-        if (res.success && Array.isArray(res.data)) {
-          this.pendingApplications = res.data.filter((a) => a.status === 'pending');
         }
         this.loading = false;
       },

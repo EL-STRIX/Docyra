@@ -44,11 +44,11 @@ import { ClinicDashboardComponent } from './features/clinic-admin/dashboard/clin
 import { ManageDoctorsComponent } from './features/clinic-admin/doctors/manage-doctors.component';
 import { ClinicAppointmentsComponent } from './features/clinic-admin/appointments/clinic-appointments.component';
 import { ClinicProfileComponent } from './features/clinic-admin/profile/clinic-profile.component';
+import { ClinicDoctorApplicationsComponent } from './features/clinic-admin/applications/clinic-doctor-applications.component';
 
 // Platform Admin Components (Screen 41-48)
 import { AdminDashboardComponent } from './features/admin/dashboard/admin-dashboard.component';
 import { ManageClinicsComponent } from './features/admin/clinics/manage-clinics.component';
-import { DoctorApplicationsComponent } from './features/admin/applications/doctor-applications.component';
 import { ManageSpecializationsComponent } from './features/admin/specializations/manage-specializations.component';
 import { ManagePatientsComponent } from './features/admin/patients/manage-patients.component';
 import { AuditLogViewerComponent } from './features/admin/audit-logs/audit-log-viewer.component';
@@ -101,6 +101,7 @@ export const routes: Routes = [
         children: [
           { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
           { path: 'dashboard', component: ClinicDashboardComponent },
+          { path: 'applications', component: ClinicDoctorApplicationsComponent },
           { path: 'doctors', component: ManageDoctorsComponent },
           { path: 'appointments', component: ClinicAppointmentsComponent },
           { path: 'profile', component: ClinicProfileComponent },
@@ -115,7 +116,7 @@ export const routes: Routes = [
           { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
           { path: 'dashboard', component: AdminDashboardComponent },
           { path: 'clinics', component: ManageClinicsComponent },
-          { path: 'applications', component: DoctorApplicationsComponent },
+          { path: 'applications', redirectTo: 'dashboard', pathMatch: 'full' },
           { path: 'specializations', component: ManageSpecializationsComponent },
           { path: 'patients', component: ManagePatientsComponent },
           { path: 'audit-logs', component: AuditLogViewerComponent },

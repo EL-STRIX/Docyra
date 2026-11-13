@@ -793,6 +793,7 @@ export class PortalLayoutComponent {
     } else if (role === 'clinic_admin') {
       this.navItems = [
         { label: 'Clinic Dashboard', path: '/clinic/dashboard', icon: 'dashboard' },
+        { label: 'Doctor Applications', path: '/clinic/applications', icon: 'how_to_reg' },
         { label: 'Manage Doctors', path: '/clinic/doctors', icon: 'medical_services' },
         { label: 'Clinic Appointments', path: '/clinic/appointments', icon: 'event_note' },
         { label: 'Clinic Profile', path: '/clinic/profile', icon: 'domain' },
@@ -801,7 +802,6 @@ export class PortalLayoutComponent {
       this.navItems = [
         { label: 'Admin Dashboard', path: '/admin/dashboard', icon: 'analytics' },
         { label: 'Manage Clinics', path: '/admin/clinics', icon: 'domain' },
-        { label: 'Doctor Applications', path: '/admin/applications', icon: 'verified_user' },
         { label: 'Specializations', path: '/admin/specializations', icon: 'category' },
         { label: 'Manage Patients', path: '/admin/patients', icon: 'groups' },
         { label: 'Audit Logs', path: '/admin/audit-logs', icon: 'history' },

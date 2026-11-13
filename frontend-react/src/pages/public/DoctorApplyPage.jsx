@@ -1,16 +1,19 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ShieldCheck, CheckCircle2, AlertCircle } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, AlertCircle, Building2 } from 'lucide-react';
 import doctorsApi from '../../services/doctors.api.js';
 import specializationsApi from '../../services/specializations.api.js';
+import clinicsApi from '../../services/clinics.api.js';
 
 export function DoctorApplyPage() {
   const [specializations, setSpecializations] = useState([]);
+  const [clinics, setClinics] = useState([]);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     phone: '',
+    clinicId: '',
     specializationId: '',
     qualifications: '',
     yearsExperience: '',
@@ -21,27 +24,43 @@ export function DoctorApplyPage() {
   const [licenseFile, setLicenseFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [submittedClinicName, setSubmittedClinicName] = useState('');
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    async function loadSpecs() {
+    async function loadData() {
       try {
-        const res = await specializationsApi.getSpecializations();
-        if (res.success) {
-          setSpecializations(res.data.specializations || []);
+        const [specRes, clinicRes] = await Promise.all([
+          specializationsApi.getSpecializations(),
+          clinicsApi.getClinics({ limit: 100 }),
+        ]);
+
+        if (specRes.success) {
+          setSpecializations(specRes.data.specializations || []);
         }
+
+        const clinicList = clinicRes.data?.clinics || [];
+        setClinics(clinicList);
       } catch (err) {
         // Fallback
       }
     }
-    loadSpecs();
+    loadData();
   }, []);
 
   const handleChange = (e) => {
+    const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value,
+      [name]: value,
     }));
+
+    if (name === 'clinicId') {
+      const match = clinics.find((c) => c._id === value);
+      if (match) {
+        setSubmittedClinicName(match.name);
+      }
+    }
   };
 
   const handleFileChange = (e) => {
@@ -53,6 +72,11 @@ export function DoctorApplyPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+
+    if (!formData.clinicId) {
+      setError('Please select a healthcare clinic facility.');
+      return;
+    }
 
     if (!licenseFile) {
       setError('Please upload your official medical registration/license document.');
@@ -69,10 +93,13 @@ export function DoctorApplyPage() {
 
       const res = await doctorsApi.applyDoctor(data);
       if (res.success) {
+        if (res.data?.clinicName) {
+          setSubmittedClinicName(res.data.clinicName);
+        }
         setSuccess(true);
       }
     } catch (err) {
-      setError(err.response?.data?.error?.message || 'Failed to submit doctor application');
+      setError(err.response?.data?.error?.message || err.response?.data?.message || 'Failed to submit doctor application');
     } finally {
       setLoading(false);
     }
@@ -84,13 +111,13 @@ export function DoctorApplyPage() {
       <section className="pt-12 pb-14 hero-gradient border-b border-neutral-border/60">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-4">
           <span className="badge-primary uppercase tracking-wider text-[11px]">
-            Practitioner Network
+            Doctor Application
           </span>
           <h1 className="text-4xl sm:text-5xl font-extrabold text-neutral-text-primary tracking-tight">
-            Apply as an Independent Doctor
+            Apply to Join a Partner Clinic
           </h1>
           <p className="text-base text-neutral-text-secondary leading-relaxed max-w-xl mx-auto">
-            Join Docyra&apos;s verified physician network. Set your availability, manage patients, and eliminate double-booking friction.
+            Choose your preferred clinic facility, submit your medical credentials, and practice seamlessly with verified patient scheduling.
           </p>
         </div>
       </section>
@@ -105,15 +132,18 @@ export function DoctorApplyPage() {
               </div>
               <div className="space-y-2">
                 <h2 className="text-2xl font-bold text-neutral-text-primary">
-                  Application Submitted Successfully!
+                  Application Submitted to {submittedClinicName || 'Clinic'}!
                 </h2>
                 <p className="text-sm text-neutral-text-secondary max-w-md mx-auto leading-relaxed">
-                  Your independent doctor application and license document are now in the Platform Admin queue. Once verified, you will receive an activation email with portal access instructions.
+                  Your credentials and application have been sent directly to the <strong>{submittedClinicName || 'selected clinic'}</strong> administration. The clinic administrator will review your medical license and activate your doctor portal account.
                 </p>
               </div>
-              <div className="pt-4">
+              <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-center">
                 <Link to="/" className="btn-primary text-sm px-6 py-2.5">
                   Return to Home
+                </Link>
+                <Link to="/clinics" className="btn-secondary text-sm px-6 py-2.5">
+                  View Clinics Directory
                 </Link>
               </div>
             </div>
@@ -252,18 +282,29 @@ export function DoctorApplyPage() {
                 </div>
               </div>
 
-              {/* Clinic Address */}
+              {/* Target Clinic Facility Dropdown */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-neutral-text-primary">Private Clinic / Practice Address *</label>
-                <input
-                  type="text"
-                  name="clinicAddress"
+                <label className="text-xs font-bold text-neutral-text-primary flex items-center gap-1.5">
+                  <Building2 className="w-3.5 h-3.5 text-brand-primary" />
+                  <span>Target Clinic / Hospital Facility *</span>
+                </label>
+                <select
+                  name="clinicId"
                   required
-                  value={formData.clinicAddress}
+                  value={formData.clinicId}
                   onChange={handleChange}
-                  placeholder="Clinic Name, Suite #, Street, City"
-                  className="w-full p-3 rounded-xl border border-neutral-border text-sm text-neutral-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary"
-                />
+                  className="w-full p-3 rounded-xl border border-neutral-border text-sm text-neutral-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary bg-white"
+                >
+                  <option value="">Select Clinic to Join</option>
+                  {clinics.map((c) => (
+                    <option key={c._id} value={c._id}>
+                      {c.name} {c.address?.city ? `(${c.address.city})` : ''}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-neutral-text-secondary leading-relaxed">
+                  Select the healthcare clinic where you want to practice. Your application will be sent directly to that clinic&apos;s administrator for review and approval.
+                </p>
               </div>
 
               {/* Bio */}
