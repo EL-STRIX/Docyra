@@ -122,7 +122,7 @@ import { format, isToday, parseISO } from 'date-fns';
                 <tr *ngFor="let apt of todayAppointments">
                   <td class="font-bold text-teal-800">{{ apt.slotStart | portalDate:'h:mm a' }}</td>
                   <td>
-                    <div class="font-bold text-neutral-900">{{ apt.bookedFor.name }}</div>
+                    <div class="font-bold text-neutral-900">{{ getPatientName(apt) }}</div>
                     <div class="text-xs text-neutral-500">{{ apt.reasonForVisit || 'Consultation' }}</div>
                   </td>
                   <td class="text-sm font-semibold text-neutral-800">
@@ -475,6 +475,14 @@ export class ClinicDashboardComponent implements OnInit {
         return false;
       }
     });
+  }
+
+  getPatientName(apt: Appointment): string {
+    if (apt.bookedFor && apt.bookedFor.name) return apt.bookedFor.name;
+    if (typeof apt.patientId === 'object' && apt.patientId && (apt.patientId as any).name) {
+      return (apt.patientId as any).name;
+    }
+    return 'Patient';
   }
 
   getDoctorName(apt: Appointment): string {

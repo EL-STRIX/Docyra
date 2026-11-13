@@ -226,8 +226,24 @@ class AppointmentService {
       Appointment.countDocuments(query),
     ]);
 
+    const formattedAppointments = appointments.map((apt) => {
+      const bookedFor = apt.bookedFor || (apt.bookedForType === 'dependent' && apt.bookedForId ? {
+        name: apt.bookedForId.name,
+        relationship: apt.bookedForId.relationship,
+        dateOfBirth: apt.bookedForId.dateOfBirth,
+        type: 'dependent',
+      } : {
+        name: apt.patientId?.name || 'Patient',
+        type: 'self',
+      });
+      return {
+        ...apt,
+        bookedFor,
+      };
+    });
+
     return {
-      appointments,
+      appointments: formattedAppointments,
       meta: {
         page: safePage,
         limit: safeLimit,
@@ -310,8 +326,24 @@ class AppointmentService {
       Appointment.countDocuments(query),
     ]);
 
+    const formattedAppointments = appointments.map((apt) => {
+      const bookedFor = apt.bookedFor || (apt.bookedForType === 'dependent' && apt.bookedForId ? {
+        name: apt.bookedForId.name,
+        relationship: apt.bookedForId.relationship,
+        dateOfBirth: apt.bookedForId.dateOfBirth,
+        type: 'dependent',
+      } : {
+        name: apt.patientId?.name || 'Patient',
+        type: 'self',
+      });
+      return {
+        ...apt,
+        bookedFor,
+      };
+    });
+
     return {
-      appointments,
+      appointments: formattedAppointments,
       meta: {
         page: safePage,
         limit: safeLimit,
@@ -364,8 +396,24 @@ class AppointmentService {
       Appointment.countDocuments(query),
     ]);
 
+    const formattedAppointments = appointments.map((apt) => {
+      const bookedFor = apt.bookedFor || (apt.bookedForType === 'dependent' && apt.bookedForId ? {
+        name: apt.bookedForId.name,
+        relationship: apt.bookedForId.relationship,
+        dateOfBirth: apt.bookedForId.dateOfBirth,
+        type: 'dependent',
+      } : {
+        name: apt.patientId?.name || 'Patient',
+        type: 'self',
+      });
+      return {
+        ...apt,
+        bookedFor,
+      };
+    });
+
     return {
-      appointments,
+      appointments: formattedAppointments,
       meta: {
         page: safePage,
         limit: safeLimit,

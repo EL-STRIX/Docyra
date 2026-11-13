@@ -234,19 +234,22 @@ export class AuthService {
    * Redirect user based on their role
    */
   redirectAfterLogin(role: UserRole): void {
+    let target = '/login';
     switch (role) {
       case 'doctor':
-        this.router.navigate(['/doctor/dashboard']);
+        target = '/doctor/dashboard';
         break;
       case 'clinic_admin':
-        this.router.navigate(['/clinic/dashboard']);
+        target = '/clinic/dashboard';
         break;
       case 'admin':
-        this.router.navigate(['/admin/dashboard']);
-        break;
-      default:
-        this.router.navigate(['/login']);
+        target = '/admin/dashboard';
         break;
     }
+    this.router.navigate([target]).then((success) => {
+      if (!success) {
+        this.router.navigate(['/']);
+      }
+    });
   }
 }
