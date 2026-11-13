@@ -112,24 +112,26 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
             <table class="admin-table">
               <thead>
                 <tr>
-                  <th>Clinic</th>
-                  <th>City</th>
-                  <th>Status</th>
-                  <th>Rating</th>
+                  <th class="th-clinic">Clinic</th>
+                  <th class="th-city">City</th>
+                  <th class="th-status">Status</th>
+                  <th class="th-rating text-right">Rating</th>
                 </tr>
               </thead>
               <tbody>
                 <tr *ngFor="let c of clinics | slice:0:5">
-                  <td>
-                    <div class="font-bold text-neutral-900 text-sm">{{ c.name }}</div>
-                    <div class="text-xs text-neutral-500">{{ c.contactPhone || c.contact?.phone || 'N/A' }}</div>
+                  <td class="td-clinic">
+                    <div class="clinic-title">{{ c.name }}</div>
+                    <div class="clinic-phone">{{ c.contactPhone || c.contact?.phone || 'N/A' }}</div>
                   </td>
-                  <td class="text-sm font-semibold text-neutral-700">{{ getClinicCity(c) }}</td>
-                  <td>
+                  <td class="td-city">
+                    <span class="city-text">{{ getClinicCity(c) }}</span>
+                  </td>
+                  <td class="td-status">
                     <app-status-badge [status]="isClinicActive(c) ? 'active' : 'suspended'"></app-status-badge>
                   </td>
-                  <td class="text-sm font-bold text-amber-600">
-                    ⭐ {{ c.rating ? (c.rating | number:'1.1-1') : '5.0' }}
+                  <td class="td-rating text-right">
+                    <span class="rating-text">⭐ {{ c.rating ? (c.rating | number:'1.1-1') : '5.0' }}</span>
                   </td>
                 </tr>
               </tbody>
@@ -426,6 +428,118 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       font-size: 18px;
       width: 18px;
       height: 18px;
+    }
+
+    .clinics-table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      border: 1px solid #E7E5E0;
+      border-radius: 10px;
+      background: #FFFFFF;
+    }
+
+    .admin-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .admin-table th {
+      padding: 12px 18px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #5C6B6B;
+      background-color: #FAFAF8;
+      border-bottom: 2px solid #E7E5E0;
+      white-space: nowrap;
+    }
+
+    .admin-table th.th-clinic {
+      width: 44%;
+      text-align: left;
+    }
+
+    .admin-table th.th-city {
+      width: 24%;
+      text-align: left;
+    }
+
+    .admin-table th.th-status {
+      width: 18%;
+      text-align: left;
+    }
+
+    .admin-table th.th-rating {
+      width: 14%;
+      text-align: right;
+    }
+
+    .admin-table td {
+      padding: 14px 18px;
+      border-bottom: 1px solid #F1F0EB;
+      vertical-align: middle;
+    }
+
+    .admin-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .admin-table tbody tr:hover td {
+      background-color: #FAFAF8;
+    }
+
+    .clinic-title {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #1A2E2E;
+      line-height: 1.35;
+    }
+
+    .clinic-phone {
+      font-size: 12px;
+      color: #718096;
+      margin-top: 3px;
+    }
+
+    .city-text {
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+      white-space: nowrap;
+    }
+
+    .rating-text {
+      font-size: 13px;
+      font-weight: 700;
+      color: #B57416;
+      white-space: nowrap;
+    }
+
+    .text-right {
+      text-align: right !important;
+    }
+
+    .loading-wrap {
+      display: flex;
+      justify-content: center;
+      padding: 40px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 36px 16px;
+      color: #5C6B6B;
+      font-size: 13px;
+    }
+
+    .empty-icon {
+      font-size: 40px;
+      width: 40px;
+      height: 40px;
+      color: #A0C6C6;
+      margin-bottom: 8px;
     }
   `],
 })
