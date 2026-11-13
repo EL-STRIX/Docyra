@@ -122,5 +122,5 @@ Docyra/
 
 ## License
 
-This project is licensed under the MITGPL-3.0 License.
+This project is licensed under the GPL-3.0 License.
 
