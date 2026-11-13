@@ -216,6 +216,11 @@ interface NavMenuItem {
       flex-direction: column;
       flex-shrink: 0;
       box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      max-height: 100vh;
+      z-index: 50;
     }
 
     .sidebar-header {
@@ -228,6 +233,7 @@ interface NavMenuItem {
       box-sizing: border-box;
       width: 100%;
       min-width: 0;
+      flex-shrink: 0;
     }
 
     .brand-logo {
@@ -314,6 +320,24 @@ interface NavMenuItem {
       flex: 1;
       padding: 20px 14px;
       overflow-y: auto;
+      min-height: 0;
+    }
+
+    .sidebar-nav::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .sidebar-nav::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .sidebar-nav::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+    }
+
+    .sidebar-nav::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.3);
     }
 
     .nav-section-title {
@@ -372,6 +396,8 @@ interface NavMenuItem {
       display: flex;
       flex-direction: column;
       gap: 12px;
+      margin-top: auto;
+      flex-shrink: 0;
     }
 
     .user-card {
