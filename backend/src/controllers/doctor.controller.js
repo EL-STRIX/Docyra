@@ -64,10 +64,27 @@ export const updateProfile = asyncHandler(async (req, res) => {
   });
 });
 
+export const updateDoctorStatus = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  const doctor = await doctorService.updateDoctorProfile(
+    id,
+    { status },
+    req.user.role,
+    req.user.clinicId
+  );
+
+  res.status(200).json({
+    success: true,
+    data: doctor,
+  });
+});
+
 export default {
   uploadMiddleware,
   searchDoctors,
   getDoctorProfile,
   applyIndependentDoctor,
   updateProfile,
+  updateDoctorStatus,
 };

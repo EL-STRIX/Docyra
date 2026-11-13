@@ -5,6 +5,7 @@ import { tap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { Clinic } from '../models/clinic.model';
 import { Doctor } from '../models/doctor.model';
+import { Specialization } from '../models/specialization.model';
 import { ApiResponse } from '../models/api-response.model';
 
 @Injectable({
@@ -79,5 +80,11 @@ export class ClinicService {
         }
       })
     );
+  }
+
+  getSpecializations(): Observable<ApiResponse<Specialization[]>> {
+    return this.http.get<ApiResponse<Specialization[]>>(`${environment.apiBaseUrl}/specializations`, {
+      withCredentials: true,
+    });
   }
 }

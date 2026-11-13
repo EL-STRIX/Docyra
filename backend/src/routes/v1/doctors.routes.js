@@ -4,6 +4,7 @@ import {
   getDoctorProfile,
   applyIndependentDoctor,
   updateProfile,
+  updateDoctorStatus,
   uploadMiddleware,
 } from '../../controllers/doctor.controller.js';
 import {
@@ -36,6 +37,9 @@ router.post('/apply', uploadMiddleware, validate(applyDoctorSchema), applyIndepe
 
 // Doctor: Update own profile
 router.patch('/:id', authenticate, requireRole(ROLES.DOCTOR), updateProfile);
+
+// Clinic Admin / Platform Admin: Update doctor status (activate / suspend)
+router.patch('/:id/status', authenticate, requireRole(ROLES.CLINIC_ADMIN, ROLES.ADMIN), updateDoctorStatus);
 
 // Doctor / Clinic Admin / Platform Admin: Availability rule management
 router.get('/:id/availability', authenticate, getDoctorAvailability);

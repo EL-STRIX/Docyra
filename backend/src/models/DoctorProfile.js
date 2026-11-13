@@ -64,6 +64,11 @@ const doctorProfileSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    status: {
+      type: String,
+      enum: ['active', 'suspended', 'pending'],
+      default: 'active',
+    },
     manualApprovalMode: {
       type: Boolean,
       default: false, // If true, doctor manually accepts/rejects appointments

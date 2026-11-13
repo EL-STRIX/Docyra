@@ -306,7 +306,7 @@ class DoctorService {
   /**
    * Clinic Admin: Add doctor to own clinic (Auto-Approved per PRD/Architecture 7.8)
    */
-  async clinicAdminAddDoctor({ clinicId, name, email, password, phone, specializationId, qualifications = [], bio, consultationFee = 500, yearsExperience = 0 }) {
+  async clinicAdminAddDoctor({ clinicId, name, email, password, phone, specializationId, qualifications = [], bio, consultationFee = 500, yearsExperience = 0, experienceYears }) {
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
       throw new ConflictError('An account with this email already exists', ERROR_CODES.EMAIL_ALREADY_EXISTS);
@@ -317,7 +317,18 @@ class DoctorService {
       throw new NotFoundError('Clinic not found', ERROR_CODES.CLINIC_NOT_FOUND);
     }
 
-    const spec = await Specialization.findById(specializationId);
+    let spec = null;
+    if (specializationId) {
+      if (mongoose.Types.ObjectId.isValid(specializationId)) {
+        spec = await Specialization.findById(specializationId);
+      }
+      if (!spec) {
+        spec = await Specialization.findOne({ name: new RegExp(`^${specializationId}$`, 'i') });
+      }
+    }
+    if (!spec) {
+      spec = await Specialization.findOne({ name: /general/i }) || await Specialization.findOne({});
+    }
     if (!spec) {
       throw new NotFoundError('Specialization not found', ERROR_CODES.NOT_FOUND);
     }
@@ -328,7 +339,7 @@ class DoctorService {
       name,
       email: email.toLowerCase(),
       passwordHash,
-      phone,
+      phone: phone || null,
       role: ROLES.DOCTOR,
       clinicId: clinic._id,
       status: USER_STATUS.ACTIVE,
@@ -337,19 +348,22 @@ class DoctorService {
     const parsedQualifications = Array.isArray(qualifications)
       ? qualifications
       : typeof qualifications === 'string'
-      ? qualifications.split(',').map((q) => q.trim())
+      ? qualifications.split(',').map((q) => q.trim()).filter((q) => q.length > 0)
       : [];
+
+    const effectiveYears = parseInt(yearsExperience ?? experienceYears, 10) || 0;
 
     const doctorProfile = await DoctorProfile.create({
       userId: user._id,
       clinicId: clinic._id,
       specializationId: spec._id,
-      qualifications: parsedQualifications,
+      qualifications: parsedQualifications.length > 0 ? parsedQualifications : ['MBBS'],
       bio: bio || '',
       consultationFee: parseFloat(consultationFee) || 500,
       feeCurrency: 'INR',
-      yearsExperience: parseInt(yearsExperience, 10) || 0,
+      yearsExperience: effectiveYears,
       isApproved: true, // Auto-approved under vetted clinic
+      status: 'active',
     });
 
     logger.info(`Clinic Admin added doctor: ${user.email} under clinic ${clinic.name}`);
@@ -431,6 +445,15 @@ class DoctorService {
     if (updateData.yearsExperience !== undefined) doctorProfile.yearsExperience = updateData.yearsExperience;
     if (updateData.clinicAddress !== undefined) doctorProfile.clinicAddress = updateData.clinicAddress;
     if (updateData.manualApprovalMode !== undefined) doctorProfile.manualApprovalMode = updateData.manualApprovalMode;
+    if (updateData.status !== undefined) {
+      doctorProfile.status = updateData.status;
+      doctorProfile.isApproved = updateData.status === 'active';
+      if (doctorProfile.userId) {
+        await User.findByIdAndUpdate(doctorProfile.userId, {
+          status: updateData.status === 'active' ? USER_STATUS.ACTIVE : USER_STATUS.DEACTIVATED,
+        });
+      }
+    }
 
     await doctorProfile.save();
     return doctorProfile;

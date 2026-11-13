@@ -75,13 +75,20 @@ class ClinicService {
     }
 
     // Fetch doctors affiliated with this clinic
-    const doctors = await DoctorProfile.find({
+    const rawDoctors = await DoctorProfile.find({
       clinicId: clinic._id,
-      isApproved: true,
     })
-      .populate('userId', 'name email phone profilePhotoUrl')
+      .populate('userId', 'name email phone profilePhotoUrl status')
       .populate('specializationId', 'name iconName')
       .lean();
+
+    const doctors = rawDoctors.map((doc) => ({
+      ...doc,
+      name: doc.userId?.name || doc.name || 'Practitioner',
+      status: doc.status || (doc.userId?.status === 'active' || doc.isApproved ? 'active' : 'suspended'),
+      experienceYears: doc.yearsExperience ?? doc.experienceYears ?? 0,
+      yearsExperience: doc.yearsExperience ?? doc.experienceYears ?? 0,
+    }));
 
     return {
       clinic,

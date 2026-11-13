@@ -2,7 +2,7 @@ import { doctorService } from '../services/doctorService.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
 export const addDoctorToClinic = asyncHandler(async (req, res) => {
-  const clinicId = req.user.clinicId;
+  const clinicId = req.user.clinicId || req.params.id;
   const result = await doctorService.clinicAdminAddDoctor({
     ...req.body,
     clinicId,
