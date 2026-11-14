@@ -26,7 +26,6 @@ export function ProfilePage() {
   // Personal Information
   const [name, setName] = useState(user?.name || '');
   const [phone, setPhone] = useState(user?.phone || '');
-  const [timezone, setTimezone] = useState(user?.timezone || 'Asia/Kolkata');
 
   // Medical & Diagnosis Information (Vital for Doctor Consultations)
   const [bloodGroup, setBloodGroup] = useState(user?.bloodGroup || '');
@@ -57,7 +56,6 @@ export function ProfilePage() {
     if (user) {
       setName(user.name || '');
       setPhone(user.phone || '');
-      setTimezone(user.timezone || 'Asia/Kolkata');
       setBloodGroup(user.bloodGroup || '');
       setDateOfBirth(
         user.dateOfBirth ? format(new Date(user.dateOfBirth), 'yyyy-MM-dd') : ''
@@ -82,7 +80,7 @@ export function ProfilePage() {
       const payload = {
         name,
         phone,
-        timezone,
+        timezone: 'Asia/Kolkata',
         bloodGroup: bloodGroup || null,
         dateOfBirth: dateOfBirth || null,
         gender: gender || null,
@@ -264,7 +262,7 @@ export function ProfilePage() {
 
             <form onSubmit={handleProfileSave} className="space-y-6">
               {/* Account Basic Info */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-neutral-text-primary">
                     Email Address <span className="text-[10px] text-neutral-text-secondary">(Read-only)</span>
@@ -301,20 +299,6 @@ export function ProfilePage() {
                       className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-neutral-border text-xs text-neutral-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary"
                     />
                   </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-neutral-text-primary">Preferred Timezone</label>
-                  <select
-                    value={timezone}
-                    onChange={(e) => setTimezone(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-neutral-border text-xs text-neutral-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary bg-white cursor-pointer"
-                  >
-                    <option value="Asia/Kolkata">Asia/Kolkata (IST +5:30)</option>
-                    <option value="UTC">UTC (GMT +0:00)</option>
-                    <option value="America/New_York">America/New_York (EST)</option>
-                    <option value="Europe/London">Europe/London (GMT)</option>
-                  </select>
                 </div>
               </div>
 
