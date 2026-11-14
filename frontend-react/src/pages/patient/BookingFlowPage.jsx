@@ -14,6 +14,7 @@ import {
   Calendar,
   Clock,
   Stethoscope,
+  RotateCcw,
 } from 'lucide-react';
 import doctorsApi from '../../services/doctors.api.js';
 import clinicsApi from '../../services/clinics.api.js';
@@ -31,12 +32,17 @@ export function BookingFlowPage() {
   const queryDoctorId = searchParams.get('doctorId');
   const querySlotId = searchParams.get('slotId');
   const queryDate = searchParams.get('date');
+  const queryPreviousAppointmentId = searchParams.get('previousAppointmentId') || searchParams.get('followUpId');
 
   // Master lists
   const [allDoctors, setAllDoctors] = useState([]);
   const [allClinics, setAllClinics] = useState([]);
   const [dependents, setDependents] = useState([]);
   const [selectedClinicFilter, setSelectedClinicFilter] = useState('');
+
+  // Follow-up context state
+  const [previousAppointment, setPreviousAppointment] = useState(null);
+  const [loadingPreviousAppointment, setLoadingPreviousAppointment] = useState(!!queryPreviousAppointmentId);
 
   // Current booking selections
   const [selectedDoctorId, setSelectedDoctorId] = useState(queryDoctorId || '');
@@ -120,6 +126,53 @@ export function BookingFlowPage() {
     }
     fetchDoctor();
   }, [selectedDoctorId]);
+
+  // Load prior appointment if this is a follow-up booking
+  useEffect(() => {
+    if (!queryPreviousAppointmentId) return;
+    async function loadPriorAppointment() {
+      setLoadingPreviousAppointment(true);
+      try {
+        const res = await appointmentsApi.getAppointmentById(queryPreviousAppointmentId);
+        if (res.success && res.data.appointment) {
+          const prev = res.data.appointment;
+          setPreviousAppointment(prev);
+
+          // Pre-select and lock to same doctor
+          const prevDocId = typeof prev.doctorId === 'object' ? prev.doctorId?._id : prev.doctorId;
+          if (prevDocId) {
+            setSelectedDoctorId(prevDocId);
+          }
+
+          // Pre-select patient / dependent profile
+          if (prev.bookedForType === 'dependent' && prev.bookedForId) {
+            setBookedForType('dependent');
+            const depId = typeof prev.bookedForId === 'object' ? prev.bookedForId?._id : prev.bookedForId;
+            setSelectedDependentId(depId || '');
+          } else {
+            setBookedForType('self');
+          }
+
+          // Pre-fill reason for visit for continuous diagnosis
+          const origReason = prev.reasonForVisit || 'Medical Consultation';
+          setReasonForVisit((prevVal) => prevVal ? prevVal : `Follow-up: ${origReason}`);
+
+          // Suggest doctor's recommended follow-up date if available
+          if (prev.prescription?.followUpDate) {
+            const parsed = new Date(prev.prescription.followUpDate);
+            if (!isNaN(parsed.getTime()) && parsed >= new Date()) {
+              setSelectedDate(format(parsed, 'yyyy-MM-dd'));
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load prior appointment for follow up:', err);
+      } finally {
+        setLoadingPreviousAppointment(false);
+      }
+    }
+    loadPriorAppointment();
+  }, [queryPreviousAppointmentId]);
 
   // 3. Load Slots when selectedDoctorId or selectedDate changes
   const fetchSlots = useCallback(async () => {
@@ -208,6 +261,7 @@ export function BookingFlowPage() {
         bookedForType,
         bookedForId: bookedForType === 'dependent' ? selectedDependentId : undefined,
         reasonForVisit: reasonForVisit.trim() || 'General Medical Consultation',
+        previousAppointmentId: queryPreviousAppointmentId || undefined,
       };
 
       const res = await appointmentsApi.bookAppointment(payload);
@@ -333,6 +387,41 @@ export function BookingFlowPage() {
         <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2.5">
           <AlertCircle className="w-5 h-5 shrink-0" />
           <span className="font-medium">{error}</span>
+        </div>
+      )}
+
+      {/* Follow-up Continuity Notice */}
+      {previousAppointment && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-teal-50 via-blue-50 to-teal-50 border border-teal-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl bg-teal-600 text-white flex items-center justify-center shrink-0">
+              <RotateCcw className="w-5 h-5" />
+            </div>
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-teal-100 text-teal-800">
+                  Continuous Care Follow-up
+                </span>
+                <span className="text-xs text-neutral-text-secondary">
+                  Linked to Visit #{previousAppointment._id?.slice(-8)}
+                </span>
+              </div>
+              <h2 className="text-sm sm:text-base font-bold text-neutral-text-primary">
+                Follow-Up Consultation with Dr. {doctorName}
+              </h2>
+              <p className="text-xs text-neutral-text-secondary">
+                Diagnosing for: <strong className="text-neutral-text-primary">&ldquo;{previousAppointment.reasonForVisit || 'Medical Consultation'}&rdquo;</strong>.
+                Your prior prescriptions and diagnostic lab reports are linked for tracking.
+              </p>
+            </div>
+          </div>
+
+          <Link
+            to={`/appointments/${previousAppointment._id}`}
+            className="btn-outline text-teal-800 border-teal-300 hover:bg-teal-100 text-xs py-1.5 px-3 self-start sm:self-auto shrink-0 whitespace-nowrap"
+          >
+            Review Past Rx & Tests
+          </Link>
         </div>
       )}
 
@@ -465,19 +554,26 @@ export function BookingFlowPage() {
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDoctor(null);
-                    setSelectedDoctorId('');
-                    setSelectedSlotId('');
-                    setSelectedSlot(null);
-                    setSearchParams(new URLSearchParams());
-                  }}
-                  className="btn-outline text-xs py-1.5 px-3 self-start sm:self-center"
-                >
-                  Change Doctor
-                </button>
+                {!queryPreviousAppointmentId ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDoctor(null);
+                      setSelectedDoctorId('');
+                      setSelectedSlotId('');
+                      setSelectedSlot(null);
+                      setSearchParams(new URLSearchParams());
+                    }}
+                    className="btn-outline text-xs py-1.5 px-3 self-start sm:self-center"
+                  >
+                    Change Doctor
+                  </button>
+                ) : (
+                  <span className="badge-primary text-[10px] py-1.5 px-3 self-start sm:self-center bg-teal-50 text-teal-800 border border-teal-200 font-bold flex items-center gap-1">
+                    <RotateCcw className="w-3 h-3 text-brand-primary" />
+                    <span>Follow-Up Physician</span>
+                  </span>
+                )}
               </div>
 
               {/* Date Selector */}
@@ -839,6 +935,15 @@ export function BookingFlowPage() {
                   <span className="text-right text-neutral-text-primary max-w-xs">{reasonForVisit}</span>
                 </div>
               )}
+              {queryPreviousAppointmentId && (
+                <div className="flex justify-between items-center p-2.5 rounded-xl bg-teal-50 border border-teal-200 text-teal-900">
+                  <span className="font-bold flex items-center gap-1.5">
+                    <RotateCcw className="w-3.5 h-3.5 text-brand-primary" />
+                    Episode Tracking:
+                  </span>
+                  <span className="font-semibold text-xs">Follow-Up (Linked to Visit #{queryPreviousAppointmentId.slice(-8)})</span>
+                </div>
+              )}
               <div className="flex justify-between items-center pt-2 border-t border-neutral-border/70">
                 <span className="text-neutral-text-secondary">Payable Fee at Clinic:</span>
                 <span className="font-extrabold text-base text-neutral-text-primary">
@@ -944,6 +1049,15 @@ export function BookingFlowPage() {
                 {confirmedAppointment._id}
               </span>
             </div>
+            {(confirmedAppointment.isFollowUp || queryPreviousAppointmentId) && (
+              <div className="flex justify-between items-center text-teal-800 font-semibold pt-1 border-t border-neutral-border/70">
+                <span>Continuity Status:</span>
+                <span className="flex items-center gap-1 text-[11px] bg-teal-100 text-teal-900 px-2 py-0.5 rounded-full">
+                  <RotateCcw className="w-3 h-3" />
+                  Follow-Up Care Linked
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">

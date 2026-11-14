@@ -60,6 +60,8 @@ export interface Appointment {
   bookedFor: BookedFor;
   reasonForVisit?: string;
   notes?: string;
+  previousAppointmentId?: any;
+  isFollowUp?: boolean;
   prescription?: Prescription;
   medicalTests?: MedicalTest[];
   consultationFee: number;

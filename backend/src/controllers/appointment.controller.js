@@ -9,7 +9,7 @@ import { ERROR_CODES, ROLES } from '../config/constants.js';
  * Patient: Book an appointment slot (Transactional R7.1)
  */
 export const bookAppointment = asyncHandler(async (req, res) => {
-  const { doctorId, slotId, bookedForType, bookedForId, reasonForVisit, notes, captchaToken } = req.body;
+  const { doctorId, slotId, bookedForType, bookedForId, reasonForVisit, notes, captchaToken, previousAppointmentId } = req.body;
 
   const appointment = await appointmentService.bookSlot({
     patientId: req.user.id,
@@ -20,6 +20,7 @@ export const bookAppointment = asyncHandler(async (req, res) => {
     reasonForVisit,
     notes,
     captchaToken,
+    previousAppointmentId,
   });
 
   res.status(201).json({

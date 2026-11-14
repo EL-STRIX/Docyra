@@ -13,6 +13,7 @@ import {
   Star,
   Users,
   AlertTriangle,
+  RotateCcw,
 } from 'lucide-react';
 import appointmentsApi from '../../services/appointments.api.js';
 import useAuth from '../../context/useAuth.js';
@@ -298,7 +299,15 @@ export function DashboardPage() {
                 >
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      {getStatusBadge(apt.status)}
+                      <div className="flex items-center gap-2">
+                        {getStatusBadge(apt.status)}
+                        {(apt.isFollowUp || apt.previousAppointmentId) && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1">
+                            <RotateCcw className="w-2.5 h-2.5" />
+                            Follow-Up Visit
+                          </span>
+                        )}
+                      </div>
                       {isDependent && (
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
                           Dependent: {dependent?.name || 'Family'}
@@ -381,13 +390,24 @@ export function DashboardPage() {
                       )}
 
                       {apt.status === 'completed' && (
-                        <Link
-                          to={`/appointments/${apt._id}#review`}
-                          className="btn-outline text-xs py-1.5 px-3"
-                        >
-                          <Star className="w-3.5 h-3.5 text-amber-500" />
-                          <span>Review</span>
-                        </Link>
+                        <>
+                          <Link
+                            to={`/book?doctorId=${typeof apt.doctorId === 'object' ? apt.doctorId?._id : apt.doctorId}&previousAppointmentId=${apt._id}&followUp=true`}
+                            className="btn-accent text-xs py-1.5 px-3 flex items-center gap-1 font-bold shadow-sm"
+                            title="Schedule follow-up appointment with this physician"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                            <span>Book Follow-up</span>
+                          </Link>
+
+                          <Link
+                            to={`/appointments/${apt._id}#review`}
+                            className="btn-outline text-xs py-1.5 px-3"
+                          >
+                            <Star className="w-3.5 h-3.5 text-amber-500" />
+                            <span>Review</span>
+                          </Link>
+                        </>
                       )}
                       <Link
                         to={`/appointments/${apt._id}`}

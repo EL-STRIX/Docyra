@@ -9,6 +9,7 @@ export const bookAppointmentSchema = z.object({
     bookedForId: z.string().optional().nullable(),
     reasonForVisit: z.string().min(2, 'Reason for visit must be at least 2 characters').max(500),
     notes: z.string().max(1000).optional(),
+    previousAppointmentId: z.string().optional().nullable(),
     captchaToken: z.string().optional(),
   }),
 });

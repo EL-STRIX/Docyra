@@ -65,6 +65,10 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
               <div class="header-title-row">
                 <h1 class="page-title">Appointment #{{ appointment._id | slice:-6 }}</h1>
                 <app-status-badge [status]="appointment.status"></app-status-badge>
+                <span *ngIf="appointment.isFollowUp || appointment.previousAppointmentId" class="follow-up-badge">
+                  <mat-icon class="follow-up-ic">sync</mat-icon>
+                  <span>Follow-Up Visit</span>
+                </span>
               </div>
 
               <!-- Subtitle Metadata Bar -->
@@ -387,6 +391,67 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
                   </div>
 
                   <!-- Findings & Official Report Viewer (Read-only for doctor) -->
+                  <div class="test-result-row">
+                    <div class="result-findings-col">
+                      <label class="field-label">Laboratory Findings & Values</label>
+                      <div class="findings-read-box" [class.has-content]="!!test.resultNotes">
+                        {{ test.resultNotes || 'Lab values or clinical findings have not been recorded yet.' }}
+                      </div>
+                    </div>
+
+                    <div class="result-file-col">
+                      <label class="field-label">Test Report Document</label>
+                      <div class="file-action-wrap">
+                        <div *ngIf="test.resultFileUrl" class="file-attached-badge">
+                          <a [href]="test.resultFileUrl" target="_blank" rel="noopener noreferrer" class="view-report-action-btn">
+                            <mat-icon>description</mat-icon>
+                            <span>View / Download Report</span>
+                            <mat-icon class="ext-icon">open_in_new</mat-icon>
+                          </a>
+                        </div>
+                        <div *ngIf="!test.resultFileUrl" class="pending-report-banner">
+                          <mat-icon class="pending-clock-ic">hourglass_empty</mat-icon>
+                          <span>Report document pending upload by clinic administration</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Linked Diagnostic Tests from Prior Visit if Follow-up -->
+            <div *ngIf="appointment.previousAppointmentId && appointment.previousAppointmentId.medicalTests && appointment.previousAppointmentId.medicalTests.length > 0" class="linked-tests-container mt-6">
+              <div class="linked-tests-header">
+                <div class="flex items-center gap-2">
+                  <mat-icon class="text-teal-700">sync</mat-icon>
+                  <h3 class="font-bold text-sm text-teal-900">
+                    Diagnostic Tests from Linked Prior Consultation ({{ appointment.previousAppointmentId.slotStart | portalDate:'dd MMM yyyy' }})
+                  </h3>
+                </div>
+                <span class="text-xs text-neutral-500">
+                  Reason: {{ appointment.previousAppointmentId.reasonForVisit || 'General' }}
+                </span>
+              </div>
+
+              <div class="tests-cards-list mt-3">
+                <div *ngFor="let test of appointment.previousAppointmentId.medicalTests" class="test-card-item prior-test-card">
+                  <div class="test-main-row">
+                    <div class="test-info">
+                      <div class="test-title">
+                        <mat-icon class="test-badge-icon">biotech</mat-icon>
+                        <span class="test-name">{{ test.testName }}</span>
+                        <span class="test-status-pill" [ngClass]="getTestStatusClass(test.status)">
+                          {{ test.status | uppercase }}
+                        </span>
+                        <span class="prior-visit-tag">Prior Visit</span>
+                      </div>
+                      <div class="test-instructions" *ngIf="test.instructions">
+                        <span class="lbl">Doctor's Clinical Notes:</span> {{ test.instructions }}
+                      </div>
+                    </div>
+                  </div>
+
                   <div class="test-result-row">
                     <div class="result-findings-col">
                       <label class="field-label">Laboratory Findings & Values</label>
@@ -759,6 +824,56 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
       margin: 0;
       letter-spacing: -0.02em;
       line-height: 1.2;
+    }
+
+    .follow-up-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: #EFF6FF;
+      color: #1D4ED8;
+      border: 1px solid #BFDBFE;
+    }
+
+    .follow-up-ic {
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+    }
+
+    .linked-tests-container {
+      background: #F0FDF4;
+      border: 1px solid #BBF7D0;
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .linked-tests-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .prior-test-card {
+      border-left: 3px solid #0D9488 !important;
+    }
+
+    .prior-visit-tag {
+      font-size: 10px;
+      font-weight: 700;
+      background: #E6F2F1;
+      color: #0F5C5C;
+      padding: 1px 6px;
+      border-radius: 4px;
+      margin-left: 6px;
     }
 
     .header-meta-bar {

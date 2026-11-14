@@ -102,6 +102,15 @@ const appointmentSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    previousAppointmentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Appointment',
+      default: null,
+    },
+    isFollowUp: {
+      type: Boolean,
+      default: false,
+    },
     cancelledBy: {
       type: String,
       enum: ['patient', 'doctor', 'doctor-emergency', 'admin', 'system', null],
@@ -128,6 +137,7 @@ appointmentSchema.index({ clinicId: 1 });
 appointmentSchema.index({ status: 1 });
 appointmentSchema.index({ slotStart: 1, reminder24hSent: 1 });
 appointmentSchema.index({ slotStart: 1, reminder1hSent: 1 });
+appointmentSchema.index({ previousAppointmentId: 1 });
 
 export const Appointment = mongoose.model('Appointment', appointmentSchema);
 export default Appointment;

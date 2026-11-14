@@ -35,6 +35,7 @@ class AppointmentService {
     reasonForVisit,
     notes = '',
     captchaToken,
+    previousAppointmentId = null,
   }) {
     // 1. Verify captcha if provided
     const isCaptchaValid = await captchaService.verify(captchaToken);
@@ -46,6 +47,26 @@ class AppointmentService {
     const doctor = await DoctorProfile.findById(doctorId).populate('userId', 'name email');
     if (!doctor || !doctor.isApproved) {
       throw new NotFoundError('Doctor not found or not currently active', ERROR_CODES.DOCTOR_NOT_FOUND);
+    }
+
+    // Validate previous appointment if booking a follow-up visit
+    let previousAppointment = null;
+    let isFollowUp = false;
+    if (previousAppointmentId) {
+      if (!mongoose.Types.ObjectId.isValid(previousAppointmentId)) {
+        throw new BadRequestError('Invalid previous appointment ID', ERROR_CODES.VALIDATION_ERROR);
+      }
+      previousAppointment = await Appointment.findById(previousAppointmentId);
+      if (!previousAppointment) {
+        throw new NotFoundError('Previous appointment not found', ERROR_CODES.NOT_FOUND);
+      }
+      if (previousAppointment.patientId.toString() !== patientId.toString()) {
+        throw new ForbiddenError('You can only book follow-up consultations for your own appointments', ERROR_CODES.FORBIDDEN);
+      }
+      if (previousAppointment.doctorId.toString() !== doctor._id.toString()) {
+        throw new BadRequestError('Follow-up consultations must be booked with the same physician', ERROR_CODES.VALIDATION_ERROR);
+      }
+      isFollowUp = true;
     }
 
     // 3. Validate Dependent if booked for family member
@@ -140,6 +161,8 @@ class AppointmentService {
             status: APPOINTMENT_STATUS.CONFIRMED,
             reasonForVisit,
             notes: notes || '',
+            previousAppointmentId: previousAppointment ? previousAppointment._id : null,
+            isFollowUp,
           },
         ],
         sessionOptions
@@ -166,7 +189,19 @@ class AppointmentService {
           ],
         })
         .populate('clinicId', 'name address city contactPhone')
-        .populate('bookedForId');
+        .populate('bookedForId')
+        .populate({
+          path: 'previousAppointmentId',
+          select: 'slotStart status reasonForVisit prescription medicalTests notes doctorId clinicId createdAt',
+        })
+        .populate({
+          path: 'previousAppointmentId',
+          select: 'slotStart status reasonForVisit prescription medicalTests notes doctorId clinicId createdAt',
+          populate: [
+            { path: 'doctorId', populate: { path: 'userId', select: 'name profilePhotoUrl' } },
+            { path: 'clinicId', select: 'name address' },
+          ],
+        });
 
       // Dispatch booking notification
       try {
@@ -240,6 +275,10 @@ class AppointmentService {
         })
         .populate('clinicId', 'name address city contactPhone')
         .populate('bookedForId')
+        .populate({
+          path: 'previousAppointmentId',
+          select: 'slotStart status reasonForVisit prescription medicalTests notes doctorId clinicId createdAt',
+        })
         .sort({ slotStart: -1 })
         .skip(skip)
         .limit(safeLimit)
@@ -292,7 +331,15 @@ class AppointmentService {
         ],
       })
       .populate('clinicId', 'name address city contactPhone')
-      .populate('bookedForId');
+      .populate('bookedForId')
+      .populate({
+        path: 'previousAppointmentId',
+        select: 'slotStart status reasonForVisit prescription medicalTests notes doctorId clinicId createdAt',
+        populate: [
+          { path: 'doctorId', populate: { path: 'userId', select: 'name profilePhotoUrl' } },
+          { path: 'clinicId', select: 'name address' },
+        ],
+      });
 
     if (!appointment) {
       throw new NotFoundError('Appointment not found', ERROR_CODES.NOT_FOUND);
@@ -389,6 +436,10 @@ class AppointmentService {
       Appointment.find(query)
         .populate('patientId', 'name email phone')
         .populate('bookedForId')
+        .populate({
+          path: 'previousAppointmentId',
+          select: 'slotStart status reasonForVisit prescription medicalTests notes doctorId clinicId createdAt',
+        })
         .sort({ slotStart: 1 })
         .skip(skip)
         .limit(safeLimit)
