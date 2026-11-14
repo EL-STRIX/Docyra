@@ -69,13 +69,15 @@ interface DayConfig {
             </div>
 
             <div class="field-item">
-              <label class="field-label">Appointment Acceptance Mode</label>
-              <div class="toggle-box">
-                <mat-slide-toggle [(ngModel)]="autoAcceptAppointments" color="primary">
-                  <span class="font-bold text-sm">
-                    {{ autoAcceptAppointments ? 'Auto-Confirm All Bookings' : 'Manual Review Before Confirmation' }}
-                  </span>
-                </mat-slide-toggle>
+              <label class="field-label">Booking Confirmation Policy</label>
+              <div class="booking-policy-banner">
+                <mat-icon class="policy-icon">bolt</mat-icon>
+                <div>
+                  <div class="policy-title">Instant Slot Confirmation (Direct Booking)</div>
+                  <div class="policy-desc">
+                    Like a RedBus seat booking, when patients choose an open slot, the appointment is confirmed instantly without manual doctor intervention.
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -207,6 +209,38 @@ interface DayConfig {
       color: #1A2E2E;
       display: block;
       margin-bottom: 6px;
+    }
+
+    .booking-policy-banner {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 12px 14px;
+      background: #E6F2F1;
+      border: 1px solid #BCE0DE;
+      border-radius: 8px;
+    }
+
+    .policy-icon {
+      color: #0F5C5C;
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .policy-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #0F5C5C;
+    }
+
+    .policy-desc {
+      font-size: 11px;
+      color: #3B5252;
+      margin-top: 2px;
+      line-height: 1.4;
     }
 
     .toggle-box {

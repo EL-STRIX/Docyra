@@ -47,7 +47,7 @@ import { format } from 'date-fns';
             <div>
               <h3 class="font-bold text-sm text-amber-900">Immediate Patient Impact Warning</h3>
               <p class="text-xs text-amber-800 mt-1 leading-relaxed">
-                Declaring emergency unavailability will cancel all confirmed and pending appointments on the selected date.
+                Declaring emergency unavailability will cancel all confirmed appointments on the selected date.
                 Affected patients will receive immediate SMS/email alerts and automatic waitlist priority.
               </p>
             </div>

@@ -40,7 +40,7 @@ import { isToday, isTomorrow, isPast, parseISO } from 'date-fns';
       <div class="page-header">
         <div>
           <h1 class="page-title">Schedule & Appointments</h1>
-          <p class="page-subtitle">Manage upcoming patient visits, confirm bookings, and update visit records.</p>
+          <p class="page-subtitle">Manage upcoming patient visits, consultation history, and clinical records.</p>
         </div>
         <a routerLink="/doctor/emergency" mat-stroked-button color="warn">
           <mat-icon>event_busy</mat-icon>
@@ -78,7 +78,6 @@ import { isToday, isTomorrow, isPast, parseISO } from 'date-fns';
               <mat-select [(ngModel)]="statusFilter" (selectionChange)="applyFilters()">
                 <mat-option value="all">All Statuses</mat-option>
                 <mat-option value="confirmed">Confirmed</mat-option>
-                <mat-option value="pending">Pending</mat-option>
                 <mat-option value="completed">Completed</mat-option>
                 <mat-option value="cancelled">Cancelled</mat-option>
               </mat-select>

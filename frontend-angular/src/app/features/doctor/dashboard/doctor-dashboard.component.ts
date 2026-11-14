@@ -15,7 +15,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { format, isToday, isTomorrow, isPast, parseISO, differenceInHours } from 'date-fns';
 
-export type DashboardTab = 'upcoming' | 'today' | 'recent' | 'pending' | 'all';
+export type DashboardTab = 'upcoming' | 'today' | 'recent' | 'completed' | 'all';
 
 @Component({
   selector: 'app-doctor-dashboard',
@@ -109,22 +109,20 @@ export type DashboardTab = 'upcoming' | 'today' | 'recent' | 'pending' | 'all';
           </div>
         </mat-card>
 
-        <!-- Pending Approval -->
-        <mat-card class="stat-card cursor-pointer" (click)="setTab('pending')">
+        <!-- Total Patient Bookings -->
+        <mat-card class="stat-card cursor-pointer" (click)="setTab('all')">
           <div class="stat-icon-wrap accent">
-            <mat-icon>pending_actions</mat-icon>
+            <mat-icon>book_online</mat-icon>
           </div>
           <div class="stat-info">
-            <span class="stat-label">Pending Approval</span>
-            <span class="stat-value">{{ pendingCount }}</span>
-            <span class="stat-sub" [class.text-amber-600]="pendingCount > 0">
-              {{ pendingCount > 0 ? 'Requires attention' : 'All confirmed' }}
-            </span>
+            <span class="stat-label">Total Bookings</span>
+            <span class="stat-value">{{ appointments.length }}</span>
+            <span class="stat-sub">Instant confirmed</span>
           </div>
         </mat-card>
 
         <!-- Completed Visits -->
-        <mat-card class="stat-card cursor-pointer" (click)="setTab('all')">
+        <mat-card class="stat-card cursor-pointer" (click)="setTab('completed')">
           <div class="stat-icon-wrap success">
             <mat-icon>check_circle</mat-icon>
           </div>
@@ -196,12 +194,12 @@ export type DashboardTab = 'upcoming' | 'today' | 'recent' | 'pending' | 'all';
 
             <button
               class="tab-pill"
-              [class.active]="activeTab === 'pending'"
-              (click)="setTab('pending')"
+              [class.active]="activeTab === 'completed'"
+              (click)="setTab('completed')"
             >
-              <mat-icon class="tab-icon">hourglass_top</mat-icon>
-              <span>Pending</span>
-              <span class="tab-count" [class.badge-alert]="pendingCount > 0">{{ pendingCount }}</span>
+              <mat-icon class="tab-icon">check_circle</mat-icon>
+              <span>Completed</span>
+              <span class="tab-count">{{ completedCount }}</span>
             </button>
 
             <button
@@ -210,7 +208,7 @@ export type DashboardTab = 'upcoming' | 'today' | 'recent' | 'pending' | 'all';
               (click)="setTab('all')"
             >
               <mat-icon class="tab-icon">list_alt</mat-icon>
-              <span>All</span>
+              <span>All Records</span>
               <span class="tab-count">{{ appointments.length }}</span>
             </button>
           </div>
@@ -295,30 +293,6 @@ export type DashboardTab = 'upcoming' | 'today' | 'recent' | 'pending' | 'all';
                   Manage
                 </a>
 
-                <!-- Pending Actions: Accept or Decline -->
-                <ng-container *ngIf="apt.status === 'pending'">
-                  <button
-                    mat-flat-button
-                    color="primary"
-                    (click)="acceptAppointment(apt._id)"
-                    class="action-btn-sm success-btn"
-                    title="Accept Booking"
-                    [disabled]="actionLoadingId === apt._id"
-                  >
-                    <mat-icon>check</mat-icon>
-                  </button>
-                  <button
-                    mat-stroked-button
-                    color="warn"
-                    (click)="rejectAppointment(apt._id)"
-                    class="action-btn-sm"
-                    title="Decline Booking"
-                    [disabled]="actionLoadingId === apt._id"
-                  >
-                    <mat-icon>close</mat-icon>
-                  </button>
-                </ng-container>
-
                 <!-- Confirmed Action: Mark Completed -->
                 <button
                   *ngIf="apt.status === 'confirmed'"
@@ -387,12 +361,9 @@ export type DashboardTab = 'upcoming' | 'today' | 'recent' | 'pending' | 'all';
                 <span class="val">{{ doctorProfile?.slotDurationMinutes || 30 }} Minutes</span>
               </div>
               <div class="summary-item">
-                <span class="lbl">Auto-Accept:</span>
-                <span
-                  class="val font-semibold"
-                  [class.text-emerald-700]="doctorProfile?.autoAcceptAppointments"
-                >
-                  {{ doctorProfile?.autoAcceptAppointments ? 'Instant Confirmation' : 'Manual Review' }}
+                <span class="lbl">Booking Mode:</span>
+                <span class="val font-semibold text-emerald-700">
+                  Instant Confirmed (RedBus model)
                 </span>
               </div>
               <div class="summary-item">
@@ -1112,7 +1083,7 @@ export class DoctorDashboardComponent implements OnInit {
   todayAppointments: Appointment[] = [];
   upcomingAppointments: Appointment[] = [];
   recentBookings: Appointment[] = [];
-  pendingAppointments: Appointment[] = [];
+  completedAppointments: Appointment[] = [];
   nextAppointment: Appointment | null = null;
 
   activeTab: DashboardTab = 'upcoming';
@@ -1194,8 +1165,8 @@ export class DoctorDashboardComponent implements OnInit {
       return timeB - timeA;
     });
 
-    // 4. Pending Appointments
-    this.pendingAppointments = data.filter((apt) => apt.status === 'pending');
+    // 4. Completed Appointments
+    this.completedAppointments = data.filter((apt) => apt.status === 'completed');
 
     // 5. Next scheduled consultation (first upcoming non-completed visit)
     this.nextAppointment =
@@ -1224,16 +1195,12 @@ export class DoctorDashboardComponent implements OnInit {
         return this.upcomingAppointments;
       case 'recent':
         return this.recentBookings;
-      case 'pending':
-        return this.pendingAppointments;
+      case 'completed':
+        return this.completedAppointments;
       case 'all':
       default:
         return this.appointments;
     }
-  }
-
-  get pendingCount(): number {
-    return this.pendingAppointments.length;
   }
 
   get completedCount(): number {
@@ -1313,8 +1280,8 @@ export class DoctorDashboardComponent implements OnInit {
         return 'No appointments scheduled for today';
       case 'upcoming':
         return 'No upcoming consultations found';
-      case 'pending':
-        return 'No pending bookings requiring approval';
+      case 'completed':
+        return 'No completed consultations yet';
       case 'recent':
         return 'No recent bookings recorded';
       default:
@@ -1328,8 +1295,8 @@ export class DoctorDashboardComponent implements OnInit {
         return 'Your calendar is free for today.';
       case 'upcoming':
         return 'All upcoming slots are open or have not been booked yet.';
-      case 'pending':
-        return 'All incoming patient appointments have been accepted or processed.';
+      case 'completed':
+        return 'Completed consultations will appear here once visits conclude.';
       case 'recent':
         return 'New bookings will show up here as soon as patients confirm slots.';
       default:
@@ -1364,40 +1331,6 @@ export class DoctorDashboardComponent implements OnInit {
       error: (err) => {
         this.actionLoadingId = null;
         this.notificationService.error(err.error?.error?.message || 'Failed to update status');
-      },
-    });
-  }
-
-  acceptAppointment(id: string): void {
-    this.actionLoadingId = id;
-    this.appointmentService.updateAppointmentStatus(id, 'confirmed', 'Accepted by doctor').subscribe({
-      next: () => {
-        this.actionLoadingId = null;
-        this.notificationService.success('Appointment booking confirmed');
-        if (this.doctorProfile) {
-          this.loadAppointments(this.doctorProfile._id);
-        }
-      },
-      error: (err) => {
-        this.actionLoadingId = null;
-        this.notificationService.error(err.error?.error?.message || 'Failed to confirm appointment');
-      },
-    });
-  }
-
-  rejectAppointment(id: string): void {
-    this.actionLoadingId = id;
-    this.appointmentService.cancelAppointment(id, 'Doctor unavailable at requested time').subscribe({
-      next: () => {
-        this.actionLoadingId = null;
-        this.notificationService.success('Appointment declined');
-        if (this.doctorProfile) {
-          this.loadAppointments(this.doctorProfile._id);
-        }
-      },
-      error: (err) => {
-        this.actionLoadingId = null;
-        this.notificationService.error(err.error?.error?.message || 'Failed to decline appointment');
       },
     });
   }

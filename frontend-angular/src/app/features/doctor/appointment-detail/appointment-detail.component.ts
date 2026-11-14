@@ -61,19 +61,7 @@ import { MatDialogModule } from '@angular/material/dialog';
 
             <!-- Contextual Status Actions -->
             <div class="status-action-btns">
-              <!-- Pending actions -->
-              <ng-container *ngIf="appointment.status === 'pending'">
-                <button mat-flat-button color="primary" (click)="updateStatus('confirmed')" [disabled]="updating">
-                  <mat-icon>check</mat-icon>
-                  <span>Accept Booking</span>
-                </button>
-                <button mat-stroked-button color="warn" (click)="showCancelModal = true" [disabled]="updating">
-                  <mat-icon>close</mat-icon>
-                  <span>Reject</span>
-                </button>
-              </ng-container>
-
-              <!-- Confirmed actions -->
+              <!-- Confirmed actions (Instant Booking model) -->
               <ng-container *ngIf="appointment.status === 'confirmed'">
                 <button mat-flat-button color="primary" (click)="updateStatus('completed')" [disabled]="updating">
                   <mat-icon>done_all</mat-icon>
