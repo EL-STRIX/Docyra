@@ -1,7 +1,7 @@
 import bcrypt from 'bcrypt';
 import mongoose from 'mongoose';
-import { User, DoctorProfile, Clinic, Specialization, AvailabilityRule } from '../models/index.js';
-import { ROLES, USER_STATUS, ERROR_CODES } from '../config/constants.js';
+import { User, DoctorProfile, Clinic, Specialization, AvailabilityRule, Appointment } from '../models/index.js';
+import { ROLES, USER_STATUS, ERROR_CODES, APPOINTMENT_STATUS } from '../config/constants.js';
 import { env } from '../config/env.js';
 import { NotFoundError, ConflictError, AppError } from '../utils/AppError.js';
 import storageService from './storageService.js';
@@ -170,48 +170,15 @@ class DoctorService {
    * Doctor: Get profile of logged-in doctor by their User ID
    */
   async getDoctorProfileByUserId(userId) {
-    const doctor = await DoctorProfile.findOne({ userId })
-      .populate('userId', 'name email phone profilePhotoUrl status')
-      .populate('clinicId', 'name city address contactPhone contactEmail')
-      .populate('specializationId', 'name iconName description')
-      .lean();
-
+    const doctor = await DoctorProfile.findOne({ userId });
     if (!doctor) {
       throw new NotFoundError('Doctor profile not found for current user', ERROR_CODES.DOCTOR_NOT_FOUND);
     }
-
-    const rules = await AvailabilityRule.find({ doctorId: doctor._id, isActive: true })
-      .sort({ dayOfWeek: 1, startTime: 1 })
-      .lean();
-
-    const dayMap = {};
-    for (let i = 0; i <= 6; i++) {
-      dayMap[i] = { dayOfWeek: i, isActive: false, slots: [] };
-    }
-    let slotDurationMinutes = 30;
-    for (const r of rules) {
-      if (r.slotDurationMinutes) slotDurationMinutes = r.slotDurationMinutes;
-      dayMap[r.dayOfWeek].isActive = true;
-      dayMap[r.dayOfWeek].slots.push({ start: r.startTime, end: r.endTime });
-    }
-    const weeklySchedule = Object.values(dayMap);
-
-    return {
-      ...doctor,
-      name: doctor.userId?.name || 'Doctor',
-      email: doctor.userId?.email || '',
-      phone: doctor.userId?.phone || '',
-      profilePhotoUrl: doctor.userId?.profilePhotoUrl || null,
-      experienceYears: doctor.yearsExperience ?? doctor.experienceYears ?? 0,
-      yearsExperience: doctor.yearsExperience ?? doctor.experienceYears ?? 0,
-      weeklySchedule,
-      slotDurationMinutes,
-      autoAcceptAppointments: !doctor.manualApprovalMode,
-    };
+    return this.getDoctorProfile(doctor._id);
   }
 
   /**
-   * Public: Get doctor profile detail by ID
+   * Public / Clinic Admin: Get doctor profile detail by ID with real-time stats
    */
   async getDoctorProfile(doctorId) {
     if (!mongoose.Types.ObjectId.isValid(doctorId)) {
@@ -236,25 +203,50 @@ class DoctorService {
     for (let i = 0; i <= 6; i++) {
       dayMap[i] = { dayOfWeek: i, isActive: false, slots: [] };
     }
-    let slotDurationMinutes = 30;
+    let slotDurationMinutes = doctor.slotDurationMinutes || null;
     for (const r of rules) {
       if (r.slotDurationMinutes) slotDurationMinutes = r.slotDurationMinutes;
       dayMap[r.dayOfWeek].isActive = true;
       dayMap[r.dayOfWeek].slots.push({ start: r.startTime, end: r.endTime });
     }
     const weeklySchedule = Object.values(dayMap);
+    const hasActiveSchedule = weeklySchedule.some((day) => day.isActive && day.slots.length > 0);
+
+    // Real-time clinical activity metrics from live appointments
+    const [totalAppointments, completedAppointments, upcomingAppointments, completedApts] = await Promise.all([
+      Appointment.countDocuments({ doctorId: doctor._id }),
+      Appointment.countDocuments({ doctorId: doctor._id, status: APPOINTMENT_STATUS.COMPLETED }),
+      Appointment.countDocuments({
+        doctorId: doctor._id,
+        status: { $in: [APPOINTMENT_STATUS.CONFIRMED, APPOINTMENT_STATUS.PENDING] },
+        slotStart: { $gte: new Date() },
+      }),
+      Appointment.find({ doctorId: doctor._id, status: APPOINTMENT_STATUS.COMPLETED }).select('consultationFee').lean(),
+    ]);
+
+    const totalRevenueGenerated = completedApts.reduce(
+      (sum, a) => sum + (a.consultationFee !== undefined && a.consultationFee !== null ? a.consultationFee : (doctor.consultationFee || 0)),
+      0
+    );
 
     return {
       ...doctor,
-      name: doctor.userId?.name || 'Doctor',
-      email: doctor.userId?.email || '',
-      phone: doctor.userId?.phone || '',
-      profilePhotoUrl: doctor.userId?.profilePhotoUrl || null,
-      experienceYears: doctor.yearsExperience ?? doctor.experienceYears ?? 0,
-      yearsExperience: doctor.yearsExperience ?? doctor.experienceYears ?? 0,
+      name: doctor.userId?.name || doctor.name || '',
+      email: doctor.userId?.email || doctor.email || '',
+      phone: doctor.userId?.phone || doctor.phone || '',
+      profilePhotoUrl: doctor.userId?.profilePhotoUrl || doctor.profilePhotoUrl || null,
+      experienceYears: doctor.yearsExperience ?? doctor.experienceYears ?? null,
+      yearsExperience: doctor.yearsExperience ?? doctor.experienceYears ?? null,
       weeklySchedule,
-      slotDurationMinutes,
+      hasActiveSchedule,
+      slotDurationMinutes: slotDurationMinutes || doctor.slotDurationMinutes || null,
       autoAcceptAppointments: !doctor.manualApprovalMode,
+      realtimeStats: {
+        totalAppointments,
+        completedAppointments,
+        upcomingAppointments,
+        totalRevenueGenerated,
+      },
     };
   }
 

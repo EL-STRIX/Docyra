@@ -97,20 +97,38 @@ import { environment } from '../../../../environments/environment';
                   <div class="text-xs text-neutral-500 mt-0.5" *ngIf="getDoctorQualifications(doc)">
                     {{ getDoctorQualifications(doc) }}
                   </div>
+                  <div class="text-xs text-neutral-400 mt-0.5" *ngIf="!getDoctorQualifications(doc)">
+                    Not provided
+                  </div>
                 </td>
 
                 <td>
-                  <div class="font-bold text-neutral-900 text-sm">₹{{ doc.consultationFee || 500 }}</div>
-                  <div class="text-xs text-neutral-500">Per session</div>
+                  <div class="font-bold text-neutral-900 text-sm" *ngIf="doc.consultationFee !== undefined && doc.consultationFee !== null">
+                    ₹{{ doc.consultationFee }}
+                  </div>
+                  <div class="text-xs text-neutral-400" *ngIf="doc.consultationFee === undefined || doc.consultationFee === null">
+                    Not provided
+                  </div>
+                  <div class="text-xs text-neutral-500" *ngIf="doc.consultationFee !== undefined && doc.consultationFee !== null">
+                    Per session
+                  </div>
                 </td>
 
                 <td>
-                  <div class="font-bold text-neutral-800 text-sm">{{ getDoctorExperience(doc) }} Years</div>
-                  <div class="text-xs text-neutral-500">Clinical practice</div>
+                  <div class="font-bold text-neutral-800 text-sm" *ngIf="hasDoctorExperience(doc)">
+                    {{ getDoctorExperience(doc) }} Years
+                  </div>
+                  <div class="text-xs text-neutral-400" *ngIf="!hasDoctorExperience(doc)">
+                    Not provided
+                  </div>
+                  <div class="text-xs text-neutral-500" *ngIf="hasDoctorExperience(doc)">
+                    Clinical practice
+                  </div>
                 </td>
 
                 <td class="text-sm font-semibold text-neutral-700">
-                  {{ doc.slotDurationMinutes || 30 }} Minutes
+                  <span *ngIf="doc.slotDurationMinutes">{{ doc.slotDurationMinutes }} Minutes</span>
+                  <span *ngIf="!doc.slotDurationMinutes" class="text-neutral-400 font-normal">Not specified</span>
                 </td>
 
                 <td>
@@ -297,18 +315,24 @@ import { environment } from '../../../../environments/environment';
                 <div class="doc-hero-spec">
                   <mat-icon class="spec-ic">health_and_safety</mat-icon>
                   <span>{{ getDoctorDesignation(selectedDoctor) }}</span>
-                  <span class="dot-sep">•</span>
-                  <span>{{ getDoctorQualifications(selectedDoctor) }}</span>
+                  <ng-container *ngIf="getDoctorQualifications(selectedDoctor)">
+                    <span class="dot-sep">•</span>
+                    <span>{{ getDoctorQualifications(selectedDoctor) }}</span>
+                  </ng-container>
                 </div>
                 <div class="doc-hero-sub">
-                  <span class="clinic-tag" *ngIf="clinicProfile?.name">
+                  <span class="clinic-tag" *ngIf="clinicProfile?.name || selectedDoctor.clinicId?.name">
                     <mat-icon class="sub-ic">apartment</mat-icon>
-                    <span>{{ clinicProfile?.name }}</span>
+                    <span>{{ clinicProfile?.name || selectedDoctor.clinicId?.name }}</span>
                   </span>
-                  <span class="rating-tag">
+                  <span class="rating-tag" *ngIf="selectedDoctor.totalReviews && selectedDoctor.totalReviews > 0">
                     <mat-icon class="star-ic">star</mat-icon>
-                    <span class="font-bold">{{ (selectedDoctor.avgRating || 5.0).toFixed(1) }}</span>
-                    <span class="text-xs">({{ selectedDoctor.totalReviews || 0 }} reviews)</span>
+                    <span class="font-bold">{{ selectedDoctor.avgRating.toFixed(1) }}</span>
+                    <span class="text-xs">({{ selectedDoctor.totalReviews }} reviews)</span>
+                  </span>
+                  <span class="no-rating-tag" *ngIf="!selectedDoctor.totalReviews || selectedDoctor.totalReviews === 0">
+                    <mat-icon class="sub-ic">star_border</mat-icon>
+                    <span>No patient reviews yet</span>
                   </span>
                 </div>
               </div>
@@ -318,30 +342,71 @@ import { environment } from '../../../../environments/environment';
             <div class="metrics-grid">
               <div class="metric-card">
                 <span class="metric-lbl">Consultation Fee</span>
-                <span class="metric-val text-teal-800">₹{{ selectedDoctor.consultationFee || 500 }}</span>
+                <span class="metric-val text-teal-800" *ngIf="selectedDoctor.consultationFee !== undefined && selectedDoctor.consultationFee !== null">
+                  ₹{{ selectedDoctor.consultationFee }}
+                </span>
+                <span class="metric-val text-neutral-400" *ngIf="selectedDoctor.consultationFee === undefined || selectedDoctor.consultationFee === null">
+                  Not specified
+                </span>
                 <span class="metric-sub">Per patient visit</span>
               </div>
 
               <div class="metric-card">
                 <span class="metric-lbl">Clinical Experience</span>
-                <span class="metric-val text-neutral-900">{{ getDoctorExperience(selectedDoctor) }} Years</span>
+                <span class="metric-val text-neutral-900" *ngIf="hasDoctorExperience(selectedDoctor)">
+                  {{ getDoctorExperience(selectedDoctor) }} Years
+                </span>
+                <span class="metric-val text-neutral-400" *ngIf="!hasDoctorExperience(selectedDoctor)">
+                  Not specified
+                </span>
                 <span class="metric-sub">Active medical practice</span>
               </div>
 
               <div class="metric-card">
                 <span class="metric-lbl">Slot Duration</span>
-                <span class="metric-val text-neutral-900">{{ selectedDoctor.slotDurationMinutes || 30 }} Mins</span>
+                <span class="metric-val text-neutral-900" *ngIf="selectedDoctor.slotDurationMinutes">
+                  {{ selectedDoctor.slotDurationMinutes }} Mins
+                </span>
+                <span class="metric-val text-neutral-400" *ngIf="!selectedDoctor.slotDurationMinutes">
+                  Not specified
+                </span>
                 <span class="metric-sub">Consultation time slot</span>
               </div>
 
               <div class="metric-card">
                 <span class="metric-lbl">Booking Confirmation</span>
                 <span class="metric-val text-indigo-700">
-                  {{ selectedDoctor.manualApprovalMode ? 'Manual' : 'Instant' }}
+                  {{ selectedDoctor.manualApprovalMode ? 'Manual Approval' : 'Instant Confirmation' }}
                 </span>
                 <span class="metric-sub">
-                  {{ selectedDoctor.manualApprovalMode ? 'Requires doctor review' : 'Instant confirmed (Redbus)' }}
+                  {{ selectedDoctor.manualApprovalMode ? 'Requires doctor review' : 'Immediately confirmed' }}
                 </span>
+              </div>
+            </div>
+
+            <!-- Real-time Practice Activity (Live Database Records) -->
+            <div class="realtime-activity-card" *ngIf="selectedDoctor.realtimeStats">
+              <div class="activity-header">
+                <mat-icon class="activity-ic">query_stats</mat-icon>
+                <span class="activity-title">Real-Time Clinical Activity & Performance</span>
+              </div>
+              <div class="activity-grid">
+                <div class="activity-item">
+                  <span class="activity-num text-teal-700">{{ selectedDoctor.realtimeStats.completedAppointments }}</span>
+                  <span class="activity-lbl">Completed Consultations</span>
+                </div>
+                <div class="activity-item">
+                  <span class="activity-num text-blue-700">{{ selectedDoctor.realtimeStats.upcomingAppointments }}</span>
+                  <span class="activity-lbl">Upcoming Consultations</span>
+                </div>
+                <div class="activity-item">
+                  <span class="activity-num text-neutral-800">{{ selectedDoctor.realtimeStats.totalAppointments }}</span>
+                  <span class="activity-lbl">Total Appointments</span>
+                </div>
+                <div class="activity-item">
+                  <span class="activity-num text-emerald-700">₹{{ selectedDoctor.realtimeStats.totalRevenueGenerated }}</span>
+                  <span class="activity-lbl">Revenue Generated</span>
+                </div>
               </div>
             </div>
 
@@ -364,14 +429,14 @@ import { environment } from '../../../../environments/environment';
                   </div>
                   <div class="info-row">
                     <span class="info-label">Medical Registration No.</span>
-                    <span class="info-val font-mono font-bold text-neutral-800">
-                      {{ selectedDoctor.licenseNumber || 'Verified during onboarding' }}
+                    <span class="info-val font-mono" [class.font-bold]="!!selectedDoctor.licenseNumber" [class.text-neutral-400]="!selectedDoctor.licenseNumber">
+                      {{ selectedDoctor.licenseNumber || 'Not provided' }}
                     </span>
                   </div>
                   <div class="info-row">
                     <span class="info-label">Affiliated Facility</span>
                     <span class="info-val text-neutral-800">
-                      {{ clinicProfile?.name || 'Your Clinic' }}
+                      {{ clinicProfile?.name || selectedDoctor.clinicId?.name || 'Not provided' }}
                     </span>
                   </div>
                 </div>
@@ -392,16 +457,19 @@ import { environment } from '../../../../environments/environment';
                   </div>
                   <div class="info-row">
                     <span class="info-label">Degrees & Certifications</span>
-                    <div class="qual-badges-wrap">
+                    <div class="qual-badges-wrap" *ngIf="getQualificationsArray(selectedDoctor).length > 0">
                       <span *ngFor="let q of getQualificationsArray(selectedDoctor)" class="qual-badge">
                         {{ q }}
                       </span>
                     </div>
+                    <span class="info-val text-neutral-400" *ngIf="getQualificationsArray(selectedDoctor).length === 0">
+                      Not provided
+                    </span>
                   </div>
                   <div class="info-row">
                     <span class="info-label">Clinic Location</span>
                     <span class="info-val text-neutral-600">
-                      {{ selectedDoctor.clinicAddress || clinicProfile?.address || 'Main Clinic Facility' }}
+                      {{ selectedDoctor.clinicAddress || clinicProfile?.address || selectedDoctor.clinicId?.address || 'Not provided' }}
                     </span>
                   </div>
                   <div class="info-row" *ngIf="selectedDoctor.createdAt">
@@ -420,21 +488,21 @@ import { environment } from '../../../../environments/environment';
                 <mat-icon class="sec-ic">article</mat-icon>
                 <span>Professional Biography & Scope of Practice</span>
               </h4>
-              <p class="bio-text" *ngIf="selectedDoctor.bio">
+              <p class="bio-text" *ngIf="selectedDoctor.bio && selectedDoctor.bio.trim().length > 0">
                 {{ selectedDoctor.bio }}
               </p>
-              <p class="bio-empty" *ngIf="!selectedDoctor.bio">
-                No professional biography has been recorded for this physician.
+              <p class="bio-empty" *ngIf="!selectedDoctor.bio || selectedDoctor.bio.trim().length === 0">
+                Not provided
               </p>
             </div>
 
             <!-- Medical License Document (if uploaded) -->
-            <div class="details-section mt-4" *ngIf="selectedDoctor.licenseDocumentUrl">
+            <div class="details-section mt-4">
               <h4 class="section-title">
                 <mat-icon class="sec-ic">verified_user</mat-icon>
                 <span>Medical Registration Certificate</span>
               </h4>
-              <div class="license-doc-card">
+              <div class="license-doc-card" *ngIf="selectedDoctor.licenseDocumentUrl">
                 <div class="flex items-center gap-3">
                   <div class="license-doc-icon">
                     <mat-icon>description</mat-icon>
@@ -449,15 +517,19 @@ import { environment } from '../../../../environments/environment';
                   <span>View Document</span>
                 </a>
               </div>
+              <div class="empty-doc-card" *ngIf="!selectedDoctor.licenseDocumentUrl">
+                <mat-icon class="text-neutral-400">description</mat-icon>
+                <span class="text-sm text-neutral-500">Document not uploaded</span>
+              </div>
             </div>
 
             <!-- Weekly Consultation Schedule (if available) -->
-            <div class="details-section mt-4" *ngIf="selectedDoctor.weeklySchedule && selectedDoctor.weeklySchedule.length > 0">
+            <div class="details-section mt-4">
               <h4 class="section-title">
                 <mat-icon class="sec-ic">event_available</mat-icon>
                 <span>Weekly Consultation Schedule</span>
               </h4>
-              <div class="schedule-grid">
+              <div class="schedule-grid" *ngIf="hasActiveSchedule(selectedDoctor)">
                 <div *ngFor="let day of selectedDoctor.weeklySchedule" class="day-slot-card" [class.day-inactive]="!day.isActive">
                   <span class="day-name">{{ getDayName(day.dayOfWeek) }}</span>
                   <div class="day-times" *ngIf="day.isActive && day.slots?.length > 0">
@@ -465,6 +537,10 @@ import { environment } from '../../../../environments/environment';
                   </div>
                   <span class="day-off" *ngIf="!day.isActive || !day.slots?.length">Off</span>
                 </div>
+              </div>
+              <div class="empty-schedule-card" *ngIf="!hasActiveSchedule(selectedDoctor)">
+                <mat-icon class="text-neutral-400">event_busy</mat-icon>
+                <span class="text-sm text-neutral-500">No active consultation schedule configured yet</span>
               </div>
             </div>
           </div>
@@ -887,11 +963,80 @@ import { environment } from '../../../../environments/environment';
       border-radius: 6px;
     }
 
+    .no-rating-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: #718096;
+      font-size: 11px;
+      font-weight: 500;
+    }
+
     .star-ic {
       font-size: 14px;
       width: 14px;
       height: 14px;
       color: #D97706;
+    }
+
+    .realtime-activity-card {
+      background: #F0FDF4;
+      border: 1px solid #BBF7D0;
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 20px;
+    }
+
+    .activity-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      color: #166534;
+    }
+
+    .activity-ic {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      color: #16A34A;
+    }
+
+    .activity-title {
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .activity-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    @media (max-width: 768px) {
+      .activity-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .activity-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .activity-num {
+      font-size: 20px;
+      font-weight: 800;
+      line-height: 1.2;
+    }
+
+    .activity-lbl {
+      font-size: 11px;
+      font-weight: 600;
+      color: #4B5563;
     }
 
     .metrics-grid {
@@ -1097,6 +1242,17 @@ import { environment } from '../../../../environments/environment';
       font-style: italic;
     }
 
+    .empty-doc-card,
+    .empty-schedule-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px;
+      background: #F9FAFB;
+      border: 1px dashed #D1D5DB;
+      border-radius: 8px;
+    }
+
     .modal-footer {
       padding: 16px 24px;
       border-top: 1px solid #E5E7EB;
@@ -1127,11 +1283,11 @@ export class ManageDoctorsComponent implements OnInit {
     email: ['', [Validators.required, Validators.email]],
     phone: [''],
     specializationId: ['', [Validators.required]],
-    password: ['DocyraStaff@2026', [Validators.required, Validators.minLength(8)]],
-    consultationFee: [500, [Validators.required, Validators.min(0)]],
+    password: ['', [Validators.required, Validators.minLength(8)]],
+    consultationFee: [null, [Validators.required, Validators.min(0)]],
     slotDurationMinutes: [30, [Validators.required]],
-    experienceYears: [5, [Validators.required, Validators.min(0)]],
-    qualifications: ['MBBS, MD'],
+    experienceYears: [null, [Validators.required, Validators.min(0)]],
+    qualifications: [''],
   });
 
   ngOnInit(): void {
@@ -1253,12 +1409,12 @@ export class ManageDoctorsComponent implements OnInit {
 
   getQualificationsArray(doc: any): string[] {
     if (Array.isArray(doc?.qualifications) && doc.qualifications.length > 0) {
-      return doc.qualifications;
+      return doc.qualifications.filter((q: any) => typeof q === 'string' && q.trim().length > 0);
     }
-    if (typeof doc?.qualifications === 'string' && doc.qualifications) {
+    if (typeof doc?.qualifications === 'string' && doc.qualifications.trim()) {
       return doc.qualifications.split(',').map((q: string) => q.trim()).filter((q: string) => q.length > 0);
     }
-    return ['MBBS'];
+    return [];
   }
 
   getDayName(dayOfWeek: number): string {
@@ -1279,7 +1435,7 @@ export class ManageDoctorsComponent implements OnInit {
     const formVal = this.doctorForm.value;
     const quals = typeof formVal.qualifications === 'string'
       ? formVal.qualifications.split(',').map((q: string) => q.trim()).filter((q: string) => q.length > 0)
-      : Array.isArray(formVal.qualifications) ? formVal.qualifications : ['MBBS'];
+      : Array.isArray(formVal.qualifications) ? formVal.qualifications : [];
 
     const payload = {
       name: formVal.name.trim(),
@@ -1287,7 +1443,7 @@ export class ManageDoctorsComponent implements OnInit {
       phone: formVal.phone ? formVal.phone.trim() : undefined,
       specializationId: formVal.specializationId,
       password: formVal.password,
-      consultationFee: Number(formVal.consultationFee) || 500,
+      consultationFee: Number(formVal.consultationFee) || 0,
       slotDurationMinutes: Number(formVal.slotDurationMinutes) || 30,
       experienceYears: Number(formVal.experienceYears) || 0,
       yearsExperience: Number(formVal.experienceYears) || 0,
@@ -1303,11 +1459,11 @@ export class ManageDoctorsComponent implements OnInit {
           email: '',
           phone: '',
           specializationId: this.specializations[0]?._id || '',
-          password: 'DocyraStaff@2026',
-          consultationFee: 500,
+          password: '',
+          consultationFee: null,
           slotDurationMinutes: 30,
-          experienceYears: 5,
-          qualifications: 'MBBS, MD',
+          experienceYears: null,
+          qualifications: '',
         });
         this.notificationService.success('Physician onboarded & auto-approved successfully!');
         this.loadDoctors(this.clinicProfile!._id);
@@ -1353,35 +1509,42 @@ export class ManageDoctorsComponent implements OnInit {
   }
 
   getDoctorDesignation(doc: any): string {
-    if (doc.specializationId && typeof doc.specializationId === 'object' && doc.specializationId.name) {
+    if (doc?.specializationId && typeof doc.specializationId === 'object' && doc.specializationId.name) {
       return doc.specializationId.name;
     }
-    if (typeof doc.specializationId === 'string' && doc.specializationId) {
+    if (typeof doc?.specializationId === 'string' && doc.specializationId) {
       const found = this.specializations.find((s) => s._id === doc.specializationId);
       if (found) return found.name;
       return doc.specializationId;
     }
-    return 'General Physician';
+    return 'Not specified';
   }
 
   getDoctorQualifications(doc: any): string {
-    if (Array.isArray(doc.qualifications) && doc.qualifications.length > 0) {
-      return doc.qualifications.join(', ');
-    }
-    if (typeof doc.qualifications === 'string' && doc.qualifications) {
-      return doc.qualifications;
-    }
-    return 'MBBS';
+    const arr = this.getQualificationsArray(doc);
+    return arr.length > 0 ? arr.join(', ') : '';
+  }
+
+  hasDoctorExperience(doc: any): boolean {
+    return (
+      (doc?.yearsExperience !== undefined && doc?.yearsExperience !== null && doc?.yearsExperience !== '') ||
+      (doc?.experienceYears !== undefined && doc?.experienceYears !== null && doc?.experienceYears !== '')
+    );
   }
 
   getDoctorExperience(doc: any): number {
-    if (doc.yearsExperience !== undefined && doc.yearsExperience !== null) {
-      return doc.yearsExperience;
+    if (doc?.yearsExperience !== undefined && doc?.yearsExperience !== null && doc?.yearsExperience !== '') {
+      return Number(doc.yearsExperience);
     }
-    if (doc.experienceYears !== undefined && doc.experienceYears !== null) {
-      return doc.experienceYears;
+    if (doc?.experienceYears !== undefined && doc?.experienceYears !== null && doc?.experienceYears !== '') {
+      return Number(doc.experienceYears);
     }
     return 0;
+  }
+
+  hasActiveSchedule(doc: any): boolean {
+    if (!doc?.weeklySchedule || !Array.isArray(doc.weeklySchedule)) return false;
+    return doc.weeklySchedule.some((day: any) => day.isActive && Array.isArray(day.slots) && day.slots.length > 0);
   }
 
   getDoctorStatus(doc: any): string {
