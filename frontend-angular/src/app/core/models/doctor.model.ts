@@ -22,6 +22,7 @@ export interface Doctor {
   name?: string;
   email?: string;
   phone?: string;
+  profilePhotoUrl?: string;
   clinicAddress?: string;
   bio?: string;
   qualifications?: string[];
