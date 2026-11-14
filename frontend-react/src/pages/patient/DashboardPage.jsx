@@ -12,16 +12,25 @@ import {
   Download,
   Star,
   Users,
+  AlertTriangle,
 } from 'lucide-react';
 import appointmentsApi from '../../services/appointments.api.js';
 import useAuth from '../../context/useAuth.js';
 import useSocketEvent from '../../context/useSocketEvent.js';
+import useSocket from '../../context/useSocket.js';
 
 export function DashboardPage() {
   const { user } = useAuth();
+  const { addNotification } = useSocket() || {};
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterTab, setFilterTab] = useState('upcoming'); // 'upcoming', 'past', 'cancelled'
+
+  // Cancellation modal state
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [selectedCancelAppointment, setSelectedCancelAppointment] = useState(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelling, setCancelling] = useState(false);
 
   const fetchAppointments = useCallback(async () => {
     try {
@@ -44,6 +53,41 @@ export function DashboardPage() {
   useSocketEvent('appointment:created', () => fetchAppointments());
   useSocketEvent('appointment:statusChanged', () => fetchAppointments());
   useSocketEvent('appointment:cancelled', () => fetchAppointments());
+
+  const handleCancelAppointment = async () => {
+    if (!selectedCancelAppointment) return;
+    setCancelling(true);
+    try {
+      const res = await appointmentsApi.cancelAppointment(selectedCancelAppointment._id, {
+        reason: cancelReason,
+        confirmLate: true,
+      });
+      if (res.success) {
+        setCancelModalOpen(false);
+        const aptDoc = selectedCancelAppointment;
+        const docUser = aptDoc.doctorId?.userId || {};
+        const docName = docUser.name || aptDoc.doctorId?.name || 'your doctor';
+        const dateStr = aptDoc.slotStart ? format(new Date(aptDoc.slotStart), 'dd MMM yyyy') : 'the scheduled date';
+        setSelectedCancelAppointment(null);
+        setCancelReason('');
+        fetchAppointments();
+        if (addNotification) {
+          addNotification({
+            type: 'appointment:cancelled',
+            category: 'appointment',
+            title: 'Appointment Cancelled',
+            message: `Your appointment with Dr. ${docName.replace(/^Dr\.\s*/i, '')} on ${dateStr} has been cancelled.`,
+            link: '/dashboard',
+            actionLabel: 'View Appointments',
+          });
+        }
+      }
+    } catch (err) {
+      alert(err.response?.data?.error?.message || 'Failed to cancel appointment');
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   const now = new Date();
 
@@ -311,7 +355,31 @@ export function DashboardPage() {
                       <span className="hidden sm:inline">Add to Calendar</span>
                     </a>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {['pending', 'confirmed'].includes(apt.status) && (
+                        <>
+                          <Link
+                            to={`/doctors/${typeof apt.doctorId === 'object' ? apt.doctorId?._id : apt.doctorId}`}
+                            className="btn-outline text-xs py-1.5 px-3 flex items-center gap-1 font-bold"
+                          >
+                            <Clock className="w-3.5 h-3.5 text-brand-primary" />
+                            <span>Reschedule</span>
+                          </Link>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedCancelAppointment(apt);
+                              setCancelModalOpen(true);
+                            }}
+                            className="btn-outline text-rose-600 border-rose-200 hover:bg-rose-50 text-xs py-1.5 px-3 flex items-center gap-1 font-bold cursor-pointer"
+                          >
+                            <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                            <span>Cancel</span>
+                          </button>
+                        </>
+                      )}
+
                       {apt.status === 'completed' && (
                         <Link
                           to={`/appointments/${apt._id}#review`}
@@ -336,6 +404,70 @@ export function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Cancellation Confirmation Modal */}
+      {cancelModalOpen && selectedCancelAppointment && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full space-y-4 shadow-docyra-elevated animate-fadeIn">
+            <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+
+            <div className="text-center space-y-1">
+              <h3 className="text-lg font-bold text-neutral-text-primary">Cancel Appointment?</h3>
+              <p className="text-xs text-neutral-text-secondary">
+                Are you sure you want to cancel your appointment with{' '}
+                <strong className="text-neutral-text-primary">
+                  Dr.{' '}
+                  {(
+                    selectedCancelAppointment.doctorId?.userId?.name ||
+                    selectedCancelAppointment.doctorId?.name ||
+                    'Doctor'
+                  ).replace(/^Dr\.\s*/i, '')}
+                </strong>{' '}
+                on{' '}
+                {selectedCancelAppointment.slotStart
+                  ? format(new Date(selectedCancelAppointment.slotStart), 'EEEE, MMM dd, yyyy')
+                  : 'scheduled date'}
+                ?
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-neutral-text-primary">Reason for cancellation (optional)</label>
+              <input
+                type="text"
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder="e.g. Schedule conflict, feeling better..."
+                className="w-full p-2.5 rounded-xl border border-neutral-border text-xs text-neutral-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary"
+              />
+            </div>
+
+            <div className="pt-2 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setCancelModalOpen(false);
+                  setSelectedCancelAppointment(null);
+                }}
+                className="btn-outline text-xs py-2 px-4 cursor-pointer"
+              >
+                Keep Appointment
+              </button>
+              <button
+                type="button"
+                disabled={cancelling}
+                onClick={handleCancelAppointment}
+                className="btn-outline text-xs py-2 px-4 bg-rose-600 text-white hover:bg-rose-700 border-rose-600 font-bold flex items-center gap-1.5 cursor-pointer"
+              >
+                <XCircle className="w-3.5 h-3.5" />
+                <span>{cancelling ? 'Cancelling...' : 'Confirm Cancellation'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

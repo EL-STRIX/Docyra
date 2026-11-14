@@ -562,7 +562,7 @@ class AppointmentService {
   /**
    * Cancel appointment (Patient self-cancellation or Admin cancellation with window check)
    */
-  async cancelAppointment(appointmentId, { reason }, currentUser) {
+  async cancelAppointment(appointmentId, { reason, confirmLate, emergency } = {}, currentUser) {
     const appointment = await Appointment.findById(appointmentId);
     if (!appointment) {
       throw new NotFoundError('Appointment not found', ERROR_CODES.NOT_FOUND);
@@ -587,8 +587,8 @@ class AppointmentService {
       );
     }
 
-    // Patient cancellation window check
-    if (isPatientOwner) {
+    // Patient cancellation window check (relaxed if confirmLate/emergency confirmed)
+    if (isPatientOwner && !confirmLate && !emergency) {
       const settings = await SystemSettings.getSettings();
       const cancellationWindowMs = (settings.cancellationWindowHours || 24) * 60 * 60 * 1000;
       const appointmentTime = new Date(appointment.slotStart).getTime();

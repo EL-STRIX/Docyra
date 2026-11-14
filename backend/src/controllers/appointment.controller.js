@@ -146,11 +146,11 @@ export const updateAppointmentStatus = asyncHandler(async (req, res) => {
  */
 export const cancelAppointment = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { reason } = req.body;
+  const { reason, confirmLate, emergency } = req.body;
 
   const cancelledAppointment = await appointmentService.cancelAppointment(
     id,
-    { reason },
+    { reason, confirmLate, emergency },
     req.user
   );
 

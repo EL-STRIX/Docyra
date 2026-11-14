@@ -66,7 +66,10 @@ export function AppointmentDetailPage() {
   const handleCancel = async () => {
     setCancelling(true);
     try {
-      const res = await appointmentsApi.cancelAppointment(id, { reason: cancelReason });
+      const res = await appointmentsApi.cancelAppointment(id, {
+        reason: cancelReason,
+        confirmLate: true,
+      });
       if (res.success) {
         setCancelModalOpen(false);
         fetchAppointment();
@@ -154,7 +157,6 @@ export function AppointmentDetailPage() {
   const dependent = appointment.bookedForId;
 
   const hoursUntilAppointment = differenceInHours(new Date(appointment.slotStart), new Date());
-  const canCancelOnline = hoursUntilAppointment >= 24 && ['pending', 'confirmed'].includes(appointment.status);
 
   return (
     <div className="max-w-4xl mx-auto px-4 space-y-8 pb-16">
@@ -303,23 +305,20 @@ export function AppointmentDetailPage() {
               <>
                 <Link
                   to={`/doctors/${doctorProfile._id}`}
-                  className="btn-outline text-xs py-2 px-4"
+                  className="btn-outline text-xs py-2 px-4 flex items-center gap-1.5 font-bold"
                 >
-                  Reschedule
+                  <Clock className="w-3.5 h-3.5 text-brand-primary" />
+                  <span>Reschedule</span>
                 </Link>
 
-                {canCancelOnline ? (
-                  <button
-                    onClick={() => setCancelModalOpen(true)}
-                    className="btn-outline text-rose-600 border-rose-200 hover:bg-rose-50 text-xs py-2 px-4"
-                  >
-                    Cancel Appointment
-                  </button>
-                ) : (
-                  <span className="text-[11px] text-neutral-text-secondary italic">
-                    Within 24h window. Please call clinic directly to cancel.
-                  </span>
-                )}
+                <button
+                  type="button"
+                  onClick={() => setCancelModalOpen(true)}
+                  className="btn-outline text-rose-600 border-rose-200 hover:bg-rose-50 text-xs py-2 px-4 flex items-center gap-1.5 font-bold cursor-pointer"
+                >
+                  <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                  <span>Cancel Appointment</span>
+                </button>
               </>
             )}
           </div>
@@ -396,8 +395,14 @@ export function AppointmentDetailPage() {
             <div className="text-center space-y-1">
               <h3 className="text-lg font-bold text-neutral-text-primary">Cancel Appointment?</h3>
               <p className="text-xs text-neutral-text-secondary">
-                Are you sure you want to cancel this reservation? The slot will immediately open up for other patients.
+                Are you sure you want to cancel your appointment with <strong className="text-neutral-text-primary">Dr. {doctorName}</strong> on {appointment.slotStart ? format(new Date(appointment.slotStart), 'EEEE, MMM dd, yyyy') : 'scheduled date'}?
               </p>
+              {hoursUntilAppointment < 24 && (
+                <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-[11px] text-left mt-2">
+                  <span className="font-bold block">Notice:</span>
+                  This appointment is scheduled within 24 hours. Confirming will cancel your reservation and free up the slot immediately.
+                </div>
+              )}
             </div>
 
             <div className="space-y-1">
@@ -415,7 +420,7 @@ export function AppointmentDetailPage() {
               <button
                 type="button"
                 onClick={() => setCancelModalOpen(false)}
-                className="btn-outline text-xs py-2 px-4"
+                className="btn-outline text-xs py-2 px-4 cursor-pointer"
               >
                 Keep Appointment
               </button>
@@ -423,9 +428,10 @@ export function AppointmentDetailPage() {
                 type="button"
                 disabled={cancelling}
                 onClick={handleCancel}
-                className="btn-outline text-xs py-2 px-4 bg-rose-600 text-white hover:bg-rose-700 border-rose-600"
+                className="btn-outline text-xs py-2 px-4 bg-rose-600 text-white hover:bg-rose-700 border-rose-600 font-bold flex items-center gap-1.5 cursor-pointer"
               >
-                {cancelling ? 'Cancelling...' : 'Confirm Cancellation'}
+                <XCircle className="w-3.5 h-3.5" />
+                <span>{cancelling ? 'Cancelling...' : 'Confirm Cancellation'}</span>
               </button>
             </div>
           </div>

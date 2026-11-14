@@ -28,5 +28,7 @@ export const updateAppointmentStatusSchema = z.object({
 export const cancelAppointmentSchema = z.object({
   body: z.object({
     reason: z.string().max(500).optional(),
+    confirmLate: z.boolean().optional(),
+    emergency: z.boolean().optional(),
   }),
 });
