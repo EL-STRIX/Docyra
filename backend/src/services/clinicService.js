@@ -114,9 +114,10 @@ class ClinicService {
       throw new NotFoundError('Clinic not found', ERROR_CODES.CLINIC_NOT_FOUND);
     }
 
-    // Fetch doctors affiliated with this clinic
+    // Fetch doctors affiliated with this clinic (only approved practitioners)
     const rawDoctors = await DoctorProfile.find({
       clinicId: clinic._id,
+      isApproved: true,
     })
       .populate('userId', 'name email phone profilePhotoUrl status')
       .populate('specializationId', 'name iconName')
@@ -125,6 +126,8 @@ class ClinicService {
     const doctors = rawDoctors.map((doc) => ({
       ...doc,
       name: doc.userId?.name || doc.name || 'Practitioner',
+      email: doc.userId?.email || doc.email || '',
+      phone: doc.userId?.phone || doc.phone || '',
       status: doc.status || (doc.userId?.status === 'active' || doc.isApproved ? 'active' : 'suspended'),
       experienceYears: doc.yearsExperience ?? doc.experienceYears ?? 0,
       yearsExperience: doc.yearsExperience ?? doc.experienceYears ?? 0,

@@ -1,6 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { ClinicService } from '../../../core/services/clinic.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { StatusBadgeComponent } from '../../../shared/components/status-badge/status-badge.component';
@@ -63,10 +64,14 @@ export interface ClinicDoctorApp {
           </div>
           <h1 class="page-title">Doctor Affiliation Applications</h1>
           <p class="page-subtitle">
-            Review and verify medical credentials of doctors who applied to practice at your clinic facility.
+            Review and verify medical credentials of doctors who applied to practice at your clinic facility. Approved physicians are moved to Manage Doctors.
           </p>
         </div>
         <div class="header-actions">
+          <button mat-stroked-button (click)="navigateToManageDoctors()" class="manage-docs-btn">
+            <mat-icon>people</mat-icon>
+            <span>Manage Doctors</span>
+          </button>
           <button mat-stroked-button (click)="loadApplications()" [disabled]="loading" class="refresh-btn">
             <mat-icon [class.spin]="loading">refresh</mat-icon>
             <span>Refresh</span>
@@ -76,16 +81,6 @@ export interface ClinicDoctorApp {
 
       <!-- KPI Summary Cards -->
       <div class="kpi-grid">
-        <div class="kpi-card" (click)="setStatusFilter('all')" [class.active-card]="statusFilter === 'all'">
-          <div class="kpi-icon-wrap total">
-            <mat-icon>assignment</mat-icon>
-          </div>
-          <div class="kpi-info">
-            <span class="kpi-label">Total Applications</span>
-            <span class="kpi-value">{{ applications.length }}</span>
-          </div>
-        </div>
-
         <div class="kpi-card" (click)="setStatusFilter('pending')" [class.active-card]="statusFilter === 'pending'">
           <div class="kpi-icon-wrap pending">
             <mat-icon>hourglass_top</mat-icon>
@@ -96,23 +91,36 @@ export interface ClinicDoctorApp {
           </div>
         </div>
 
-        <div class="kpi-card" (click)="setStatusFilter('approved')" [class.active-card]="statusFilter === 'approved'">
-          <div class="kpi-icon-wrap approved">
-            <mat-icon>verified</mat-icon>
-          </div>
-          <div class="kpi-info">
-            <span class="kpi-label">Approved Doctors</span>
-            <span class="kpi-value text-emerald-600">{{ countApproved() }}</span>
-          </div>
-        </div>
-
         <div class="kpi-card" (click)="setStatusFilter('rejected')" [class.active-card]="statusFilter === 'rejected'">
           <div class="kpi-icon-wrap rejected">
             <mat-icon>cancel</mat-icon>
           </div>
           <div class="kpi-info">
-            <span class="kpi-label">Rejected</span>
+            <span class="kpi-label">Rejected Applications</span>
             <span class="kpi-value text-rose-600">{{ countRejected() }}</span>
+          </div>
+        </div>
+
+        <div class="kpi-card" (click)="setStatusFilter('all')" [class.active-card]="statusFilter === 'all'">
+          <div class="kpi-icon-wrap total">
+            <mat-icon>assignment</mat-icon>
+          </div>
+          <div class="kpi-info">
+            <span class="kpi-label">Total Applications</span>
+            <span class="kpi-value">{{ applications.length }}</span>
+          </div>
+        </div>
+
+        <div class="kpi-card roster-card" (click)="navigateToManageDoctors()">
+          <div class="kpi-icon-wrap roster">
+            <mat-icon>people</mat-icon>
+          </div>
+          <div class="kpi-info">
+            <span class="kpi-label">Clinic Doctor Roster</span>
+            <span class="roster-link-text">
+              <span>View Manage Doctors</span>
+              <mat-icon class="inline-arrow">arrow_forward</mat-icon>
+            </span>
           </div>
         </div>
       </div>
@@ -137,13 +145,6 @@ export interface ClinicDoctorApp {
 
           <div class="status-tabs">
             <button
-              class="tab-btn"
-              [class.active]="statusFilter === 'all'"
-              (click)="setStatusFilter('all')"
-            >
-              All ({{ applications.length }})
-            </button>
-            <button
               class="tab-btn pending"
               [class.active]="statusFilter === 'pending'"
               (click)="setStatusFilter('pending')"
@@ -151,18 +152,18 @@ export interface ClinicDoctorApp {
               Pending ({{ countPending() }})
             </button>
             <button
-              class="tab-btn approved"
-              [class.active]="statusFilter === 'approved'"
-              (click)="setStatusFilter('approved')"
-            >
-              Approved ({{ countApproved() }})
-            </button>
-            <button
               class="tab-btn rejected"
               [class.active]="statusFilter === 'rejected'"
               (click)="setStatusFilter('rejected')"
             >
               Rejected ({{ countRejected() }})
+            </button>
+            <button
+              class="tab-btn"
+              [class.active]="statusFilter === 'all'"
+              (click)="setStatusFilter('all')"
+            >
+              All ({{ applications.length }})
             </button>
           </div>
         </div>
@@ -459,6 +460,18 @@ export interface ClinicDoctorApp {
       max-width: 680px;
     }
 
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .manage-docs-btn {
+      color: #0F5C5C !important;
+      border-color: #0F5C5C !important;
+      font-weight: 700 !important;
+    }
+
     .refresh-btn {
       border-color: #D1D5DB !important;
       color: #374151 !important;
@@ -519,6 +532,23 @@ export interface ClinicDoctorApp {
     .kpi-icon-wrap.pending { background: #FEF3C7; color: #D97706; }
     .kpi-icon-wrap.approved { background: #D1FAE5; color: #059669; }
     .kpi-icon-wrap.rejected { background: #FEE2E2; color: #DC2626; }
+    .kpi-icon-wrap.roster { background: #E0F2FE; color: #0284C7; }
+
+    .roster-link-text {
+      font-size: 13px;
+      font-weight: 700;
+      color: #0284C7;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 4px;
+    }
+
+    .inline-arrow {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
 
     .kpi-info {
       display: flex;
@@ -1016,11 +1046,12 @@ export interface ClinicDoctorApp {
 export class ClinicDoctorApplicationsComponent implements OnInit {
   private clinicService = inject(ClinicService);
   private notificationService = inject(NotificationService);
+  private router = inject(Router);
 
   loading = true;
   applications: ClinicDoctorApp[] = [];
   filteredApplications: ClinicDoctorApp[] = [];
-  statusFilter: 'all' | 'pending' | 'approved' | 'rejected' = 'all';
+  statusFilter: 'all' | 'pending' | 'approved' | 'rejected' = 'pending';
   searchQuery = '';
 
   selectedAppDoc: ClinicDoctorApp | null = null;
@@ -1034,7 +1065,7 @@ export class ClinicDoctorApplicationsComponent implements OnInit {
 
   loadApplications(): void {
     this.loading = true;
-    this.clinicService.getDoctorApplications().subscribe({
+    this.clinicService.getDoctorApplications({ status: this.statusFilter }).subscribe({
       next: (res) => {
         this.loading = false;
         if (res.success && Array.isArray(res.data)) {
@@ -1058,7 +1089,11 @@ export class ClinicDoctorApplicationsComponent implements OnInit {
 
   setStatusFilter(filter: 'all' | 'pending' | 'approved' | 'rejected'): void {
     this.statusFilter = filter;
-    this.applyFilter();
+    this.loadApplications();
+  }
+
+  navigateToManageDoctors(): void {
+    this.router.navigate(['/clinic/doctors']);
   }
 
   applyFilter(): void {
@@ -1136,9 +1171,9 @@ export class ClinicDoctorApplicationsComponent implements OnInit {
     this.clinicService.reviewDoctorApplication(app._id, true).subscribe({
       next: (res) => {
         this.processingId = null;
-        this.notificationService.success(`${app.name} has been approved and affiliated with your clinic.`);
-        app.status = 'approved';
-        app.isApproved = true;
+        this.notificationService.success(`${app.name} has been approved and moved to Manage Doctors.`);
+        // Immediately remove approved doctor from the applications queue
+        this.applications = this.applications.filter((a) => a._id !== app._id);
         this.applyFilter();
       },
       error: (err) => {

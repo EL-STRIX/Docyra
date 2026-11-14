@@ -343,7 +343,7 @@ class DoctorService {
   /**
    * Clinic Admin: List doctor applications submitted to this clinic
    */
-  async listClinicDoctorApplications({ clinicId, page = 1, limit = 10, status = 'all' }) {
+  async listClinicDoctorApplications({ clinicId, page = 1, limit = 10, status = 'pending' }) {
     if (!clinicId) {
       throw new AppError(ERROR_CODES.VALIDATION_ERROR, 400, 'Clinic ID is required');
     }
@@ -352,14 +352,18 @@ class DoctorService {
       clinicId: new mongoose.Types.ObjectId(clinicId),
     };
 
-    if (status === 'pending') {
-      query.isApproved = false;
-      query.status = { $ne: 'suspended' };
-    } else if (status === 'approved') {
+    if (status === 'approved') {
       query.isApproved = true;
     } else if (status === 'rejected' || status === 'suspended') {
       query.status = 'suspended';
       query.isApproved = false;
+    } else if (status === 'all') {
+      // Applications waiting for verification or action (exclude fully approved doctors)
+      query.isApproved = false;
+    } else {
+      // Default: pending applications awaiting review
+      query.isApproved = false;
+      query.status = { $ne: 'suspended' };
     }
 
     const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 10, 1), 50);
@@ -428,16 +432,18 @@ class DoctorService {
       throw new NotFoundError('Doctor application not found', ERROR_CODES.NOT_FOUND);
     }
 
-    if (doctorProfile.clinicId?.toString() !== clinicId?.toString()) {
+    if (doctorProfile.clinicId && doctorProfile.clinicId.toString() !== clinicId.toString()) {
       throw new AppError(ERROR_CODES.FORBIDDEN, 403, 'You do not have permission to review applications for other clinics');
     }
 
     doctorProfile.isApproved = !!isApproved;
     doctorProfile.status = isApproved ? 'active' : 'suspended';
+    doctorProfile.clinicId = clinicId;
+    doctorProfile.isIndependent = false;
     await doctorProfile.save();
 
     if (doctorProfile.userId) {
-      await User.findByIdAndUpdate(doctorProfile.userId._id, {
+      await User.findByIdAndUpdate(doctorProfile.userId._id || doctorProfile.userId, {
         status: isApproved ? USER_STATUS.ACTIVE : USER_STATUS.SUSPENDED,
         clinicId: clinicId,
       });
@@ -448,7 +454,7 @@ class DoctorService {
     return {
       doctorProfile,
       message: isApproved
-        ? 'Doctor application approved successfully. The doctor is now affiliated with your clinic.'
+        ? 'Doctor application approved successfully. The doctor is now affiliated with your clinic and available under Manage Doctors.'
         : `Doctor application rejected. Reason: ${reason || 'Not specified'}`,
     };
   }
@@ -592,7 +598,10 @@ class DoctorService {
    * Clinic Admin: List doctors strictly belonging to their clinic
    */
   async clinicAdminListDoctors({ clinicId, page = 1, limit = 10, search }) {
-    const query = { clinicId: new mongoose.Types.ObjectId(clinicId) };
+    const query = {
+      clinicId: new mongoose.Types.ObjectId(clinicId),
+      isApproved: true,
+    };
 
     const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 10, 1), 50);
     const safePage = Math.max(parseInt(page, 10) || 1, 1);
