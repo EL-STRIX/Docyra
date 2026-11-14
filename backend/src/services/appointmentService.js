@@ -513,9 +513,14 @@ class AppointmentService {
     }
 
     // Permission check
+    const currentUserId = currentUser.id || currentUser._id?.toString();
     const isDoctorOwner =
       currentUser.role === ROLES.DOCTOR &&
-      appointment.doctorId?.userId?.toString() === currentUser.id;
+      (
+        appointment.doctorId?.userId?.toString() === currentUserId ||
+        appointment.doctorId?._id?.toString() === currentUserId ||
+        appointment.doctorId?.toString() === currentUserId
+      );
     const isClinicAdmin =
       currentUser.role === ROLES.CLINIC_ADMIN &&
       appointment.clinicId &&
@@ -583,25 +588,27 @@ class AppointmentService {
     }
 
     await appointment.save();
-    logger.info(`Appointment ${appointment._id} status updated to ${status} by user ${currentUser.id}`);
+    logger.info(`Appointment ${appointment._id} updated by user ${currentUserId}`);
 
-    try {
-      const eventName = status === APPOINTMENT_STATUS.CANCELLED ? 'appointment:cancelled' : 'appointment:statusChanged';
-      notificationService.dispatch(eventName, {
-        appointmentId: appointment._id,
-        patientId: appointment.patientId?.toString(),
-        status: appointment.status,
-        reason: appointment.cancellationReason,
-        slotStart: appointment.slotStart,
-        message: status === APPOINTMENT_STATUS.CANCELLED
-          ? `Your appointment was cancelled: ${appointment.cancellationReason}`
-          : `Your appointment status was updated to ${status}.`,
-      }).catch((e) => logger.warn(`Status update notification dispatch failed: ${e.message}`));
-    } catch (err) {
-      logger.warn(`Failed to dispatch status update notification: ${err.message}`);
+    if (status && status !== currentStatus) {
+      try {
+        const eventName = status === APPOINTMENT_STATUS.CANCELLED ? 'appointment:cancelled' : 'appointment:statusChanged';
+        notificationService.dispatch(eventName, {
+          appointmentId: appointment._id,
+          patientId: appointment.patientId?.toString(),
+          status: appointment.status,
+          reason: appointment.cancellationReason,
+          slotStart: appointment.slotStart,
+          message: status === APPOINTMENT_STATUS.CANCELLED
+            ? `Your appointment was cancelled: ${appointment.cancellationReason}`
+            : `Your appointment status was updated to ${status}.`,
+        }).catch((e) => logger.warn(`Status update notification dispatch failed: ${e.message}`));
+      } catch (err) {
+        logger.warn(`Failed to dispatch status update notification: ${err.message}`);
+      }
     }
 
-    return appointment;
+    return this.getAppointmentById(appointment._id, currentUser);
   }
 
   /**

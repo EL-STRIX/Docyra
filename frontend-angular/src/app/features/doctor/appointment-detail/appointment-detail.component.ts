@@ -112,9 +112,9 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
               <div>
                 <div class="patient-name">{{ getPatientName() }}</div>
                 <div class="patient-sub">
-                  {{ appointment.bookedFor.type === 'dependent' ? (appointment.bookedFor.relationship || 'Family Dependent') : 'Self' }}
-                  <span *ngIf="appointment.bookedFor.gender"> • {{ appointment.bookedFor.gender | titlecase }}</span>
-                  <span *ngIf="appointment.bookedFor.dateOfBirth"> • DOB: {{ appointment.bookedFor.dateOfBirth | portalDate:'dd MMM yyyy' }}</span>
+                  {{ appointment.bookedFor?.type === 'dependent' ? (appointment.bookedFor?.relationship || 'Family Dependent') : 'Self' }}
+                  <span *ngIf="appointment.bookedFor?.gender"> • {{ appointment.bookedFor?.gender | titlecase }}</span>
+                  <span *ngIf="appointment.bookedFor?.dateOfBirth"> • DOB: {{ appointment.bookedFor?.dateOfBirth | portalDate:'dd MMM yyyy' }}</span>
                 </div>
               </div>
             </div>
@@ -123,22 +123,22 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
             <div class="vitals-tags-wrap">
               <div class="health-tag">
                 <span class="tag-label">Blood Group</span>
-                <span class="tag-val" [class.highlight]="!!appointment.bookedFor.bloodGroup">
-                  {{ appointment.bookedFor.bloodGroup || 'Unspecified' }}
+                <span class="tag-val" [class.highlight]="!!appointment.bookedFor?.bloodGroup">
+                  {{ appointment.bookedFor?.bloodGroup || 'Unspecified' }}
                 </span>
               </div>
 
-              <div class="health-tag" [class.alert-tag]="!!appointment.bookedFor.allergies">
+              <div class="health-tag" [class.alert-tag]="!!appointment.bookedFor?.allergies">
                 <span class="tag-label">Allergies</span>
                 <span class="tag-val">
-                  {{ appointment.bookedFor.allergies || 'None reported' }}
+                  {{ appointment.bookedFor?.allergies || 'None reported' }}
                 </span>
               </div>
 
               <div class="health-tag">
                 <span class="tag-label">Conditions</span>
-                <span class="tag-val" [title]="appointment.bookedFor.chronicConditions || 'None reported'">
-                  {{ appointment.bookedFor.chronicConditions || 'None reported' }}
+                <span class="tag-val" [title]="appointment.bookedFor?.chronicConditions || 'None reported'">
+                  {{ appointment.bookedFor?.chronicConditions || 'None reported' }}
                 </span>
               </div>
 
@@ -473,51 +473,51 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
             <div class="clinical-details-grid mt-4">
               <div class="detail-box">
                 <span class="box-label">Blood Group</span>
-                <span class="box-value font-bold" [class.text-rose-700]="!!appointment.bookedFor.bloodGroup">
-                  {{ appointment.bookedFor.bloodGroup || 'Not Specified' }}
+                <span class="box-value font-bold" [class.text-rose-700]="!!appointment.bookedFor?.bloodGroup">
+                  {{ appointment.bookedFor?.bloodGroup || 'Not Specified' }}
                 </span>
               </div>
 
               <div class="detail-box">
                 <span class="box-label">Date of Birth & Age</span>
                 <span class="box-value">
-                  {{ appointment.bookedFor.dateOfBirth ? (appointment.bookedFor.dateOfBirth | portalDate:'dd MMM yyyy') : 'Not Specified' }}
+                  {{ appointment.bookedFor?.dateOfBirth ? (appointment.bookedFor?.dateOfBirth | portalDate:'dd MMM yyyy') : 'Not Specified' }}
                 </span>
               </div>
 
               <div class="detail-box">
                 <span class="box-label">Gender</span>
                 <span class="box-value capitalize">
-                  {{ appointment.bookedFor.gender || 'Not Specified' }}
+                  {{ appointment.bookedFor?.gender || 'Not Specified' }}
                 </span>
               </div>
 
               <div class="detail-box">
                 <span class="box-label">Height / Weight</span>
                 <span class="box-value">
-                  {{ appointment.bookedFor.heightCm ? appointment.bookedFor.heightCm + ' cm' : '-' }} /
-                  {{ appointment.bookedFor.weightKg ? appointment.bookedFor.weightKg + ' kg' : '-' }}
+                  {{ appointment.bookedFor?.heightCm ? appointment.bookedFor?.heightCm + ' cm' : '-' }} /
+                  {{ appointment.bookedFor?.weightKg ? appointment.bookedFor?.weightKg + ' kg' : '-' }}
                 </span>
               </div>
 
               <div class="detail-box full-width">
                 <span class="box-label">Known Allergies</span>
-                <div class="allergy-display-box" [class.alert-border]="!!appointment.bookedFor.allergies">
-                  {{ appointment.bookedFor.allergies || 'No known allergies reported.' }}
+                <div class="allergy-display-box" [class.alert-border]="!!appointment.bookedFor?.allergies">
+                  {{ appointment.bookedFor?.allergies || 'No known allergies reported.' }}
                 </div>
               </div>
 
               <div class="detail-box full-width">
                 <span class="box-label">Chronic Conditions</span>
                 <div class="condition-display-box">
-                  {{ appointment.bookedFor.chronicConditions || 'No chronic medical conditions reported.' }}
+                  {{ appointment.bookedFor?.chronicConditions || 'No chronic medical conditions reported.' }}
                 </div>
               </div>
 
-              <div class="detail-box full-width" *ngIf="appointment.bookedFor.emergencyContactName || appointment.bookedFor.emergencyContactPhone">
+              <div class="detail-box full-width" *ngIf="appointment.bookedFor?.emergencyContactName || appointment.bookedFor?.emergencyContactPhone">
                 <span class="box-label">Emergency Contact</span>
                 <span class="box-value">
-                  {{ appointment.bookedFor.emergencyContactName || 'Contact' }} • {{ appointment.bookedFor.emergencyContactPhone || '-' }}
+                  {{ appointment.bookedFor?.emergencyContactName || 'Contact' }} • {{ appointment.bookedFor?.emergencyContactPhone || '-' }}
                 </span>
               </div>
             </div>
@@ -1530,7 +1530,12 @@ export class DoctorAppointmentDetailComponent implements OnInit {
       next: (res) => {
         this.saving = false;
         if (res.success && res.data) {
-          this.appointment = res.data;
+          const prevBookedFor = this.appointment?.bookedFor;
+          this.appointment = {
+            ...this.appointment,
+            ...res.data,
+            bookedFor: res.data.bookedFor || prevBookedFor,
+          };
           this.notificationService.success('Prescription saved successfully');
         }
       },
@@ -1567,7 +1572,12 @@ export class DoctorAppointmentDetailComponent implements OnInit {
       next: (res) => {
         this.saving = false;
         if (res.success && res.data) {
-          this.appointment = res.data;
+          const prevBookedFor = this.appointment?.bookedFor;
+          this.appointment = {
+            ...this.appointment,
+            ...res.data,
+            bookedFor: res.data.bookedFor || prevBookedFor,
+          };
           this.notificationService.success('Diagnostic tests saved');
         }
       },
@@ -1622,7 +1632,12 @@ export class DoctorAppointmentDetailComponent implements OnInit {
       next: (res) => {
         this.savingNotes = false;
         if (res.success && res.data) {
-          this.appointment = res.data;
+          const prevBookedFor = this.appointment?.bookedFor;
+          this.appointment = {
+            ...this.appointment,
+            ...res.data,
+            bookedFor: res.data.bookedFor || prevBookedFor,
+          };
           this.notificationService.success('Notes saved');
         }
       },
