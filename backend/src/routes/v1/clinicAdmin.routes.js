@@ -5,6 +5,7 @@ import {
   updateClinicDoctor,
   listClinicDoctorApplications,
   reviewClinicDoctorApplication,
+  scheduleDoctorApplicationMeeting,
   getClinicRevenue,
 } from '../../controllers/clinicAdmin.controller.js';
 import { getClinicAppointments } from '../../controllers/appointment.controller.js';
@@ -38,6 +39,11 @@ router.patch(
   validate(approveDoctorSchema),
   auditLogger('CLINIC_DOCTOR_APPLICATION_REVIEWED', 'DoctorProfile'),
   reviewClinicDoctorApplication
+);
+router.post(
+  '/doctor-applications/:id/schedule-meeting',
+  auditLogger('CLINIC_DOCTOR_MEETING_SCHEDULED', 'DoctorProfile'),
+  scheduleDoctorApplicationMeeting
 );
 
 // Clinic Appointments management

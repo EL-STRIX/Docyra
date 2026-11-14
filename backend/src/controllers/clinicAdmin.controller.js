@@ -82,6 +82,26 @@ export const reviewClinicDoctorApplication = asyncHandler(async (req, res) => {
   });
 });
 
+export const scheduleDoctorApplicationMeeting = asyncHandler(async (req, res) => {
+  const clinicId = req.user.clinicId;
+  const { id } = req.params;
+  const { meetingDate, meetingTime, meetingLink, agenda, customNotes } = req.body;
+
+  const result = await doctorService.scheduleClinicDoctorMeeting(id, clinicId, {
+    meetingDate,
+    meetingTime,
+    meetingLink,
+    agenda,
+    customNotes,
+    scheduledBy: req.user._id || req.user.id,
+  });
+
+  res.status(200).json({
+    success: true,
+    data: result,
+  });
+});
+
 export const getClinicRevenue = asyncHandler(async (req, res) => {
   const clinicId = req.user.clinicId;
   const { period, startDate, endDate, year, doctorId } = req.query;
@@ -107,5 +127,6 @@ export default {
   updateClinicDoctor,
   listClinicDoctorApplications,
   reviewClinicDoctorApplication,
+  scheduleDoctorApplicationMeeting,
   getClinicRevenue,
 };

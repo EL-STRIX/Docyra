@@ -16,6 +16,17 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialogModule } from '@angular/material/dialog';
 import { environment } from '../../../../environments/environment';
 
+export interface InterviewMeeting {
+  meetingDate: string;
+  meetingTime: string;
+  meetingLink: string;
+  agenda?: string;
+  scheduledAt?: string;
+  emailSent?: boolean;
+  emailSentAt?: string;
+  notes?: string;
+}
+
 export interface ClinicDoctorApp {
   _id: string;
   id?: string;
@@ -29,10 +40,12 @@ export interface ClinicDoctorApp {
   consultationFee: number;
   feeCurrency?: string;
   clinicAddress?: string;
+  licenseNumber?: string;
   licenseDocumentUrl?: string;
   bio?: string;
   status: 'pending' | 'approved' | 'rejected';
   isApproved: boolean;
+  interviewMeeting?: InterviewMeeting | null;
   createdAt?: string;
 }
 
@@ -193,13 +206,14 @@ export interface ClinicDoctorApp {
                 <th>Specialization & Qualifications</th>
                 <th>Experience & Fee</th>
                 <th>Medical License</th>
+                <th>Negotiation Meet</th>
                 <th>Applied Date</th>
                 <th>Status</th>
                 <th class="text-right">Clinic Action</th>
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let app of filteredApplications" [class.highlight-pending]="app.status === 'pending'">
+              <tr *ngFor="let app of filteredApplications" [class.highlight-pending]="app.status === 'pending'" (click)="openReviewModal(app)" class="cursor-pointer">
                 <!-- Doctor Name & Contact -->
                 <td>
                   <div class="doctor-profile-cell">
@@ -242,7 +256,7 @@ export interface ClinicDoctorApp {
                 </td>
 
                 <!-- Medical License Document -->
-                <td>
+                <td (click)="$event.stopPropagation()">
                   <div *ngIf="app.licenseDocumentUrl" class="doc-link-wrap">
                     <button
                       mat-stroked-button
@@ -251,11 +265,26 @@ export interface ClinicDoctorApp {
                       (click)="openDocument(app)"
                     >
                       <mat-icon>description</mat-icon>
-                      <span>View Credential PDF</span>
+                      <span>View License</span>
                     </button>
                   </div>
                   <div *ngIf="!app.licenseDocumentUrl" class="no-doc text-xs text-neutral-400">
-                    No document attached
+                    Not uploaded
+                  </div>
+                </td>
+
+                <!-- Negotiation Meet Status -->
+                <td>
+                  <div *ngIf="app.interviewMeeting?.meetingDate" class="meet-status-cell">
+                    <span class="meet-pill scheduled">
+                      <mat-icon class="meet-pill-ic">videocam</mat-icon>
+                      <span>{{ app.interviewMeeting?.meetingDate | portalDate:'dd MMM' }} • {{ app.interviewMeeting?.meetingTime }}</span>
+                    </span>
+                  </div>
+                  <div *ngIf="!app.interviewMeeting?.meetingDate" class="meet-status-cell">
+                    <span class="meet-pill not-scheduled">
+                      <span>Not scheduled</span>
+                    </span>
                   </div>
                 </td>
 
@@ -272,18 +301,18 @@ export interface ClinicDoctorApp {
                 </td>
 
                 <!-- Verification Actions -->
-                <td class="text-right actions-cell">
+                <td class="text-right actions-cell" (click)="$event.stopPropagation()">
                   <!-- Pending actions -->
                   <div *ngIf="app.status === 'pending'" class="action-buttons">
                     <button
                       mat-flat-button
-                      class="approve-btn"
-                      [disabled]="processingId === app._id"
-                      (click)="approve(app)"
-                      title="Approve and activate this doctor in your clinic"
+                      color="primary"
+                      class="review-action-btn"
+                      (click)="openReviewModal(app)"
+                      title="Review credentials and schedule negotiation meeting"
                     >
-                      <mat-icon>check_circle</mat-icon>
-                      <span>Approve</span>
+                      <mat-icon>handshake</mat-icon>
+                      <span>Review & Meet</span>
                     </button>
                     <button
                       mat-stroked-button
@@ -314,6 +343,282 @@ export interface ClinicDoctorApp {
           </table>
         </div>
       </mat-card>
+    </div>
+
+    <!-- Doctor Application Review, Negotiation & Professional Email Modal -->
+    <div *ngIf="selectedAppForReview" class="modal-backdrop" (click)="selectedAppForReview = null">
+      <div class="review-modal-card" (click)="$event.stopPropagation()">
+        <!-- Modal Header -->
+        <div class="modal-header">
+          <div class="modal-title-wrap">
+            <mat-icon class="text-teal-700">medical_services</mat-icon>
+            <div>
+              <h3>Physician Affiliation Application & Meeting</h3>
+              <p>Review credentials, schedule online negotiation meeting via email, and finalize clinic onboarding.</p>
+            </div>
+          </div>
+          <button mat-icon-button (click)="selectedAppForReview = null" class="close-btn">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        <div class="modal-body-scroll">
+          <!-- Hero Doctor Identity Banner -->
+          <div class="doc-hero-banner">
+            <div class="doc-avatar-lg">
+              {{ getInitials(selectedAppForReview.name) }}
+            </div>
+            <div class="doc-hero-meta">
+              <div class="doc-name-row">
+                <h2 class="doc-name-title">{{ selectedAppForReview.name }}</h2>
+                <app-status-badge [status]="selectedAppForReview.status"></app-status-badge>
+              </div>
+              <div class="doc-spec-line">
+                <mat-icon class="spec-ic">health_and_safety</mat-icon>
+                <span>{{ selectedAppForReview.specialization }}</span>
+                <span class="dot-sep" *ngIf="formatQualifications(selectedAppForReview.qualifications)">•</span>
+                <span *ngIf="formatQualifications(selectedAppForReview.qualifications)">{{ formatQualifications(selectedAppForReview.qualifications) }}</span>
+              </div>
+              <div class="doc-sub-line">
+                <span>Applied: {{ selectedAppForReview.createdAt | portalDate:'dd MMM yyyy, h:mm a' }}</span>
+                <span class="dot-sep">•</span>
+                <span>{{ selectedAppForReview.email }}</span>
+                <span class="dot-sep" *ngIf="selectedAppForReview.phone">•</span>
+                <span *ngIf="selectedAppForReview.phone">{{ selectedAppForReview.phone }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Doctor Credentials Grid -->
+          <div class="creds-grid">
+            <div class="cred-card">
+              <span class="cred-lbl">Clinical Experience</span>
+              <span class="cred-val">{{ selectedAppForReview.yearsExperience || 0 }} Years</span>
+              <span class="cred-sub">Active medical practice</span>
+            </div>
+            <div class="cred-card">
+              <span class="cred-lbl">Proposed Consultation Fee</span>
+              <span class="cred-val text-teal-800">₹{{ selectedAppForReview.consultationFee }}</span>
+              <span class="cred-sub">Per patient visit</span>
+            </div>
+            <div class="cred-card">
+              <span class="cred-lbl">Medical Registration No.</span>
+              <span class="cred-val font-mono">{{ selectedAppForReview.licenseNumber || 'Not provided' }}</span>
+              <span class="cred-sub">State / National council</span>
+            </div>
+            <div class="cred-card">
+              <span class="cred-lbl">Credential Certificate</span>
+              <div *ngIf="selectedAppForReview.licenseDocumentUrl" class="mt-1">
+                <button mat-stroked-button color="primary" class="btn-xs" (click)="openDocument(selectedAppForReview)">
+                  <mat-icon>open_in_new</mat-icon>
+                  <span>View Certificate</span>
+                </button>
+              </div>
+              <span *ngIf="!selectedAppForReview.licenseDocumentUrl" class="cred-val text-neutral-400">Not uploaded</span>
+            </div>
+          </div>
+
+          <!-- Scope of Practice & Bio -->
+          <div class="bio-box" *ngIf="selectedAppForReview.bio">
+            <div class="bio-title">Professional Biography & Scope of Practice</div>
+            <p class="bio-content">{{ selectedAppForReview.bio }}</p>
+          </div>
+
+          <!-- Negotiation Meeting & Email Section -->
+          <div class="negotiation-card">
+            <div class="negotiation-header">
+              <div class="flex items-center gap-2">
+                <mat-icon class="text-teal-700">videocam</mat-icon>
+                <div>
+                  <h4 class="neg-title">Online Negotiation Meeting & Email Invitation</h4>
+                  <p class="neg-desc">Select meeting date and time for clinic negotiation. A professional invitation email with video link is prepared below.</p>
+                </div>
+              </div>
+              <span *ngIf="selectedAppForReview.interviewMeeting?.meetingDate" class="neg-status-pill scheduled">
+                <mat-icon>check_circle</mat-icon>
+                <span>Invitation Sent</span>
+              </span>
+              <span *ngIf="!selectedAppForReview.interviewMeeting?.meetingDate" class="neg-status-pill pending">
+                <mat-icon>schedule</mat-icon>
+                <span>Not Sent Yet</span>
+              </span>
+            </div>
+
+            <!-- If already scheduled banner -->
+            <div *ngIf="selectedAppForReview.interviewMeeting?.meetingDate" class="meet-info-banner">
+              <mat-icon class="text-teal-700">event_available</mat-icon>
+              <div>
+                <strong>Scheduled:</strong> {{ selectedAppForReview.interviewMeeting?.meetingDate | portalDate:'fullDate' }} at {{ selectedAppForReview.interviewMeeting?.meetingTime }} IST
+                <span class="text-neutral-500"> • Sent to {{ selectedAppForReview.email }}</span>
+                <div class="text-xs mt-1">
+                  <strong>Meeting URL:</strong> <a [href]="selectedAppForReview.interviewMeeting?.meetingLink" target="_blank" class="text-teal-700 underline">{{ selectedAppForReview.interviewMeeting?.meetingLink }}</a>
+                </div>
+              </div>
+            </div>
+
+            <!-- Date & Time Picker Form -->
+            <div class="meet-inputs-grid">
+              <div class="form-group">
+                <label class="form-label">Meeting Date *</label>
+                <input
+                  type="date"
+                  [(ngModel)]="meetingForm.date"
+                  [min]="todayDate"
+                  class="meet-input"
+                />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Meeting Time *</label>
+                <input
+                  type="time"
+                  [(ngModel)]="meetingForm.time"
+                  class="meet-input"
+                />
+              </div>
+
+              <div class="form-group span-2">
+                <label class="form-label">Video Meeting URL (Google Meet / Video Link)</label>
+                <input
+                  type="url"
+                  [(ngModel)]="meetingForm.link"
+                  placeholder="https://meet.google.com/xxx-xxxx-xxx"
+                  class="meet-input"
+                />
+              </div>
+
+              <div class="form-group span-2">
+                <label class="form-label">Discussion Agenda</label>
+                <input
+                  type="text"
+                  [(ngModel)]="meetingForm.agenda"
+                  placeholder="Clinic Affiliation, practice timings, and consultation fee structure"
+                  class="meet-input"
+                />
+              </div>
+
+              <div class="form-group span-2">
+                <label class="form-label">Additional Instructions / Notes (Optional)</label>
+                <textarea
+                  rows="2"
+                  [(ngModel)]="meetingForm.notes"
+                  placeholder="e.g. Please keep your Medical Council registration certificate handy..."
+                  class="meet-input textarea"
+                ></textarea>
+              </div>
+            </div>
+
+            <!-- Professional Email Template Preview -->
+            <div class="email-preview-box">
+              <div class="email-preview-header">
+                <div class="email-meta-line">
+                  <span class="meta-label">To:</span>
+                  <span class="meta-val font-semibold">{{ selectedAppForReview.name }} &lt;{{ selectedAppForReview.email }}&gt;</span>
+                </div>
+                <div class="email-meta-line">
+                  <span class="meta-label">From:</span>
+                  <span class="meta-val">{{ clinicProfile?.name || 'Clinic Administration' }} &lt;via Docyra Healthcare&gt;</span>
+                </div>
+                <div class="email-meta-line">
+                  <span class="meta-label">Subject:</span>
+                  <span class="meta-val font-bold text-teal-900">
+                    Invitation: Online Affiliation Meeting with {{ clinicProfile?.name || 'our clinic' }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="email-preview-body">
+                <p>Dear <strong>{{ selectedAppForReview.name }}</strong>,</p>
+                <p>
+                  Thank you for applying to practice at <strong>{{ clinicProfile?.name || 'our clinic' }}</strong> as a {{ selectedAppForReview.specialization }} specialist.
+                  Our clinical administration has reviewed your application and credentials.
+                </p>
+                <p>
+                  We would like to invite you to an online negotiation discussion to discuss our clinic affiliation terms, practice timings, consultation schedules, and fee arrangements.
+                </p>
+
+                <div class="email-details-card">
+                  <div class="email-details-title">Scheduled Discussion Details</div>
+                  <div class="email-detail-row">
+                    <span class="ed-lbl">Date:</span>
+                    <span class="ed-val font-bold">{{ formatPreviewDate(meetingForm.date) }}</span>
+                  </div>
+                  <div class="email-detail-row">
+                    <span class="ed-lbl">Time:</span>
+                    <span class="ed-val font-bold">{{ meetingForm.time || '11:00' }} (IST)</span>
+                  </div>
+                  <div class="email-detail-row">
+                    <span class="ed-lbl">Agenda:</span>
+                    <span class="ed-val">{{ meetingForm.agenda || 'Clinic Affiliation & Fee Discussion' }}</span>
+                  </div>
+                  <div class="email-cta-row">
+                    <span class="email-btn-preview">Join Online Video Meeting</span>
+                  </div>
+                  <div class="email-link-text">Meeting URL: {{ meetingForm.link || 'https://meet.google.com/new' }}</div>
+                </div>
+
+                <p class="email-closing-note">
+                  If you have any questions or require an alternate time, please reply directly to this communication.
+                </p>
+                <p class="email-signature">
+                  Warm regards,<br />
+                  <strong>{{ clinicProfile?.name || 'Clinic Administration' }}</strong><br />
+                  <span class="text-xs text-neutral-500">Docyra Healthcare Platform</span>
+                </p>
+              </div>
+
+              <div class="email-send-bar">
+                <button
+                  mat-flat-button
+                  color="primary"
+                  class="send-invite-btn"
+                  [disabled]="sendingEmail || !meetingForm.date || !meetingForm.time"
+                  (click)="sendMeetingEmail()"
+                >
+                  <mat-spinner *ngIf="sendingEmail" diameter="18" class="mr-2"></mat-spinner>
+                  <mat-icon *ngIf="!sendingEmail">send</mat-icon>
+                  <span>{{ sendingEmail ? 'Sending Invitation...' : (selectedAppForReview.interviewMeeting?.meetingDate ? 'Update & Re-send Invitation Email' : 'Send Meeting Invitation Email') }}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Final Decision Panel (Approve / Reject) -->
+          <div class="decision-panel">
+            <div class="decision-desc">
+              <strong>Final Affiliation Decision:</strong> After completing the negotiation meeting with the doctor, finalize your onboarding decision below.
+            </div>
+            <div class="decision-btns">
+              <button
+                *ngIf="selectedAppForReview.status !== 'approved'"
+                mat-flat-button
+                class="approve-decision-btn"
+                [disabled]="processingId === selectedAppForReview._id"
+                (click)="approve(selectedAppForReview)"
+              >
+                <mat-icon>check_circle</mat-icon>
+                <span>Approve & Onboard Physician</span>
+              </button>
+              <button
+                *ngIf="selectedAppForReview.status !== 'rejected'"
+                mat-stroked-button
+                color="warn"
+                class="reject-decision-btn"
+                [disabled]="processingId === selectedAppForReview._id"
+                (click)="openRejectModal(selectedAppForReview)"
+              >
+                <mat-icon>cancel</mat-icon>
+                <span>Reject Application</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="modal-footer">
+          <button mat-button (click)="selectedAppForReview = null">Close</button>
+        </div>
+      </div>
     </div>
 
     <!-- License Document Viewer Modal -->
@@ -1032,6 +1337,528 @@ export interface ClinicDoctorApp {
       align-items: center;
       background: #F9FAFB;
     }
+
+    /* Negotiation Meet Status Pill */
+    .meet-status-cell {
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .meet-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .meet-pill.scheduled {
+      background: #ECFDF5;
+      color: #065F46;
+      border: 1px solid #A7F3D0;
+    }
+
+    .meet-pill.not-scheduled {
+      background: #F3F4F6;
+      color: #6B7280;
+      border: 1px solid #E5E7EB;
+    }
+
+    .meet-pill-ic {
+      font-size: 13px !important;
+      width: 13px !important;
+      height: 13px !important;
+    }
+
+    .review-action-btn {
+      background-color: #0F5C54 !important;
+      color: #FFFFFF !important;
+      font-size: 11.5px !important;
+      font-weight: 700 !important;
+      height: 32px !important;
+      line-height: 32px !important;
+      padding: 0 10px !important;
+      border-radius: 8px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 4px !important;
+    }
+
+    .review-action-btn mat-icon {
+      font-size: 15px !important;
+      width: 15px !important;
+      height: 15px !important;
+    }
+
+    /* Comprehensive Review & Negotiation Modal Card */
+    .review-modal-card {
+      background: #FFFFFF;
+      border-radius: 16px;
+      width: 880px;
+      max-width: 95vw;
+      max-height: 92vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+      overflow: hidden;
+    }
+
+    .modal-body-scroll {
+      padding: 20px 24px;
+      overflow-y: auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .doc-hero-banner {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px;
+      background: #F0FDFA;
+      border: 1px solid #CCFBF1;
+      border-radius: 12px;
+    }
+
+    .doc-avatar-lg {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: #0F5C54;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    .doc-hero-meta {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .doc-name-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .doc-name-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: #1A2E2E;
+      margin: 0;
+    }
+
+    .doc-spec-line {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #0F5C54;
+    }
+
+    .doc-spec-line mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+
+    .doc-sub-line {
+      font-size: 11.5px;
+      color: #6B7280;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .creds-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    @media (max-width: 768px) {
+      .creds-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .cred-card {
+      background: #FAFAF8;
+      border: 1px solid #E7E5E0;
+      border-radius: 10px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .cred-lbl {
+      font-size: 11px;
+      font-weight: 700;
+      color: #6B7280;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .cred-val {
+      font-size: 15px;
+      font-weight: 800;
+      color: #111827;
+    }
+
+    .cred-sub {
+      font-size: 10.5px;
+      color: #9CA3AF;
+    }
+
+    .btn-xs {
+      font-size: 11px !important;
+      height: 26px !important;
+      line-height: 26px !important;
+      padding: 0 8px !important;
+    }
+
+    .btn-xs mat-icon {
+      font-size: 12px !important;
+      width: 12px !important;
+      height: 12px !important;
+    }
+
+    .bio-box {
+      background: #FAFAF8;
+      border: 1px solid #E7E5E0;
+      border-radius: 10px;
+      padding: 12px 16px;
+    }
+
+    .bio-title {
+      font-size: 11.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      color: #4B5563;
+      margin-bottom: 4px;
+    }
+
+    .bio-content {
+      font-size: 12.5px;
+      color: #374151;
+      line-height: 1.5;
+      margin: 0;
+    }
+
+    /* Negotiation Meeting Section */
+    .negotiation-card {
+      background: #FFFFFF;
+      border: 1px solid #B8E4DA;
+      border-radius: 12px;
+      padding: 18px;
+      box-shadow: 0 2px 8px rgba(15, 92, 84, 0.04);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .negotiation-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      border-bottom: 1px solid #E5E7EB;
+      padding-bottom: 12px;
+    }
+
+    .neg-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: #0F5C54;
+      margin: 0;
+    }
+
+    .neg-desc {
+      font-size: 12px;
+      color: #6B7280;
+      margin: 2px 0 0;
+    }
+
+    .neg-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+
+    .neg-status-pill.scheduled {
+      background: #ECFDF5;
+      color: #065F46;
+      border: 1px solid #A7F3D0;
+    }
+
+    .neg-status-pill.pending {
+      background: #FFFBEB;
+      color: #92400E;
+      border: 1px solid #FDE68A;
+    }
+
+    .neg-status-pill mat-icon {
+      font-size: 13px;
+      width: 13px;
+      height: 13px;
+    }
+
+    .meet-info-banner {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      background: #F0FDFA;
+      border: 1px solid #99F6E4;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      color: #115E59;
+    }
+
+    .meet-inputs-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .span-2 {
+      grid-column: span 2;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .form-label {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #374151;
+    }
+
+    .meet-input {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid #D1D5DB;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .meet-input:focus {
+      border-color: #0F5C54;
+      box-shadow: 0 0 0 3px rgba(15, 92, 84, 0.1);
+    }
+
+    .meet-input.textarea {
+      resize: vertical;
+      font-family: inherit;
+    }
+
+    /* Professional Email Template Box */
+    .email-preview-box {
+      border: 1px solid #E5E7EB;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #F9FAFB;
+      margin-top: 4px;
+    }
+
+    .email-preview-header {
+      background: #F3F4F6;
+      padding: 10px 14px;
+      border-bottom: 1px solid #E5E7EB;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 12px;
+    }
+
+    .email-meta-line {
+      display: flex;
+      gap: 6px;
+    }
+
+    .meta-label {
+      color: #6B7280;
+      width: 52px;
+      font-weight: 600;
+    }
+
+    .meta-val {
+      color: #111827;
+    }
+
+    .email-preview-body {
+      padding: 16px 18px;
+      background: #FFFFFF;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #1F2937;
+    }
+
+    .email-preview-body p {
+      margin: 0 0 10px;
+    }
+
+    .email-details-card {
+      background: #F0FDFA;
+      border: 1px solid #99F6E4;
+      border-radius: 8px;
+      padding: 14px;
+      margin: 12px 0;
+    }
+
+    .email-details-title {
+      font-size: 11.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #0F5C54;
+      margin-bottom: 8px;
+    }
+
+    .email-detail-row {
+      display: flex;
+      gap: 8px;
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .ed-lbl {
+      color: #6B7280;
+      width: 70px;
+      font-weight: 600;
+    }
+
+    .ed-val {
+      color: #111827;
+    }
+
+    .email-cta-row {
+      margin-top: 12px;
+      text-align: center;
+    }
+
+    .email-btn-preview {
+      display: inline-block;
+      background-color: #0F5C54;
+      color: #FFFFFF;
+      padding: 8px 18px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 12.5px;
+      text-decoration: none;
+    }
+
+    .email-link-text {
+      font-size: 11px;
+      color: #6B7280;
+      text-align: center;
+      margin-top: 6px;
+    }
+
+    .email-closing-note {
+      font-size: 12px;
+      color: #6B7280;
+      margin-top: 10px !important;
+    }
+
+    .email-signature {
+      font-size: 12.5px;
+      margin-top: 12px !important;
+      border-top: 1px dashed #E5E7EB;
+      padding-top: 10px;
+    }
+
+    .email-send-bar {
+      padding: 12px 18px;
+      background: #F9FAFB;
+      border-top: 1px solid #E5E7EB;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .send-invite-btn {
+      background-color: #0F5C54 !important;
+      color: #FFFFFF !important;
+      font-weight: 700 !important;
+      height: 38px !important;
+      padding: 0 18px !important;
+      border-radius: 8px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+    }
+
+    /* Decision Panel (Post-Meeting) */
+    .decision-panel {
+      background: #F9FAFB;
+      border: 1px solid #E5E7EB;
+      border-radius: 12px;
+      padding: 16px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .decision-desc {
+      font-size: 12.5px;
+      color: #4B5563;
+      flex: 1;
+      min-width: 240px;
+    }
+
+    .decision-btns {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .approve-decision-btn {
+      background-color: #059669 !important;
+      color: #FFFFFF !important;
+      font-weight: 700 !important;
+      height: 38px !important;
+      padding: 0 16px !important;
+      border-radius: 8px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+    }
+
+    .reject-decision-btn {
+      font-weight: 700 !important;
+      height: 38px !important;
+      padding: 0 14px !important;
+      border-radius: 8px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+    }
   `],
 })
 export class ClinicDoctorApplicationsComponent implements OnInit {
@@ -1046,12 +1873,35 @@ export class ClinicDoctorApplicationsComponent implements OnInit {
   searchQuery = '';
 
   selectedAppDoc: ClinicDoctorApp | null = null;
+  selectedAppForReview: ClinicDoctorApp | null = null;
   appToReject: ClinicDoctorApp | null = null;
   rejectionReason = '';
   processingId: string | null = null;
+  sendingEmail = false;
+  clinicProfile: any = null;
+  todayDate: string = new Date().toISOString().split('T')[0];
+
+  meetingForm = {
+    date: '',
+    time: '11:00',
+    link: 'https://meet.google.com/new',
+    agenda: 'Clinic Affiliation, practice timings, and consultation fee structure',
+    notes: '',
+  };
 
   ngOnInit(): void {
+    this.loadClinicProfile();
     this.loadApplications();
+  }
+
+  loadClinicProfile(): void {
+    this.clinicService.getMyClinicProfile().subscribe({
+      next: (res) => {
+        if (res.success && res.data) {
+          this.clinicProfile = res.data;
+        }
+      },
+    });
   }
 
   loadApplications(): void {
@@ -1128,9 +1978,10 @@ export class ClinicDoctorApplicationsComponent implements OnInit {
     return (parts[0]?.[0] || 'D').toUpperCase();
   }
 
-  formatQualifications(quals: string[] | string): string {
+  formatQualifications(quals?: string[] | string): string {
+    if (!quals) return '';
     if (Array.isArray(quals)) return quals.join(', ');
-    return quals || '';
+    return quals;
   }
 
   truncate(str: string, len: number): string {
@@ -1165,6 +2016,9 @@ export class ClinicDoctorApplicationsComponent implements OnInit {
         this.notificationService.success(`${app.name} has been approved and moved to Manage Doctors.`);
         // Immediately remove approved doctor from the applications queue
         this.applications = this.applications.filter((a) => a._id !== app._id);
+        if (this.selectedAppForReview && this.selectedAppForReview._id === app._id) {
+          this.selectedAppForReview = null;
+        }
         this.applyFilter();
       },
       error: (err) => {
@@ -1195,6 +2049,10 @@ export class ClinicDoctorApplicationsComponent implements OnInit {
           this.notificationService.success(`Application for ${targetApp.name} has been rejected.`);
           targetApp.status = 'rejected';
           targetApp.isApproved = false;
+          if (this.selectedAppForReview && this.selectedAppForReview._id === targetApp._id) {
+            this.selectedAppForReview.status = 'rejected';
+            this.selectedAppForReview.isApproved = false;
+          }
           this.appToReject = null;
           this.applyFilter();
         },
@@ -1205,5 +2063,96 @@ export class ClinicDoctorApplicationsComponent implements OnInit {
           );
         },
       });
+  }
+
+  openReviewModal(app: ClinicDoctorApp): void {
+    this.selectedAppForReview = { ...app };
+    if (app.interviewMeeting) {
+      this.meetingForm = {
+        date: app.interviewMeeting.meetingDate || this.getDefaultMeetingDate(),
+        time: app.interviewMeeting.meetingTime || '11:00',
+        link: app.interviewMeeting.meetingLink || 'https://meet.google.com/new',
+        agenda: app.interviewMeeting.agenda || 'Clinic Affiliation, practice timings, and consultation fee structure',
+        notes: app.interviewMeeting.notes || '',
+      };
+    } else {
+      this.meetingForm = {
+        date: this.getDefaultMeetingDate(),
+        time: '11:00',
+        link: 'https://meet.google.com/new',
+        agenda: 'Clinic Affiliation, practice timings, and consultation fee structure',
+        notes: '',
+      };
+    }
+  }
+
+  sendMeetingEmail(): void {
+    if (!this.selectedAppForReview) return;
+    if (!this.meetingForm.date || !this.meetingForm.time) {
+      this.notificationService.error('Please select both meeting date and time.');
+      return;
+    }
+
+    this.sendingEmail = true;
+    const appId = this.selectedAppForReview._id;
+    this.clinicService
+      .scheduleDoctorApplicationMeeting(appId, {
+        meetingDate: this.meetingForm.date,
+        meetingTime: this.meetingForm.time,
+        meetingLink: this.meetingForm.link,
+        agenda: this.meetingForm.agenda,
+        customNotes: this.meetingForm.notes,
+      })
+      .subscribe({
+        next: (res) => {
+          this.sendingEmail = false;
+          this.notificationService.success(
+            `Meeting invitation email successfully sent to ${this.selectedAppForReview?.name} (${this.selectedAppForReview?.email})!`
+          );
+          if (res.data?.interviewMeeting) {
+            this.selectedAppForReview!.interviewMeeting = res.data.interviewMeeting;
+            const found = this.applications.find((a) => a._id === appId);
+            if (found) {
+              found.interviewMeeting = res.data.interviewMeeting;
+            }
+          }
+        },
+        error: (err) => {
+          this.sendingEmail = false;
+          this.notificationService.error(
+            err.error?.message || 'Failed to send meeting invitation email.'
+          );
+        },
+      });
+  }
+
+  getDefaultMeetingDate(): string {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  formatPreviewDate(dateStr: string): string {
+    if (!dateStr) return 'Select Date';
+    try {
+      const [y, m, d] = dateStr.split('-');
+      const dObj = new Date(Date.UTC(parseInt(y, 10), parseInt(m, 10) - 1, parseInt(d, 10)));
+      return new Intl.DateTimeFormat('en-IN', {
+        dateStyle: 'full',
+        timeZone: 'Asia/Kolkata',
+      }).format(dObj);
+    } catch {
+      return dateStr;
+    }
+  }
+
+  getDoctorLastName(name?: string): string {
+    if (!name) return 'Practitioner';
+    const clean = name.replace(/^dr\.?\s+/i, '').trim();
+    const parts = clean.split(' ');
+    return parts[parts.length - 1] || clean;
   }
 }

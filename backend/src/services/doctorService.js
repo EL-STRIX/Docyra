@@ -5,6 +5,7 @@ import { ROLES, USER_STATUS, ERROR_CODES, APPOINTMENT_STATUS } from '../config/c
 import { env } from '../config/env.js';
 import { NotFoundError, ConflictError, AppError } from '../utils/AppError.js';
 import storageService from './storageService.js';
+import notificationService from './notificationService.js';
 import logger from '../utils/logger.js';
 
 class DoctorService {
@@ -396,10 +397,12 @@ class DoctorService {
         consultationFee: doc.consultationFee || 500,
         feeCurrency: doc.feeCurrency || 'INR',
         clinicAddress: doc.clinicAddress,
+        licenseNumber: doc.licenseNumber || '',
         licenseDocumentUrl: doc.licenseDocumentUrl,
         bio: doc.bio,
         status: appStatus,
         isApproved: !!doc.isApproved,
+        interviewMeeting: doc.interviewMeeting || null,
         createdAt: doc.createdAt,
       };
     });
@@ -412,6 +415,153 @@ class DoctorService {
         total,
         totalPages: Math.ceil(total / safeLimit),
       },
+    };
+  }
+
+  /**
+   * Clinic Admin: Schedule an online negotiation meeting with applying doctor & send professional invitation email
+   */
+  async scheduleClinicDoctorMeeting(doctorProfileId, clinicId, { meetingDate, meetingTime, meetingLink, agenda, customNotes, scheduledBy }) {
+    if (!meetingDate || !meetingTime) {
+      throw new AppError(ERROR_CODES.VALIDATION_ERROR, 400, 'Meeting date and time are required');
+    }
+
+    const doctorProfile = await DoctorProfile.findById(doctorProfileId)
+      .populate('userId', 'name email phone')
+      .populate('specializationId', 'name')
+      .populate('clinicId', 'name email phone address contactEmail');
+
+    if (!doctorProfile) {
+      throw new NotFoundError('Doctor application not found', ERROR_CODES.NOT_FOUND);
+    }
+
+    if (doctorProfile.clinicId && doctorProfile.clinicId._id && doctorProfile.clinicId._id.toString() !== clinicId.toString()) {
+      throw new AppError(ERROR_CODES.FORBIDDEN, 403, 'You do not have permission to schedule meetings for other clinics');
+    }
+
+    const clinic = doctorProfile.clinicId || (await Clinic.findById(clinicId));
+    const clinicName = clinic?.name || 'Clinic';
+    const doctorName = doctorProfile.userId?.name || doctorProfile.name || 'Practitioner';
+    const doctorEmail = doctorProfile.userId?.email || doctorProfile.email;
+    const specName = doctorProfile.specializationId?.name || 'Medical Specialist';
+
+    const cleanLink = meetingLink?.trim() || `https://meet.google.com/new`;
+    const cleanAgenda = agenda?.trim() || 'Clinic Affiliation & Fee Discussion';
+
+    // Format date nicely in Indian Standard Time (Asia/Kolkata)
+    let formattedDate = meetingDate;
+    try {
+      const [y, m, d] = meetingDate.split('-');
+      const dObj = new Date(Date.UTC(parseInt(y, 10), parseInt(m, 10) - 1, parseInt(d, 10)));
+      formattedDate = new Intl.DateTimeFormat('en-IN', {
+        dateStyle: 'full',
+        timeZone: 'Asia/Kolkata',
+      }).format(dObj);
+    } catch (e) {
+      // fallback
+    }
+
+    // Save meeting record on doctorProfile
+    doctorProfile.interviewMeeting = {
+      meetingDate,
+      meetingTime,
+      meetingLink: cleanLink,
+      agenda: cleanAgenda,
+      notes: customNotes || '',
+      scheduledAt: new Date(),
+      scheduledBy: scheduledBy || null,
+      emailSent: true,
+      emailSentAt: new Date(),
+    };
+    await doctorProfile.save();
+
+    // Send professional HTML email to doctor
+    if (doctorEmail) {
+      const subject = `Invitation: Online Affiliation Meeting with ${clinicName}`;
+      const html = `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 620px; margin: 0 auto; background-color: #ffffff; border: 1px solid #E5E7EB; border-radius: 14px; overflow: hidden;">
+          <div style="background-color: #0F5C54; padding: 24px 28px; color: #ffffff;">
+            <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #99F6E4; margin-bottom: 4px; font-weight: 700;">
+              Docyra Healthcare Portal
+            </div>
+            <h1 style="margin: 0; font-size: 20px; font-weight: 800; color: #ffffff;">
+              Physician Affiliation & Practice Discussion
+            </h1>
+            <div style="font-size: 13px; color: #CCFBF1; margin-top: 4px;">
+              ${clinicName}
+            </div>
+          </div>
+
+          <div style="padding: 28px; color: #1F2937; line-height: 1.6;">
+            <p style="font-size: 15px; margin-top: 0;">
+              Dear <strong>Dr. ${doctorName.replace(/^dr\.?\s+/i, '')}</strong>,
+            </p>
+            <p style="font-size: 14px; color: #4B5563;">
+              Thank you for applying to practice at <strong>${clinicName}</strong> in <strong>${specName}</strong>. 
+              Our clinic administration has reviewed your application and qualifications.
+            </p>
+            <p style="font-size: 14px; color: #4B5563;">
+              We would like to invite you to an online meeting to discuss our clinic affiliation terms, practice timings, and consultation fee structure.
+            </p>
+
+            <div style="background-color: #F0FDFA; border: 1px solid #99F6E4; border-radius: 10px; padding: 20px; margin: 24px 0;">
+              <div style="font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #0F5C54; margin-bottom: 12px;">
+                Scheduled Discussion Details
+              </div>
+              <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                <tr>
+                  <td style="padding: 6px 0; color: #6B7280; width: 120px; font-weight: 600;">Meeting Date:</td>
+                  <td style="padding: 6px 0; color: #111827; font-weight: 700;">${formattedDate}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #6B7280; font-weight: 600;">Time:</td>
+                  <td style="padding: 6px 0; color: #111827; font-weight: 700;">${meetingTime} (IST)</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #6B7280; font-weight: 600;">Agenda:</td>
+                  <td style="padding: 6px 0; color: #111827;">${cleanAgenda}</td>
+                </tr>
+                ${customNotes ? `
+                <tr>
+                  <td style="padding: 6px 0; color: #6B7280; font-weight: 600;">Notes:</td>
+                  <td style="padding: 6px 0; color: #111827;">${customNotes}</td>
+                </tr>
+                ` : ''}
+              </table>
+
+              <div style="margin-top: 20px; text-align: center;">
+                <a href="${cleanLink}" target="_blank" rel="noopener noreferrer" style="background-color: #0F5C54; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 14px; display: inline-block;">
+                  Join Online Video Meeting
+                </a>
+              </div>
+              <div style="font-size: 11px; color: #6B7280; text-align: center; margin-top: 10px;">
+                Meeting URL: <a href="${cleanLink}" style="color: #0F5C54;">${cleanLink}</a>
+              </div>
+            </div>
+
+            <p style="font-size: 13px; color: #6B7280; margin-bottom: 0;">
+              If you have any questions or require an alternate time, please reply directly to this email or reach our administration office.
+            </p>
+          </div>
+
+          <div style="background-color: #F9FAFB; padding: 16px 28px; border-top: 1px solid #E5E7EB; font-size: 12px; color: #6B7280; text-align: center;">
+            Sent by <strong>${clinicName}</strong> via Docyra Healthcare Platform.<br />
+            Confidential physician affiliation communication.
+          </div>
+        </div>
+      `;
+
+      await notificationService.sendEmail({
+        to: doctorEmail,
+        subject,
+        html,
+      });
+      logger.info(`Affiliation meeting invitation email sent to ${doctorEmail}`);
+    }
+
+    return {
+      interviewMeeting: doctorProfile.interviewMeeting,
+      message: `Meeting scheduled and invitation email sent to ${doctorEmail || 'doctor'}.`,
     };
   }
 

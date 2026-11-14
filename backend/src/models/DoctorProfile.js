@@ -88,6 +88,17 @@ const doctorProfileSchema = new mongoose.Schema(
         declaredAt: { type: Date, default: Date.now },
       },
     ],
+    interviewMeeting: {
+      meetingDate: { type: String, default: null },
+      meetingTime: { type: String, default: null },
+      meetingLink: { type: String, default: null },
+      agenda: { type: String, default: null },
+      scheduledAt: { type: Date, default: null },
+      scheduledBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+      emailSent: { type: Boolean, default: false },
+      emailSentAt: { type: Date, default: null },
+      notes: { type: String, default: null },
+    },
   },
   {
     timestamps: true,

@@ -110,6 +110,23 @@ export class ClinicService {
     );
   }
 
+  scheduleDoctorApplicationMeeting(
+    applicationId: string,
+    payload: {
+      meetingDate: string;
+      meetingTime: string;
+      meetingLink?: string;
+      agenda?: string;
+      customNotes?: string;
+    }
+  ): Observable<ApiResponse<any>> {
+    return this.http.post<ApiResponse<any>>(
+      `${environment.apiBaseUrl}/clinic-admin/doctor-applications/${applicationId}/schedule-meeting`,
+      payload,
+      { withCredentials: true }
+    );
+  }
+
   getClinicRevenue(params?: { period?: string; startDate?: string; endDate?: string; year?: number; doctorId?: string }): Observable<ApiResponse<any>> {
     let query = '';
     if (params) {
