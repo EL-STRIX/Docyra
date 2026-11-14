@@ -309,15 +309,6 @@ interface ClinicFormData {
         <!-- Bottom Action Bar -->
         <div class="bottom-action-bar">
           <button
-            mat-button
-            type="button"
-            (click)="resetForm()"
-            [disabled]="saving || loading"
-            class="reset-btn"
-          >
-            Reset Form
-          </button>
-          <button
             mat-flat-button
             color="primary"
             (click)="saveClinic()"
@@ -573,11 +564,6 @@ interface ClinicFormData {
       background: #FFFFFF;
       border-radius: 14px;
       border: 1px solid #E7E5E0;
-    }
-
-    .reset-btn {
-      color: #5C6B6B !important;
-      font-weight: 600 !important;
     }
 
     .save-btn-bottom {
