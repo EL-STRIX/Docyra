@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { Users, Plus, Trash2, AlertCircle } from 'lucide-react';
 import dependentsApi from '../../services/dependents.api.js';
+import useSocket from '../../context/useSocket.js';
 
 export function DependentsPage() {
+  const { addNotification } = useSocket() || {};
   const [dependents, setDependents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -42,8 +44,20 @@ export function DependentsPage() {
       const res = await dependentsApi.createDependent(formData);
       if (res.success) {
         setShowAddModal(false);
+        const createdName = formData.name;
+        const createdRel = formData.relationship;
         setFormData({ name: '', relationship: 'Child', dateOfBirth: '', gender: 'prefer_not_to_say' });
         loadDependents();
+        if (addNotification) {
+          addNotification({
+            type: 'dependent:created',
+            category: 'family',
+            title: 'Family Member Added',
+            message: `${createdName} (${createdRel}) was added to your family profiles.`,
+            link: '/dependents',
+            actionLabel: 'View Family',
+          });
+        }
       }
     } catch (err) {
       setError(err.response?.data?.error?.message || 'Failed to add dependent profile');
@@ -53,10 +67,20 @@ export function DependentsPage() {
   };
 
   const handleDelete = async (id) => {
+    const targetDep = dependents.find((d) => d._id === id);
     if (!window.confirm('Are you sure you want to remove this family dependent profile?')) return;
     try {
       await dependentsApi.deleteDependent(id);
       loadDependents();
+      if (addNotification) {
+        addNotification({
+          type: 'dependent:deleted',
+          category: 'family',
+          title: 'Family Member Removed',
+          message: `${targetDep?.name || 'Family member'} profile was removed from your account.`,
+          link: '/dependents',
+        });
+      }
     } catch (err) {
       alert(err.response?.data?.error?.message || 'Failed to remove dependent');
     }

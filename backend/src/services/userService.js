@@ -2,6 +2,7 @@ import { User, Dependent, Appointment, Review, Waitlist, AuditLog, DoctorProfile
 import { NotFoundError } from '../utils/AppError.js';
 import { ERROR_CODES } from '../config/constants.js';
 import logger from '../utils/logger.js';
+import { emitToUser } from '../sockets/index.js';
 
 class UserService {
   /**
@@ -41,6 +42,14 @@ class UserService {
 
     logger.info(`GDPR data export generated for user: ${user.email}`);
 
+    try {
+      emitToUser(userId.toString(), 'gdpr:exported', {
+        message: 'Your personal healthcare data archive was generated.',
+      });
+    } catch (err) {
+      logger.warn(`Failed to emit gdpr:exported socket: ${err.message}`);
+    }
+
     return {
       exportTimestamp: new Date().toISOString(),
       platform: 'Docyra',
@@ -70,6 +79,15 @@ class UserService {
 
     logger.info(`User ${user.email} updated consent to version ${termsVersion}`);
 
+    try {
+      emitToUser(userId.toString(), 'profile:consent_updated', {
+        termsVersion,
+        message: 'Terms of service consent updated successfully.',
+      });
+    } catch (err) {
+      logger.warn(`Failed to emit profile:consent_updated socket: ${err.message}`);
+    }
+
     return {
       success: true,
       message: 'Terms of service consent updated successfully',
@@ -92,6 +110,18 @@ class UserService {
     if (profilePhotoUrl !== undefined) user.profilePhotoUrl = profilePhotoUrl;
 
     await user.save();
+
+    try {
+      emitToUser(userId.toString(), 'profile:updated', {
+        name: user.name,
+        phone: user.phone,
+        timezone: user.timezone,
+        message: 'Your personal profile details were updated.',
+      });
+    } catch (err) {
+      logger.warn(`Failed to emit profile:updated socket: ${err.message}`);
+    }
+
     return {
       user: this.sanitizeUser(user),
     };

@@ -15,10 +15,12 @@ import {
 import appointmentsApi from '../../services/appointments.api.js';
 import reviewsApi from '../../services/reviews.api.js';
 import useSocketEvent from '../../context/useSocketEvent.js';
+import useSocket from '../../context/useSocket.js';
 import { formatAddress } from '../../utils/formatAddress.js';
 
 export function AppointmentDetailPage() {
   const { id } = useParams();
+  const { addNotification } = useSocket() || {};
 
   const [appointment, setAppointment] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -68,6 +70,19 @@ export function AppointmentDetailPage() {
       if (res.success) {
         setCancelModalOpen(false);
         fetchAppointment();
+        if (addNotification) {
+          const docUser = appointment?.doctorId?.userId || {};
+          const docName = docUser.name || appointment?.doctorId?.name || 'your doctor';
+          const dateStr = appointment?.slotStart ? format(new Date(appointment.slotStart), 'dd MMM yyyy') : 'the scheduled date';
+          addNotification({
+            type: 'appointment:cancelled',
+            category: 'appointment',
+            title: 'Appointment Cancelled',
+            message: `Your appointment with Dr. ${docName.replace(/^Dr\.\s*/i, '')} on ${dateStr} has been cancelled.`,
+            link: '/dashboard',
+            actionLabel: 'View Appointments',
+          });
+        }
       }
     } catch (err) {
       alert(err.response?.data?.error?.message || 'Failed to cancel appointment');
@@ -88,6 +103,18 @@ export function AppointmentDetailPage() {
       });
       if (res.success) {
         setReviewSubmitted(true);
+        if (addNotification) {
+          const docUser = appointment?.doctorId?.userId || {};
+          const docName = docUser.name || appointment?.doctorId?.name || 'the specialist';
+          addNotification({
+            type: 'review:submitted',
+            category: 'review',
+            title: 'Review Published',
+            message: `Your ${rating}-star feedback for Dr. ${docName.replace(/^Dr\.\s*/i, '')} has been published.`,
+            link: '/reviews',
+            actionLabel: 'My Reviews',
+          });
+        }
       }
     } catch (err) {
       alert(err.response?.data?.error?.message || 'Failed to submit review');

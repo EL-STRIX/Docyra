@@ -20,11 +20,13 @@ import clinicsApi from '../../services/clinics.api.js';
 import dependentsApi from '../../services/dependents.api.js';
 import appointmentsApi from '../../services/appointments.api.js';
 import useAuth from '../../context/useAuth.js';
+import useSocket from '../../context/useSocket.js';
 import { formatAddress } from '../../utils/formatAddress.js';
 
 export function BookingFlowPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
+  const { addNotification } = useSocket() || {};
 
   const queryDoctorId = searchParams.get('doctorId');
   const querySlotId = searchParams.get('slotId');
@@ -212,6 +214,24 @@ export function BookingFlowPage() {
       if (res.success) {
         setConfirmedAppointment(res.data.appointment);
         setCurrentStep(4);
+        if (addNotification) {
+          const apptDoc = res.data.appointment;
+          const formattedDate = selectedSlot?.slotStart
+            ? format(new Date(selectedSlot.slotStart), 'EEE, dd MMM yyyy')
+            : 'scheduled date';
+          const formattedTime = selectedSlot?.slotStart
+            ? format(new Date(selectedSlot.slotStart), 'hh:mm a')
+            : '';
+          addNotification({
+            type: 'appointment:created',
+            category: 'appointment',
+            title: 'Appointment Booked',
+            message: `Your appointment with Dr. ${doctorName.replace(/^Dr\.\s*/i, '')} on ${formattedDate}${formattedTime ? ` at ${formattedTime}` : ''} is confirmed.`,
+            link: `/appointments/${apptDoc._id}`,
+            actionLabel: 'View Details',
+            data: apptDoc,
+          });
+        }
       }
     } catch (err) {
       if (err.response?.status === 409) {

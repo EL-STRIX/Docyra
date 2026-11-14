@@ -8,6 +8,7 @@ import {
 } from '../utils/AppError.js';
 import { ERROR_CODES } from '../config/constants.js';
 import logger from '../utils/logger.js';
+import notificationService from './notificationService.js';
 
 class WaitlistService {
   /**
@@ -82,6 +83,18 @@ class WaitlistService {
     logger.info(
       `Waitlist candidate notified: Patient ${candidate.patientId} for Doctor ${doctorId} (Slot: ${slotTime.toISOString()})`
     );
+
+    try {
+      notificationService.dispatch('waitlist:slotAvailable', {
+        waitlistId: candidate._id,
+        patientId: candidate.patientId?.toString(),
+        doctorId: doctorId?.toString(),
+        slotStart: slotTime,
+        message: 'A slot has become available matching your waitlist preference!',
+      }).catch((e) => logger.warn(`Waitlist dispatch failed: ${e.message}`));
+    } catch (err) {
+      logger.warn(`Failed to dispatch waitlist notification: ${err.message}`);
+    }
 
     return candidate;
   }

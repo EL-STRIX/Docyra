@@ -4,10 +4,12 @@ import { format } from 'date-fns';
 import { Clock, Calendar, AlertCircle, Plus, ArrowRight, Trash2 } from 'lucide-react';
 import waitlistApi from '../../services/waitlist.api.js';
 import doctorsApi from '../../services/doctors.api.js';
+import useSocket from '../../context/useSocket.js';
 
 export function WaitlistPage() {
   const [searchParams] = useSearchParams();
   const preselectedDoctorId = searchParams.get('doctorId') || '';
+  const { addNotification } = useSocket() || {};
 
   const [waitlists, setWaitlists] = useState([]);
   const [doctors, setDoctors] = useState([]);
@@ -60,7 +62,20 @@ export function WaitlistPage() {
 
       if (res.success) {
         setShowJoinModal(false);
+        const selectedDoc = doctors.find((d) => d._id === doctorId);
+        const docUser = selectedDoc?.userId || {};
+        const docName = docUser.name || selectedDoc?.name || 'the specialist';
         loadData();
+        if (addNotification) {
+          addNotification({
+            type: 'waitlist:joined',
+            category: 'waitlist',
+            title: 'Waitlist Joined',
+            message: `You are queued for upcoming openings with Dr. ${docName.replace(/^Dr\.\s*/i, '')}.`,
+            link: '/waitlist',
+            actionLabel: 'View Waitlist',
+          });
+        }
       }
     } catch (err) {
       setError(err.response?.data?.error?.message || 'Failed to join waitlist');
@@ -78,6 +93,15 @@ export function WaitlistPage() {
       const res = await waitlistApi.cancelWaitlist(id);
       if (res.success) {
         setWaitlists((prev) => prev.filter((item) => item._id !== id));
+        if (addNotification) {
+          addNotification({
+            type: 'waitlist:removed',
+            category: 'waitlist',
+            title: 'Waitlist Cancelled',
+            message: 'You have left the waitlist for the requested time frame.',
+            link: '/waitlist',
+          });
+        }
       }
     } catch (err) {
       alert(err.response?.data?.error?.message || 'Failed to remove from waitlist');

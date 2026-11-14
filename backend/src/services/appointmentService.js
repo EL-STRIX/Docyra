@@ -20,6 +20,7 @@ import {
   ROLES,
 } from '../config/constants.js';
 import logger from '../utils/logger.js';
+import notificationService from './notificationService.js';
 
 class AppointmentService {
   /**
@@ -166,6 +167,26 @@ class AppointmentService {
         })
         .populate('clinicId', 'name address city contactPhone')
         .populate('bookedForId');
+
+      // Dispatch booking notification
+      try {
+        const docName = populated.doctorId?.userId?.name || doctor.name || 'Doctor';
+        notificationService.dispatch('appointment:created', {
+          appointmentId: populated._id,
+          patientId: populated.patientId?._id?.toString() || patientId.toString(),
+          patientEmail: populated.patientId?.email,
+          patientPhone: populated.patientId?.phone,
+          doctorId: populated.doctorId?._id?.toString() || doctorId.toString(),
+          doctorName: docName,
+          slotStart: populated.slotStart,
+          clinicId: populated.clinicId?._id?.toString(),
+          clinicName: populated.clinicId?.name,
+          date: new Date(populated.slotStart).toDateString(),
+          message: `Your appointment with Dr. ${docName} on ${new Date(populated.slotStart).toDateString()} is confirmed.`,
+        }).catch((e) => logger.warn(`Notification dispatch failed: ${e.message}`));
+      } catch (err) {
+        logger.warn(`Failed to dispatch booking notification: ${err.message}`);
+      }
 
       return populated;
     } catch (err) {
@@ -519,6 +540,22 @@ class AppointmentService {
     await appointment.save();
     logger.info(`Appointment ${appointment._id} status updated to ${status} by user ${currentUser.id}`);
 
+    try {
+      const eventName = status === APPOINTMENT_STATUS.CANCELLED ? 'appointment:cancelled' : 'appointment:statusChanged';
+      notificationService.dispatch(eventName, {
+        appointmentId: appointment._id,
+        patientId: appointment.patientId?.toString(),
+        status: appointment.status,
+        reason: appointment.cancellationReason,
+        slotStart: appointment.slotStart,
+        message: status === APPOINTMENT_STATUS.CANCELLED
+          ? `Your appointment was cancelled: ${appointment.cancellationReason}`
+          : `Your appointment status was updated to ${status}.`,
+      }).catch((e) => logger.warn(`Status update notification dispatch failed: ${e.message}`));
+    } catch (err) {
+      logger.warn(`Failed to dispatch status update notification: ${err.message}`);
+    }
+
     return appointment;
   }
 
@@ -582,6 +619,20 @@ class AppointmentService {
         logger.warn(`Waitlist processing failed: ${e.message}`);
       });
     }).catch(() => {});
+
+    try {
+      notificationService.dispatch('appointment:cancelled', {
+        appointmentId: appointment._id,
+        patientId: appointment.patientId?.toString(),
+        slotStart: appointment.slotStart,
+        reason: appointment.cancellationReason,
+        cancelledBy: appointment.cancelledBy,
+        date: new Date(appointment.slotStart).toDateString(),
+        message: `Your appointment on ${new Date(appointment.slotStart).toDateString()} has been cancelled.`,
+      }).catch((e) => logger.warn(`Cancellation notification dispatch failed: ${e.message}`));
+    } catch (err) {
+      logger.warn(`Failed to dispatch cancellation notification: ${err.message}`);
+    }
 
     return appointment;
   }

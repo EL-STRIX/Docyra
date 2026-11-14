@@ -3,9 +3,11 @@ import { format } from 'date-fns';
 import { Download, ShieldCheck, CheckCircle2, AlertCircle } from 'lucide-react';
 import usersApi from '../../services/users.api.js';
 import useAuth from '../../context/useAuth.js';
+import useSocket from '../../context/useSocket.js';
 
 export function PrivacyDataPage() {
   const { user, refreshProfile } = useAuth();
+  const { addNotification } = useSocket() || {};
   const [downloading, setDownloading] = useState(false);
   const [consentUpdating, setConsentUpdating] = useState(false);
   const [consentSuccess, setConsentSuccess] = useState(false);
@@ -26,6 +28,17 @@ export function PrivacyDataPage() {
         document.body.appendChild(downloadAnchor);
         downloadAnchor.click();
         downloadAnchor.remove();
+
+        if (addNotification) {
+          addNotification({
+            type: 'gdpr:exported',
+            category: 'security',
+            title: 'Health Data Exported',
+            message: 'Your personal healthcare records archive was exported successfully.',
+            link: '/privacy-data',
+            actionLabel: 'View Privacy',
+          });
+        }
       }
     } catch (err) {
       setError('Failed to generate GDPR data export');
@@ -41,6 +54,17 @@ export function PrivacyDataPage() {
       if (res.success) {
         setConsentSuccess(true);
         refreshProfile();
+
+        if (addNotification) {
+          addNotification({
+            type: 'profile:consent_updated',
+            category: 'profile',
+            title: 'Terms Consent Updated',
+            message: 'Consent recorded for terms and privacy version 2.0.',
+            link: '/privacy-data',
+            actionLabel: 'View Privacy',
+          });
+        }
       }
     } catch (err) {
       setError('Failed to update consent');

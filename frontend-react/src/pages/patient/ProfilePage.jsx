@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { User, KeyRound, CheckCircle2, AlertCircle, Lock } from 'lucide-react';
 import useAuth from '../../context/useAuth.js';
+import useSocket from '../../context/useSocket.js';
 import usersApi from '../../services/users.api.js';
 import authApi from '../../services/auth.api.js';
 
 export function ProfilePage() {
   const { user, refreshProfile } = useAuth();
+  const { addNotification } = useSocket() || {};
 
   const [name, setName] = useState(user?.name || '');
   const [phone, setPhone] = useState(user?.phone || '');
@@ -32,6 +34,16 @@ export function ProfilePage() {
       if (res.success) {
         setProfileSuccess(true);
         refreshProfile();
+        if (addNotification) {
+          addNotification({
+            type: 'profile:updated',
+            category: 'profile',
+            title: 'Profile Updated',
+            message: 'Your personal profile details were successfully updated.',
+            link: '/profile',
+            actionLabel: 'View Profile',
+          });
+        }
       }
     } catch (err) {
       setProfileError(err.response?.data?.error?.message || 'Failed to update profile');
@@ -72,6 +84,16 @@ export function ProfilePage() {
         setTwoFactorSetupData(null);
         setTotpCode('');
         refreshProfile();
+        if (addNotification) {
+          addNotification({
+            type: 'security:2fa_enabled',
+            category: 'security',
+            title: '2FA Protection Enabled',
+            message: 'Two-factor authenticator app protection is now active on your account.',
+            link: '/profile',
+            actionLabel: 'Security Settings',
+          });
+        }
       }
     } catch (err) {
       setTwoFactorError(err.response?.data?.error?.message || 'Invalid 2FA verification code');
@@ -89,6 +111,16 @@ export function ProfilePage() {
       if (res.success) {
         alert('Two-factor authentication disabled.');
         refreshProfile();
+        if (addNotification) {
+          addNotification({
+            type: 'security:2fa_disabled',
+            category: 'security',
+            title: '2FA Disabled',
+            message: 'Two-factor authentication has been turned off for your account.',
+            link: '/profile',
+            actionLabel: 'Security Settings',
+          });
+        }
       }
     } catch (err) {
       alert(err.response?.data?.error?.message || 'Failed to disable 2FA');

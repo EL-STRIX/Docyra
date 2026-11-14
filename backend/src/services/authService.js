@@ -8,6 +8,7 @@ import { User, DoctorProfile, Specialization } from '../models/index.js';
 import { AppError, ConflictError, UnauthorizedError, NotFoundError } from '../utils/AppError.js';
 import notificationService from './notificationService.js';
 import logger from '../utils/logger.js';
+import { emitToUser } from '../sockets/index.js';
 
 class AuthService {
   /**
@@ -381,6 +382,14 @@ class AuthService {
 
     logger.info(`2FA enabled for user: ${user.email}`);
 
+    try {
+      emitToUser(userId.toString(), 'security:2fa_enabled', {
+        message: 'Two-factor authentication is now active on your account.',
+      });
+    } catch (err) {
+      logger.warn(`Failed to emit security:2fa_enabled socket: ${err.message}`);
+    }
+
     return {
       success: true,
       message: 'Two-factor authentication enabled successfully',
@@ -462,6 +471,14 @@ class AuthService {
     await user.save();
 
     logger.info(`2FA disabled for user: ${user.email}`);
+
+    try {
+      emitToUser(userId.toString(), 'security:2fa_disabled', {
+        message: 'Two-factor authentication has been disabled.',
+      });
+    } catch (err) {
+      logger.warn(`Failed to emit security:2fa_disabled socket: ${err.message}`);
+    }
 
     return {
       success: true,

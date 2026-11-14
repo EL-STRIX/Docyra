@@ -3,6 +3,7 @@ import { Dependent, Appointment } from '../models/index.js';
 import { NotFoundError, BadRequestError } from '../utils/AppError.js';
 import { ERROR_CODES, APPOINTMENT_STATUS } from '../config/constants.js';
 import logger from '../utils/logger.js';
+import { emitToUser } from '../sockets/index.js';
 
 class DependentService {
   /**
@@ -18,6 +19,18 @@ class DependentService {
     });
 
     logger.info(`Dependent created: ${dependent.name} for patient ${patientId}`);
+
+    try {
+      emitToUser(patientId.toString(), 'dependent:created', {
+        dependentId: dependent._id,
+        name: dependent.name,
+        relationship: dependent.relationship,
+        message: `${dependent.name} (${dependent.relationship}) was added to your family profiles.`,
+      });
+    } catch (err) {
+      logger.warn(`Failed to emit dependent:created socket: ${err.message}`);
+    }
+
     return dependent;
   }
 
@@ -98,8 +111,19 @@ class DependentService {
       );
     }
 
+    const depName = dependent.name;
     await Dependent.deleteOne({ _id: dependent._id });
     logger.info(`Dependent deleted: ${dependentId} by patient ${patientId}`);
+
+    try {
+      emitToUser(patientId.toString(), 'dependent:deleted', {
+        dependentId,
+        name: depName,
+        message: `${depName} profile was removed from your account.`,
+      });
+    } catch (err) {
+      logger.warn(`Failed to emit dependent:deleted socket: ${err.message}`);
+    }
   }
 }
 
