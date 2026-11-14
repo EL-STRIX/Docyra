@@ -64,13 +64,9 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
               <div class="flex items-center gap-3 flex-wrap">
                 <h1 class="page-title">Appointment #{{ appointment._id | slice:-6 }}</h1>
                 <app-status-badge [status]="appointment.status"></app-status-badge>
-                <span *ngIf="isFirstTimePatient" class="first-time-pill">
-                  <mat-icon class="pill-icon">person_add</mat-icon>
-                  First-Time Patient With You
-                </span>
               </div>
               <p class="subtitle">
-                Scheduled on {{ appointment.slotStart | portalDate:'EEEE, dd MMMM yyyy, h:mm a' }}
+                {{ appointment.slotStart | portalDate:'EEEE, dd MMM yyyy • h:mm a' }}
               </p>
             </div>
 
@@ -81,8 +77,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
                 color="primary"
                 (click)="printPrescription()"
                 class="print-btn"
-                [disabled]="!hasPrescription"
-                [title]="hasPrescription ? 'Print or download patient prescription' : 'Write and save prescription first before printing'"
+                title="Print or download prescription"
               >
                 <mat-icon>print</mat-icon>
                 <span>Print Rx</span>
@@ -106,10 +101,10 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
           </div>
         </div>
 
-        <!-- Clean Patient Summary & Diagnostic Snapshot Strip -->
+        <!-- Clean Patient Summary Strip -->
         <mat-card class="patient-snapshot-card">
           <div class="snapshot-grid">
-            <!-- Patient Identity -->
+            <!-- Patient Info -->
             <div class="snapshot-patient">
               <div class="patient-avatar-box">
                 <mat-icon>account_circle</mat-icon>
@@ -117,42 +112,42 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
               <div>
                 <div class="patient-name">{{ getPatientName() }}</div>
                 <div class="patient-sub">
-                  {{ appointment.bookedFor.type === 'dependent' ? 'Family Dependent (' + (appointment.bookedFor.relationship || 'Family') + ')' : 'Self Booking' }}
+                  {{ appointment.bookedFor.type === 'dependent' ? (appointment.bookedFor.relationship || 'Family Dependent') : 'Self' }}
                   <span *ngIf="appointment.bookedFor.gender"> • {{ appointment.bookedFor.gender | titlecase }}</span>
                   <span *ngIf="appointment.bookedFor.dateOfBirth"> • DOB: {{ appointment.bookedFor.dateOfBirth | portalDate:'dd MMM yyyy' }}</span>
                 </div>
               </div>
             </div>
 
-            <!-- Vitals Pills -->
-            <div class="vitals-pills-wrap">
-              <!-- Blood Group -->
-              <div class="vital-pill blood-pill" [class.unspecified]="!appointment.bookedFor.bloodGroup">
-                <span class="vital-lbl">Blood Group</span>
-                <span class="vital-val">{{ appointment.bookedFor.bloodGroup ? '🩸 ' + appointment.bookedFor.bloodGroup : 'Not Specified' }}</span>
-              </div>
-
-              <!-- Known Allergies -->
-              <div class="vital-pill" [class.allergy-alert]="!!appointment.bookedFor.allergies">
-                <span class="vital-lbl">Allergies</span>
-                <span class="vital-val">{{ appointment.bookedFor.allergies || 'None' }}</span>
-              </div>
-
-              <!-- Conditions -->
-              <div class="vital-pill">
-                <span class="vital-lbl">Conditions</span>
-                <span class="vital-val" [title]="appointment.bookedFor.chronicConditions || 'None'">
-                  {{ appointment.bookedFor.chronicConditions || 'None' }}
+            <!-- Health Snapshot Tags -->
+            <div class="vitals-tags-wrap">
+              <div class="health-tag">
+                <span class="tag-label">Blood Group</span>
+                <span class="tag-val" [class.highlight]="!!appointment.bookedFor.bloodGroup">
+                  {{ appointment.bookedFor.bloodGroup || 'Unspecified' }}
                 </span>
               </div>
 
-              <!-- Fee & Payment -->
-              <div class="vital-pill fee-pill">
-                <span class="vital-lbl">Visit Fee</span>
-                <span class="fee-text">
+              <div class="health-tag" [class.alert-tag]="!!appointment.bookedFor.allergies">
+                <span class="tag-label">Allergies</span>
+                <span class="tag-val">
+                  {{ appointment.bookedFor.allergies || 'None reported' }}
+                </span>
+              </div>
+
+              <div class="health-tag">
+                <span class="tag-label">Conditions</span>
+                <span class="tag-val" [title]="appointment.bookedFor.chronicConditions || 'None reported'">
+                  {{ appointment.bookedFor.chronicConditions || 'None reported' }}
+                </span>
+              </div>
+
+              <div class="health-tag fee-tag">
+                <span class="tag-label">Fee</span>
+                <span class="fee-val">
                   ₹{{ appointment.consultationFee }}
-                  <span class="pay-badge" [class.paid]="appointment.paymentStatus === 'completed'">
-                    {{ appointment.paymentStatus | uppercase }}
+                  <span class="payment-indicator" [class.paid]="appointment.paymentStatus === 'completed'">
+                    {{ appointment.paymentStatus === 'completed' ? 'Paid' : 'Unpaid' }}
                   </span>
                 </span>
               </div>
@@ -168,7 +163,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
             (click)="activeTab = 'prescription'"
           >
             <mat-icon>medication</mat-icon>
-            <span>Prescription (Rx)</span>
+            <span>Prescription</span>
             <span *ngIf="validPrescriptionMedicinesCount > 0" class="tab-badge">
               {{ validPrescriptionMedicinesCount }}
             </span>
@@ -180,7 +175,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
             (click)="activeTab = 'tests'"
           >
             <mat-icon>biotech</mat-icon>
-            <span>Lab & Diagnostic Tests</span>
+            <span>Lab Tests</span>
             <span *ngIf="medicalTests.length > 0" class="tab-badge">
               {{ medicalTests.length }}
             </span>
@@ -192,7 +187,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
             (click)="activeTab = 'diagnosis_info'"
           >
             <mat-icon>monitor_heart</mat-icon>
-            <span>Patient Health Details</span>
+            <span>Patient Details</span>
           </button>
 
           <button
@@ -201,7 +196,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
             (click)="activeTab = 'past_history'"
           >
             <mat-icon>history</mat-icon>
-            <span>Past History (Under You)</span>
+            <span>Past Visits</span>
             <span class="tab-badge">{{ pastVisitsWithThisDoctor.length }}</span>
           </button>
 
@@ -215,13 +210,13 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
           </button>
         </div>
 
-        <!-- TAB 1: Digital Prescription Builder -->
+        <!-- TAB 1: Prescription -->
         <div *ngIf="activeTab === 'prescription'" class="tab-content-area">
           <mat-card class="section-card rx-card">
             <div class="card-title-bar">
               <h2 class="card-title flex items-center gap-2">
                 <mat-icon class="text-teal-700">medication</mat-icon>
-                <span>Digital Prescription (Rx)</span>
+                <span>Prescription</span>
               </h2>
               <button mat-flat-button color="primary" (click)="savePrescription()" [disabled]="saving">
                 <mat-spinner *ngIf="saving" diameter="18" class="mr-2"></mat-spinner>
@@ -233,11 +228,11 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
             <!-- Medicines Table -->
             <div class="prescription-builder mt-4">
               <div class="table-header-row">
-                <div class="col-med">Medicine & Formulation</div>
+                <div class="col-med">Medicine</div>
                 <div class="col-dosage">Dosage</div>
                 <div class="col-freq">Frequency</div>
                 <div class="col-dur">Duration</div>
-                <div class="col-inst">Timing / Instructions</div>
+                <div class="col-inst">Instructions</div>
                 <div class="col-action"></div>
               </div>
 
@@ -246,7 +241,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
                   <input
                     class="rx-input"
                     [(ngModel)]="med.name"
-                    placeholder="e.g. Paracetamol 650mg / Amoxicillin 500mg"
+                    placeholder="Medicine name & strength"
                   />
                 </div>
                 <div class="col-dosage">
@@ -278,7 +273,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
                   <input
                     class="rx-input"
                     [(ngModel)]="med.instructions"
-                    placeholder="e.g. After food with warm water"
+                    placeholder="e.g. After meals"
                   />
                 </div>
                 <div class="col-action">
@@ -286,7 +281,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
                     mat-icon-button
                     color="warn"
                     (click)="removeMedicineRow(i)"
-                    title="Remove medicine"
+                    title="Remove"
                     [disabled]="prescriptionMedicines.length === 1 && !med.name"
                   >
                     <mat-icon>delete_outline</mat-icon>
@@ -297,42 +292,42 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
               <div class="mt-3">
                 <button mat-stroked-button color="primary" (click)="addMedicineRow()">
                   <mat-icon>add</mat-icon>
-                  <span>Add Another Medication</span>
+                  <span>Add Medicine</span>
                 </button>
               </div>
             </div>
 
             <!-- Advice & Follow-Up Grid -->
-            <div class="rx-additional-grid mt-6">
+            <div class="rx-additional-grid mt-5">
               <div class="form-group">
-                <label class="field-label">General Advice & Lifestyle Instructions</label>
+                <label class="field-label">Doctor's Advice & Instructions</label>
                 <textarea
                   class="rx-textarea"
                   rows="3"
                   [(ngModel)]="prescriptionGeneralAdvice"
-                  placeholder="e.g. Drink 3L water daily, avoid cold foods, monitor blood pressure."
+                  placeholder="Dietary instructions, lifestyle advice, or special precautions..."
                 ></textarea>
               </div>
 
               <div class="form-group">
-                <label class="field-label">Recommended Follow-up Visit</label>
+                <label class="field-label">Follow-up Date</label>
                 <input
                   class="rx-input"
                   [(ngModel)]="prescriptionFollowUpDate"
-                  placeholder="e.g. After 7 days / On 22 November 2026"
+                  placeholder="e.g. 7 days / 22 Nov 2026"
                 />
               </div>
             </div>
           </mat-card>
         </div>
 
-        <!-- TAB 2: Medical Diagnostic Tests & Lab Results -->
+        <!-- TAB 2: Lab & Diagnostic Tests -->
         <div *ngIf="activeTab === 'tests'" class="tab-content-area">
           <mat-card class="section-card">
             <div class="card-title-bar">
               <h2 class="card-title flex items-center gap-2">
                 <mat-icon class="text-amber-700">biotech</mat-icon>
-                <span>Diagnostic Lab Tests</span>
+                <span>Diagnostic Tests</span>
               </h2>
               <button mat-flat-button color="primary" (click)="saveMedicalTests()" [disabled]="saving">
                 <mat-spinner *ngIf="saving" diameter="18" class="mr-2"></mat-spinner>
@@ -354,7 +349,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
                 </div>
 
                 <div class="test-input-col">
-                  <label class="field-label">Clinical Instructions</label>
+                  <label class="field-label">Instructions</label>
                   <input
                     class="rx-input"
                     [(ngModel)]="newTestInstructions"
@@ -390,7 +385,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
             <div class="tests-list mt-5">
               <div *ngIf="medicalTests.length === 0" class="empty-tests-box">
                 <mat-icon class="empty-icon">science</mat-icon>
-                <p>No diagnostic tests ordered for this consultation.</p>
+                <p>No diagnostic tests ordered.</p>
               </div>
 
               <div *ngIf="medicalTests.length > 0" class="tests-cards-list">
@@ -410,7 +405,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
                     </div>
 
                     <div class="test-actions">
-                      <button mat-icon-button color="warn" (click)="removeTest(idx)" title="Remove test">
+                      <button mat-icon-button color="warn" (click)="removeTest(idx)" title="Remove">
                         <mat-icon>delete_outline</mat-icon>
                       </button>
                     </div>
@@ -423,7 +418,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
                       <input
                         class="rx-input"
                         [(ngModel)]="test.resultNotes"
-                        placeholder="Enter lab findings or observations..."
+                        placeholder="Enter lab findings or values..."
                       />
                     </div>
 
@@ -454,7 +449,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
                             <mat-icon>description</mat-icon>
                             <span>View Report</span>
                           </a>
-                          <button mat-icon-button (click)="fileInput.click()" title="Replace file">
+                          <button mat-icon-button (click)="fileInput.click()" title="Replace">
                             <mat-icon class="text-xs">sync</mat-icon>
                           </button>
                         </div>
@@ -467,38 +462,38 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
           </mat-card>
         </div>
 
-        <!-- TAB 3: Patient Diagnostic Health Details -->
+        <!-- TAB 3: Patient Details -->
         <div *ngIf="activeTab === 'diagnosis_info'" class="tab-content-area">
           <mat-card class="section-card">
             <h2 class="card-title flex items-center gap-2">
               <mat-icon class="text-teal-700">monitor_heart</mat-icon>
-              <span>Patient Health Details</span>
+              <span>Patient Medical Details</span>
             </h2>
 
             <div class="clinical-details-grid mt-4">
               <div class="detail-box">
                 <span class="box-label">Blood Group</span>
                 <span class="box-value font-bold" [class.text-rose-700]="!!appointment.bookedFor.bloodGroup">
-                  {{ appointment.bookedFor.bloodGroup || 'Not Documented' }}
+                  {{ appointment.bookedFor.bloodGroup || 'Not Specified' }}
                 </span>
               </div>
 
               <div class="detail-box">
                 <span class="box-label">Date of Birth & Age</span>
                 <span class="box-value">
-                  {{ appointment.bookedFor.dateOfBirth ? (appointment.bookedFor.dateOfBirth | portalDate:'dd MMM yyyy') : 'Not Documented' }}
+                  {{ appointment.bookedFor.dateOfBirth ? (appointment.bookedFor.dateOfBirth | portalDate:'dd MMM yyyy') : 'Not Specified' }}
                 </span>
               </div>
 
               <div class="detail-box">
                 <span class="box-label">Gender</span>
                 <span class="box-value capitalize">
-                  {{ appointment.bookedFor.gender || 'Not Documented' }}
+                  {{ appointment.bookedFor.gender || 'Not Specified' }}
                 </span>
               </div>
 
               <div class="detail-box">
-                <span class="box-label">Height & Weight Vitals</span>
+                <span class="box-label">Height / Weight</span>
                 <span class="box-value">
                   {{ appointment.bookedFor.heightCm ? appointment.bookedFor.heightCm + ' cm' : '-' }} /
                   {{ appointment.bookedFor.weightKg ? appointment.bookedFor.weightKg + ' kg' : '-' }}
@@ -506,14 +501,14 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
               </div>
 
               <div class="detail-box full-width">
-                <span class="box-label text-rose-700 font-bold">⚠️ Known Allergies & Sensitivities</span>
+                <span class="box-label">Known Allergies</span>
                 <div class="allergy-display-box" [class.alert-border]="!!appointment.bookedFor.allergies">
                   {{ appointment.bookedFor.allergies || 'No known allergies reported.' }}
                 </div>
               </div>
 
               <div class="detail-box full-width">
-                <span class="box-label font-bold">Pre-Existing Conditions</span>
+                <span class="box-label">Chronic Conditions</span>
                 <div class="condition-display-box">
                   {{ appointment.bookedFor.chronicConditions || 'No chronic medical conditions reported.' }}
                 </div>
@@ -529,23 +524,23 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
           </mat-card>
         </div>
 
-        <!-- TAB 4: Patient History Under THIS Doctor (Strict Doctor Scoping) -->
+        <!-- TAB 4: Past Visits Under THIS Doctor -->
         <div *ngIf="activeTab === 'past_history'" class="tab-content-area">
           <mat-card class="section-card">
             <h2 class="card-title flex items-center gap-2">
               <mat-icon class="text-teal-700">history_edu</mat-icon>
-              <span>Past Visits Under Your Care</span>
+              <span>Consultation History (Under You)</span>
             </h2>
 
             <!-- First-time patient with this doctor -->
             <div *ngIf="pastVisitsWithThisDoctor.length === 0" class="empty-history-box mt-4">
               <mat-icon class="empty-icon">history</mat-icon>
-              <h3 class="empty-title">First Visit Under Your Practice</h3>
+              <h3 class="empty-title">First Visit With You</h3>
               <p class="empty-desc">
-                This patient has no previous completed consultations or prescriptions recorded under your care.
+                No previous consultations on record for this patient under your care.
               </p>
               <span class="privacy-tag">
-                🔒 Doctor Privacy: Records from other practitioners remain confidential.
+                Medical records from other practitioners remain confidential.
               </span>
             </div>
 
@@ -555,7 +550,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
                 <div class="past-visit-header">
                   <div>
                     <span class="past-visit-date font-bold">
-                      {{ pastApt.slotStart | portalDate:'dd MMMM yyyy, h:mm a' }}
+                      {{ pastApt.slotStart | portalDate:'dd MMM yyyy • h:mm a' }}
                     </span>
                     <span class="past-reason block text-xs text-neutral-600 mt-0.5">
                       Reason: {{ pastApt.reasonForVisit || 'General Consultation' }}
@@ -578,12 +573,12 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
                 </div>
 
                 <div *ngIf="pastApt.prescription?.generalAdvice" class="past-section mt-2">
-                  <span class="past-lbl">Clinical Advice:</span>
+                  <span class="past-lbl">Advice:</span>
                   <p class="past-text">{{ pastApt.prescription?.generalAdvice }}</p>
                 </div>
 
                 <div *ngIf="pastApt.notes" class="past-section mt-2">
-                  <span class="past-lbl">Visit Notes:</span>
+                  <span class="past-lbl">Notes:</span>
                   <p class="past-text">{{ pastApt.notes }}</p>
                 </div>
               </div>
@@ -596,16 +591,16 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
           <mat-card class="section-card">
             <h2 class="card-title flex items-center gap-2">
               <mat-icon class="text-teal-700">edit_note</mat-icon>
-              <span>Clinical Notes</span>
+              <span>Consultation Notes</span>
             </h2>
 
             <mat-form-field appearance="outline" class="w-full mt-4">
-              <mat-label>Clinical Observations & Diagnosis</mat-label>
+              <mat-label>Clinical Observations</mat-label>
               <textarea
                 matInput
                 rows="6"
                 [(ngModel)]="visitNotes"
-                placeholder="Enter private examination notes and diagnosis..."
+                placeholder="Enter consultation examination notes..."
               ></textarea>
             </mat-form-field>
 
@@ -617,7 +612,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
                 [disabled]="savingNotes || visitNotes === appointment.notes"
               >
                 <mat-spinner *ngIf="savingNotes" diameter="18" class="mr-2"></mat-spinner>
-                <span>Save Clinical Notes</span>
+                <span>Save Notes</span>
               </button>
             </div>
           </mat-card>
@@ -629,7 +624,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
         <div class="modal-card">
           <h3 class="modal-title">Cancel Appointment</h3>
           <p class="modal-desc">
-            Please provide a cancellation reason. The patient will be notified immediately.
+            Please provide a cancellation reason. The patient will be notified.
           </p>
 
           <mat-form-field appearance="outline" class="w-full mt-4">
@@ -715,24 +710,6 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
       margin: 4px 0 0;
     }
 
-    .first-time-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      background: #EFF6FF;
-      color: #1D4ED8;
-      padding: 3px 10px;
-      border-radius: 12px;
-      font-size: 11px;
-      font-weight: 700;
-    }
-
-    .pill-icon {
-      font-size: 14px;
-      width: 14px;
-      height: 14px;
-    }
-
     .status-action-btns {
       display: flex;
       align-items: center;
@@ -744,9 +721,9 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
       color: #0F5C5C !important;
     }
 
-    /* Clean Patient Snapshot Strip */
+    /* Clean Patient Summary Strip */
     .patient-snapshot-card {
-      padding: 14px 20px !important;
+      padding: 16px 20px !important;
       border-radius: 12px !important;
       background: #FFFFFF;
       border: 1px solid #E7E5E0;
@@ -785,35 +762,35 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
       margin-top: 1px;
     }
 
-    .vitals-pills-wrap {
+    .vitals-tags-wrap {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       flex-wrap: wrap;
     }
 
-    .vital-pill {
+    .health-tag {
       display: flex;
       flex-direction: column;
       padding: 6px 12px;
-      border-radius: 8px;
-      background: #F8FAF9;
-      border: 1px solid #E7E5E0;
-      min-width: 100px;
+      border-radius: 6px;
+      background: #F9FAFB;
+      border: 1px solid #E5E7EB;
+      min-width: 90px;
     }
 
-    .vital-lbl {
+    .tag-label {
       font-size: 10px;
       font-weight: 700;
-      color: #5C6B6B;
+      color: #6B7280;
       text-transform: uppercase;
       letter-spacing: 0.3px;
     }
 
-    .vital-val {
+    .tag-val {
       font-size: 12px;
-      font-weight: 700;
-      color: #1A2E2E;
+      font-weight: 600;
+      color: #1F2937;
       margin-top: 2px;
       white-space: nowrap;
       overflow: hidden;
@@ -821,49 +798,46 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
       max-width: 140px;
     }
 
-    .blood-pill .vital-val {
-      color: #B91C1C;
+    .tag-val.highlight {
+      color: #991B1B;
+      font-weight: 700;
     }
 
-    .blood-pill.unspecified .vital-val {
-      color: #6B7280;
-      font-weight: 600;
-    }
-
-    .allergy-alert {
+    .alert-tag {
       background: #FEF2F2;
       border-color: #FECACA;
     }
 
-    .allergy-alert .vital-val {
-      color: #B91C1C;
+    .alert-tag .tag-val {
+      color: #991B1B;
+      font-weight: 700;
     }
 
-    .fee-pill {
+    .fee-tag {
       background: #F0FDF4;
       border-color: #BBF7D0;
     }
 
-    .fee-text {
-      font-size: 14px;
+    .fee-val {
+      font-size: 13px;
       font-weight: 800;
-      color: #14532D;
+      color: #15803D;
       display: flex;
       align-items: center;
       gap: 6px;
       margin-top: 2px;
     }
 
-    .pay-badge {
+    .payment-indicator {
       font-size: 9px;
       font-weight: 700;
-      color: #D97706;
-      padding: 1px 4px;
+      color: #B45309;
+      padding: 1px 5px;
       border-radius: 3px;
       background: #FEF3C7;
     }
 
-    .pay-badge.paid {
+    .payment-indicator.paid {
       color: #15803D;
       background: #DCFCE7;
     }
@@ -1502,24 +1476,8 @@ export class DoctorAppointmentDetailComponent implements OnInit {
     });
   }
 
-  get isFirstTimePatient(): boolean {
-    return this.pastVisitsWithThisDoctor.length === 0;
-  }
-
   get validPrescriptionMedicinesCount(): number {
     return this.prescriptionMedicines.filter((m) => m.name && m.name.trim().length > 0).length;
-  }
-
-  /**
-   * Evaluates if there is a valid prescription to print.
-   * If the patient is on their first visit and no prescription has been written yet,
-   * print option is restricted until doctor enters/saves medications.
-   */
-  get hasPrescription(): boolean {
-    const hasSavedMeds = (this.appointment?.prescription?.medicines?.length || 0) > 0;
-    const hasCurrentMeds = this.validPrescriptionMedicinesCount > 0;
-    const hasAdvice = !!(this.prescriptionGeneralAdvice && this.prescriptionGeneralAdvice.trim());
-    return hasSavedMeds || hasCurrentMeds || hasAdvice;
   }
 
   getPatientName(): string {
@@ -1573,7 +1531,7 @@ export class DoctorAppointmentDetailComponent implements OnInit {
         this.saving = false;
         if (res.success && res.data) {
           this.appointment = res.data;
-          this.notificationService.success('Digital prescription saved successfully');
+          this.notificationService.success('Prescription saved successfully');
         }
       },
       error: (err) => {
@@ -1610,7 +1568,7 @@ export class DoctorAppointmentDetailComponent implements OnInit {
         this.saving = false;
         if (res.success && res.data) {
           this.appointment = res.data;
-          this.notificationService.success('Diagnostic tests saved successfully');
+          this.notificationService.success('Diagnostic tests saved');
         }
       },
       error: (err) => {
@@ -1638,7 +1596,7 @@ export class DoctorAppointmentDetailComponent implements OnInit {
         if (res.success && res.data) {
           this.appointment = res.data;
           this.medicalTests = res.data.medicalTests || [];
-          this.notificationService.success('Test result report uploaded successfully');
+          this.notificationService.success('Report uploaded successfully');
         }
       },
       error: (err) => {
@@ -1665,7 +1623,7 @@ export class DoctorAppointmentDetailComponent implements OnInit {
         this.savingNotes = false;
         if (res.success && res.data) {
           this.appointment = res.data;
-          this.notificationService.success('Clinical notes saved successfully');
+          this.notificationService.success('Notes saved');
         }
       },
       error: (err) => {
@@ -1713,16 +1671,19 @@ export class DoctorAppointmentDetailComponent implements OnInit {
   }
 
   /**
-   * Generates a clean medical prescription document containing:
-   * 1. Doctor & Clinic Details
-   * 2. Patient Medical Details & Vitals
-   * 3. ℞ Prescribed Medicines, Advice, and Follow-Up Date
-   *
-   * Note: Strictly excludes test reports / files as requested.
+   * Reliable prescription print & PDF download without popup-blocker issues:
+   * Uses a dedicated hidden iframe.
+   * Includes Doctor & Clinic details, Patient Medical Details, and ℞ Prescription.
+   * Excludes test reports.
    */
   printPrescription(): void {
-    if (!this.hasPrescription) {
-      this.notificationService.warning('Please write and save prescription details before printing.');
+    const validMeds = this.prescriptionMedicines.filter((m) => m.name && m.name.trim().length > 0);
+    const hasAnyMeds = validMeds.length > 0 || (this.appointment?.prescription?.medicines?.length || 0) > 0;
+    const hasAnyAdvice = !!(this.prescriptionGeneralAdvice && this.prescriptionGeneralAdvice.trim()) ||
+                         !!(this.appointment?.prescription?.generalAdvice && this.appointment.prescription.generalAdvice.trim());
+
+    if (!hasAnyMeds && !hasAnyAdvice) {
+      this.notificationService.warning('Please enter medication details before printing.');
       return;
     }
 
@@ -1757,8 +1718,7 @@ export class DoctorAppointmentDetailComponent implements OnInit {
       ? new Date(apt.slotStart).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
       : '';
 
-    // Medicines from active state or saved state
-    const validMeds = this.prescriptionMedicines.filter((m) => m.name && m.name.trim().length > 0);
+    // Medicines to print
     const medsToPrint = validMeds.length > 0 ? validMeds : (apt.prescription?.medicines || []);
 
     const medicinesRowsHtml = medsToPrint
@@ -1779,7 +1739,7 @@ export class DoctorAppointmentDetailComponent implements OnInit {
     const adviceHtml = adviceText
       ? `
         <div style="margin-top: 18px; padding: 12px 14px; background: #F9FAFB; border-left: 4px solid #0F5C5C; border-radius: 4px;">
-          <div style="font-size: 11px; font-weight: 700; color: #0F5C5C; text-transform: uppercase; margin-bottom: 4px;">General Advice & Instructions</div>
+          <div style="font-size: 11px; font-weight: 700; color: #0F5C5C; text-transform: uppercase; margin-bottom: 4px;">Doctor's Advice</div>
           <div style="font-size: 13px; color: #1F2937; line-height: 1.5;">${adviceText.replace(/\n/g, '<br/>')}</div>
         </div>
       `
@@ -1789,16 +1749,10 @@ export class DoctorAppointmentDetailComponent implements OnInit {
     const followUpHtml = followUpText
       ? `
         <div style="margin-top: 14px; font-size: 13px; color: #374151;">
-          <strong>Recommended Follow-up Visit:</strong> ${followUpText}
+          <strong>Follow-up Visit:</strong> ${followUpText}
         </div>
       `
       : '';
-
-    const printWindow = window.open('', '_blank', 'width=850,height=900');
-    if (!printWindow) {
-      this.notificationService.error('Please allow popups to print or download prescription');
-      return;
-    }
 
     const printableDocument = `
       <!DOCTYPE html>
@@ -1817,7 +1771,7 @@ export class DoctorAppointmentDetailComponent implements OnInit {
           .patient-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
           .grid-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #6B7280; }
           .grid-val { font-size: 13px; font-weight: 600; color: #111827; margin-top: 2px; }
-          .alert-val { color: #B91C1C; font-weight: 700; }
+          .alert-val { color: #991B1B; font-weight: 700; }
           .rx-symbol { font-size: 26px; font-weight: 800; font-family: serif; color: #0F5C5C; margin: 12px 0 6px; }
           .meds-table { width: 100%; border-collapse: collapse; margin-top: 6px; }
           .meds-table th { background: #F3F4F6; text-align: left; padding: 8px; font-size: 11px; text-transform: uppercase; color: #4B5563; border-bottom: 1px solid #D1D5DB; }
@@ -1834,7 +1788,7 @@ export class DoctorAppointmentDetailComponent implements OnInit {
           <tr>
             <td style="vertical-align: top;">
               <div class="clinic-brand">${clinicName}</div>
-              <div style="font-size: 11px; color: #6B7280; margin-top: 2px;">Docyra Verified Practice</div>
+              <div style="font-size: 11px; color: #6B7280; margin-top: 2px;">Docyra Medical Practice</div>
             </td>
             <td style="text-align: right; vertical-align: top;">
               <div class="doc-name">${doctorName}</div>
@@ -1867,10 +1821,10 @@ export class DoctorAppointmentDetailComponent implements OnInit {
           <div class="patient-grid" style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed #E5E7EB;">
             <div style="grid-column: span 2;">
               <div class="grid-lbl">Known Allergies</div>
-              <div class="grid-val" style="color: ${allergies !== 'None Reported' ? '#B91C1C' : '#111827'}; font-weight: 700;">${allergies}</div>
+              <div class="grid-val" style="color: ${allergies !== 'None Reported' ? '#991B1B' : '#111827'}; font-weight: 700;">${allergies}</div>
             </div>
             <div style="grid-column: span 2;">
-              <div class="grid-lbl">Pre-Existing Conditions</div>
+              <div class="grid-lbl">Chronic Conditions</div>
               <div class="grid-val">${conditions}</div>
             </div>
           </div>
@@ -1898,30 +1852,56 @@ export class DoctorAppointmentDetailComponent implements OnInit {
 
         <div class="footer-section">
           <div class="seal-text">
-            Generated via Docyra Digital Healthcare<br/>
-            Appointment #${apt._id ? apt._id.slice(-8) : ''} • Date: ${new Date().toLocaleDateString('en-IN')}
+            Generated via Docyra Healthcare<br/>
+            Ref #${apt._id ? apt._id.slice(-8) : ''} • Date: ${new Date().toLocaleDateString('en-IN')}
           </div>
           <div>
             <div class="sign-line">
               ${doctorName}<br/>
-              <span style="font-size: 10px; color: #6B7280; font-weight: normal;">Digitally Authorized</span>
+              <span style="font-size: 10px; color: #6B7280; font-weight: normal;">Authorized Medical Practitioner</span>
             </div>
           </div>
         </div>
-
-        <script>
-          window.onload = function() {
-            setTimeout(function() {
-              window.print();
-            }, 300);
-          };
-        </script>
       </body>
       </html>
     `;
 
-    printWindow.document.open();
-    printWindow.document.write(printableDocument);
-    printWindow.document.close();
+    // Print using hidden iframe (works reliably across all browsers without popup blockers)
+    let printFrame = document.getElementById('docyra-print-frame') as HTMLIFrameElement;
+    if (!printFrame) {
+      printFrame = document.createElement('iframe');
+      printFrame.id = 'docyra-print-frame';
+      printFrame.style.position = 'fixed';
+      printFrame.style.right = '0';
+      printFrame.style.bottom = '0';
+      printFrame.style.width = '0';
+      printFrame.style.height = '0';
+      printFrame.style.border = '0';
+      document.body.appendChild(printFrame);
+    }
+
+    try {
+      const frameDoc = printFrame.contentWindow?.document || printFrame.contentDocument;
+      if (frameDoc) {
+        frameDoc.open();
+        frameDoc.write(printableDocument);
+        frameDoc.close();
+
+        setTimeout(() => {
+          printFrame.contentWindow?.focus();
+          printFrame.contentWindow?.print();
+        }, 250);
+      }
+    } catch {
+      // Fallback in case of sandboxed iframe
+      const w = window.open('', '_blank');
+      if (w) {
+        w.document.open();
+        w.document.write(printableDocument);
+        w.document.close();
+        w.focus();
+        setTimeout(() => w.print(), 250);
+      }
+    }
   }
 }
