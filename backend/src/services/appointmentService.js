@@ -358,7 +358,7 @@ class AppointmentService {
       query.slotStart = { $gte: new Date() };
     }
 
-    const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 10, 1), 50);
+    const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 10, 1), 100);
     const safePage = Math.max(parseInt(page, 10) || 1, 1);
     const skip = (safePage - 1) * safeLimit;
 
@@ -381,6 +381,8 @@ class AppointmentService {
         type: 'dependent',
       } : {
         name: apt.patientId?.name || 'Patient',
+        email: apt.patientId?.email,
+        phone: apt.patientId?.phone,
         type: 'self',
       });
       const consultationFee = apt.consultationFee || apt.doctorId?.consultationFee || 500;
