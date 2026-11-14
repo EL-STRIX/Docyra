@@ -220,7 +220,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
                   <div class="detail-row">
                     <span class="detail-lbl">Booking Type</span>
                     <span class="detail-val">
-                      {{ selectedAppointment.bookedFor?.type === 'dependent' ? 'Family Dependent' : 'Self Booking' }}
+                      {{ selectedAppointment.bookedFor.type === 'dependent' ? 'Family Dependent' : 'Self Booking' }}
                     </span>
                   </div>
                   <div class="detail-row" *ngIf="getPatientPhone(selectedAppointment)">
@@ -235,10 +235,10 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
                       {{ getPatientEmail(selectedAppointment) }}
                     </span>
                   </div>
-                  <div class="detail-row" *ngIf="selectedAppointment.bookedFor?.gender">
+                  <div class="detail-row" *ngIf="selectedAppointment.bookedFor.gender">
                     <span class="detail-lbl">Gender</span>
                     <span class="detail-val capitalize">
-                      {{ selectedAppointment.bookedFor?.gender }}
+                      {{ selectedAppointment.bookedFor.gender }}
                     </span>
                   </div>
                 </div>
