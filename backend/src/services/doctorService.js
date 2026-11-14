@@ -654,6 +654,14 @@ class DoctorService {
     if (updateData.experienceYears !== undefined) doctorProfile.yearsExperience = updateData.experienceYears;
     if (updateData.licenseNumber !== undefined) doctorProfile.licenseNumber = updateData.licenseNumber;
     if (updateData.clinicAddress !== undefined) doctorProfile.clinicAddress = updateData.clinicAddress;
+    if (updateData.name || updateData.phone) {
+      if (doctorProfile.userId) {
+        const userUpdate = {};
+        if (updateData.name) userUpdate.name = updateData.name;
+        if (updateData.phone) userUpdate.phone = updateData.phone;
+        await User.findByIdAndUpdate(doctorProfile.userId, userUpdate);
+      }
+    }
     if (updateData.autoAcceptAppointments !== undefined) {
       doctorProfile.manualApprovalMode = !updateData.autoAcceptAppointments;
     }

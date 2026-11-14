@@ -20,9 +20,13 @@ export interface Doctor {
   specializationId?: string | Specialization;
   title?: string;
   name?: string;
+  email?: string;
+  phone?: string;
+  clinicAddress?: string;
   bio?: string;
   qualifications?: string[];
   experienceYears?: number;
+  yearsExperience?: number;
   consultationFee: number;
   slotDurationMinutes: number; // default 30
   isIndependent: boolean;
