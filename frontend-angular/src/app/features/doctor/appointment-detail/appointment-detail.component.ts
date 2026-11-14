@@ -66,7 +66,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
                 <app-status-badge [status]="appointment.status"></app-status-badge>
                 <span *ngIf="isFirstTimePatient" class="first-time-pill">
                   <mat-icon class="pill-icon">person_add</mat-icon>
-                  New Patient with You
+                  First-Time Patient With You
                 </span>
               </div>
               <p class="subtitle">
@@ -74,14 +74,20 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
               </p>
             </div>
 
-            <!-- Contextual Status Actions -->
+            <!-- Action Buttons -->
             <div class="status-action-btns">
-              <button mat-stroked-button color="primary" (click)="printPrescription()" class="print-btn" title="Print digital prescription">
+              <button
+                mat-stroked-button
+                color="primary"
+                (click)="printPrescription()"
+                class="print-btn"
+                [disabled]="!hasPrescription"
+                [title]="hasPrescription ? 'Print or download patient prescription' : 'Write and save prescription first before printing'"
+              >
                 <mat-icon>print</mat-icon>
                 <span>Print Rx</span>
               </button>
 
-              <!-- Confirmed actions -->
               <ng-container *ngIf="appointment.status === 'confirmed'">
                 <button mat-flat-button color="primary" (click)="updateStatus('completed')" [disabled]="updating">
                   <mat-icon>done_all</mat-icon>
@@ -100,16 +106,17 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
           </div>
         </div>
 
-        <!-- Quick Patient Summary & Diagnostic Snapshot Strip -->
+        <!-- Clean Patient Summary & Diagnostic Snapshot Strip -->
         <mat-card class="patient-snapshot-card">
           <div class="snapshot-grid">
-            <div class="snapshot-item patient-main">
+            <!-- Patient Identity -->
+            <div class="snapshot-patient">
               <div class="patient-avatar-box">
                 <mat-icon>account_circle</mat-icon>
               </div>
               <div>
-                <div class="snapshot-name">{{ getPatientName() }}</div>
-                <div class="snapshot-sub">
+                <div class="patient-name">{{ getPatientName() }}</div>
+                <div class="patient-sub">
                   {{ appointment.bookedFor.type === 'dependent' ? 'Family Dependent (' + (appointment.bookedFor.relationship || 'Family') + ')' : 'Self Booking' }}
                   <span *ngIf="appointment.bookedFor.gender"> • {{ appointment.bookedFor.gender | titlecase }}</span>
                   <span *ngIf="appointment.bookedFor.dateOfBirth"> • DOB: {{ appointment.bookedFor.dateOfBirth | portalDate:'dd MMM yyyy' }}</span>
@@ -117,42 +124,43 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
               </div>
             </div>
 
-            <!-- Blood Group Pill -->
-            <div class="snapshot-item">
-              <span class="snapshot-lbl">Blood Group</span>
-              <span class="blood-group-badge">
-                {{ appointment.bookedFor.bloodGroup ? '🩸 ' + appointment.bookedFor.bloodGroup : 'Not Specified' }}
-              </span>
-            </div>
+            <!-- Vitals Pills -->
+            <div class="vitals-pills-wrap">
+              <!-- Blood Group -->
+              <div class="vital-pill blood-pill" [class.unspecified]="!appointment.bookedFor.bloodGroup">
+                <span class="vital-lbl">Blood Group</span>
+                <span class="vital-val">{{ appointment.bookedFor.bloodGroup ? '🩸 ' + appointment.bookedFor.bloodGroup : 'Not Specified' }}</span>
+              </div>
 
-            <!-- Known Allergies Alert -->
-            <div class="snapshot-item">
-              <span class="snapshot-lbl">Known Allergies</span>
-              <span class="allergies-pill" [class.has-allergies]="!!appointment.bookedFor.allergies">
-                {{ appointment.bookedFor.allergies || 'No Known Allergies' }}
-              </span>
-            </div>
+              <!-- Known Allergies -->
+              <div class="vital-pill" [class.allergy-alert]="!!appointment.bookedFor.allergies">
+                <span class="vital-lbl">Allergies</span>
+                <span class="vital-val">{{ appointment.bookedFor.allergies || 'None' }}</span>
+              </div>
 
-            <!-- Pre-Existing Conditions -->
-            <div class="snapshot-item">
-              <span class="snapshot-lbl">Pre-Existing Conditions</span>
-              <span class="conditions-text">
-                {{ appointment.bookedFor.chronicConditions || 'None Reported' }}
-              </span>
-            </div>
+              <!-- Conditions -->
+              <div class="vital-pill">
+                <span class="vital-lbl">Conditions</span>
+                <span class="vital-val" [title]="appointment.bookedFor.chronicConditions || 'None'">
+                  {{ appointment.bookedFor.chronicConditions || 'None' }}
+                </span>
+              </div>
 
-            <!-- Consultation Fee & Payment -->
-            <div class="snapshot-item fee-box">
-              <span class="snapshot-lbl">Visit Fee</span>
-              <span class="fee-amount">₹{{ appointment.consultationFee }}</span>
-              <span class="pay-tag" [class.paid]="appointment.paymentStatus === 'completed'">
-                {{ appointment.paymentStatus | uppercase }}
-              </span>
+              <!-- Fee & Payment -->
+              <div class="vital-pill fee-pill">
+                <span class="vital-lbl">Visit Fee</span>
+                <span class="fee-text">
+                  ₹{{ appointment.consultationFee }}
+                  <span class="pay-badge" [class.paid]="appointment.paymentStatus === 'completed'">
+                    {{ appointment.paymentStatus | uppercase }}
+                  </span>
+                </span>
+              </div>
             </div>
           </div>
         </mat-card>
 
-        <!-- Workspace Tabs Bar -->
+        <!-- Clean Workspace Navigation Tabs -->
         <div class="workspace-tabs-bar">
           <button
             class="workspace-tab-btn"
@@ -160,9 +168,9 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
             (click)="activeTab = 'prescription'"
           >
             <mat-icon>medication</mat-icon>
-            <span>Digital Prescription (Rx)</span>
-            <span *ngIf="prescriptionMedicines.length > 0" class="tab-badge">
-              {{ prescriptionMedicines.length }}
+            <span>Prescription (Rx)</span>
+            <span *ngIf="validPrescriptionMedicinesCount > 0" class="tab-badge">
+              {{ validPrescriptionMedicinesCount }}
             </span>
           </button>
 
@@ -172,7 +180,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
             (click)="activeTab = 'tests'"
           >
             <mat-icon>biotech</mat-icon>
-            <span>Medical & Lab Tests</span>
+            <span>Lab & Diagnostic Tests</span>
             <span *ngIf="medicalTests.length > 0" class="tab-badge">
               {{ medicalTests.length }}
             </span>
@@ -184,7 +192,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
             (click)="activeTab = 'diagnosis_info'"
           >
             <mat-icon>monitor_heart</mat-icon>
-            <span>Patient Diagnosis Details</span>
+            <span>Patient Health Details</span>
           </button>
 
           <button
@@ -193,7 +201,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
             (click)="activeTab = 'past_history'"
           >
             <mat-icon>history</mat-icon>
-            <span>Patient History Under You</span>
+            <span>Past History (Under You)</span>
             <span class="tab-badge">{{ pastVisitsWithThisDoctor.length }}</span>
           </button>
 
@@ -209,17 +217,12 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
 
         <!-- TAB 1: Digital Prescription Builder -->
         <div *ngIf="activeTab === 'prescription'" class="tab-content-area">
-          <mat-card class="section-card rx-card" id="prescription-printable-area">
+          <mat-card class="section-card rx-card">
             <div class="card-title-bar">
-              <div>
-                <h2 class="card-title flex items-center gap-2">
-                  <mat-icon class="text-teal-700">medication</mat-icon>
-                  <span>Digital Prescription (Rx)</span>
-                </h2>
-                <p class="card-desc">
-                  Write medicines, dosage schedule, dietary instructions, and follow-up consultation date.
-                </p>
-              </div>
+              <h2 class="card-title flex items-center gap-2">
+                <mat-icon class="text-teal-700">medication</mat-icon>
+                <span>Digital Prescription (Rx)</span>
+              </h2>
               <button mat-flat-button color="primary" (click)="savePrescription()" [disabled]="saving">
                 <mat-spinner *ngIf="saving" diameter="18" class="mr-2"></mat-spinner>
                 <mat-icon *ngIf="!saving">save</mat-icon>
@@ -230,7 +233,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
             <!-- Medicines Table -->
             <div class="prescription-builder mt-4">
               <div class="table-header-row">
-                <div class="col-med">Medicine Name & Formulation</div>
+                <div class="col-med">Medicine & Formulation</div>
                 <div class="col-dosage">Dosage</div>
                 <div class="col-freq">Frequency</div>
                 <div class="col-dur">Duration</div>
@@ -243,14 +246,14 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
                   <input
                     class="rx-input"
                     [(ngModel)]="med.name"
-                    placeholder="e.g. Amoxicillin 500mg / Paracetamol 650mg"
+                    placeholder="e.g. Paracetamol 650mg / Amoxicillin 500mg"
                   />
                 </div>
                 <div class="col-dosage">
                   <input
                     class="rx-input"
                     [(ngModel)]="med.dosage"
-                    placeholder="e.g. 1 Tablet / 5ml"
+                    placeholder="e.g. 1 Tablet"
                   />
                 </div>
                 <div class="col-freq">
@@ -268,14 +271,14 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
                   <input
                     class="rx-input"
                     [(ngModel)]="med.duration"
-                    placeholder="e.g. 5 Days / 1 Week"
+                    placeholder="e.g. 5 Days"
                   />
                 </div>
                 <div class="col-inst">
                   <input
                     class="rx-input"
                     [(ngModel)]="med.instructions"
-                    placeholder="e.g. After meals with warm water"
+                    placeholder="e.g. After food with warm water"
                   />
                 </div>
                 <div class="col-action">
@@ -299,26 +302,25 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
               </div>
             </div>
 
-            <!-- Advice & Follow-Up -->
+            <!-- Advice & Follow-Up Grid -->
             <div class="rx-additional-grid mt-6">
               <div class="form-group">
-                <label class="form-label">General Medical Advice & Lifestyle Precautions</label>
+                <label class="field-label">General Advice & Lifestyle Instructions</label>
                 <textarea
                   class="rx-textarea"
                   rows="3"
                   [(ngModel)]="prescriptionGeneralAdvice"
-                  placeholder="e.g. Rest adequately, avoid cold food, drink 3L water daily, monitor BP mornings."
+                  placeholder="e.g. Drink 3L water daily, avoid cold foods, monitor blood pressure."
                 ></textarea>
               </div>
 
               <div class="form-group">
-                <label class="form-label">Recommended Next Follow-up Visit</label>
+                <label class="field-label">Recommended Follow-up Visit</label>
                 <input
                   class="rx-input"
                   [(ngModel)]="prescriptionFollowUpDate"
                   placeholder="e.g. After 7 days / On 22 November 2026"
                 />
-                <span class="text-xs text-neutral-500 mt-1">Recommended timeframe for patient re-evaluation.</span>
               </div>
             </div>
           </mat-card>
@@ -328,15 +330,10 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
         <div *ngIf="activeTab === 'tests'" class="tab-content-area">
           <mat-card class="section-card">
             <div class="card-title-bar">
-              <div>
-                <h2 class="card-title flex items-center gap-2">
-                  <mat-icon class="text-amber-700">biotech</mat-icon>
-                  <span>Diagnostic Lab Tests & Investigation Orders</span>
-                </h2>
-                <p class="card-desc">
-                  Prescribe required diagnostic tests for better medical diagnosis and record laboratory results.
-                </p>
-              </div>
+              <h2 class="card-title flex items-center gap-2">
+                <mat-icon class="text-amber-700">biotech</mat-icon>
+                <span>Diagnostic Lab Tests</span>
+              </h2>
               <button mat-flat-button color="primary" (click)="saveMedicalTests()" [disabled]="saving">
                 <mat-spinner *ngIf="saving" diameter="18" class="mr-2"></mat-spinner>
                 <mat-icon *ngIf="!saving">save</mat-icon>
@@ -344,25 +341,24 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
               </button>
             </div>
 
-            <!-- New Test Input Section -->
+            <!-- Add Test Row -->
             <div class="add-test-box mt-4">
-              <h3 class="test-box-title">Order New Diagnostic Test</h3>
               <div class="new-test-grid">
                 <div class="test-input-col">
                   <label class="field-label">Test Name</label>
                   <input
                     class="rx-input"
                     [(ngModel)]="newTestName"
-                    placeholder="e.g. Complete Blood Count (CBC) / Fasting Blood Sugar / Chest X-Ray"
+                    placeholder="e.g. Complete Blood Count (CBC) / Fasting Blood Sugar"
                   />
                 </div>
 
                 <div class="test-input-col">
-                  <label class="field-label">Preparation / Clinical Note</label>
+                  <label class="field-label">Clinical Instructions</label>
                   <input
                     class="rx-input"
                     [(ngModel)]="newTestInstructions"
-                    placeholder="e.g. 10 hours fasting required / Urgent"
+                    placeholder="e.g. 10 hours fasting required"
                   />
                 </div>
 
@@ -383,20 +379,18 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
                     (click)="addTest()"
                     [disabled]="!newTestName.trim()"
                   >
-                    <mat-icon>add_circle</mat-icon>
+                    <mat-icon>add</mat-icon>
                     <span>Add Test</span>
                   </button>
                 </div>
               </div>
             </div>
 
-            <!-- Existing Tests List -->
-            <div class="tests-list mt-6">
-              <h3 class="test-box-title">Ordered Diagnostic Tests ({{ medicalTests.length }})</h3>
-
+            <!-- Tests List -->
+            <div class="tests-list mt-5">
               <div *ngIf="medicalTests.length === 0" class="empty-tests-box">
                 <mat-icon class="empty-icon">science</mat-icon>
-                <p>No diagnostic tests ordered yet for this consultation.</p>
+                <p>No diagnostic tests ordered for this consultation.</p>
               </div>
 
               <div *ngIf="medicalTests.length > 0" class="tests-cards-list">
@@ -411,7 +405,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
                         </span>
                       </div>
                       <div class="test-instructions" *ngIf="test.instructions">
-                        <span class="lbl">Instructions:</span> {{ test.instructions }}
+                        <span class="lbl">Note:</span> {{ test.instructions }}
                       </div>
                     </div>
 
@@ -422,20 +416,19 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
                     </div>
                   </div>
 
-                  <!-- Test Results & Report Findings -->
+                  <!-- Findings & Upload File -->
                   <div class="test-result-row">
                     <div class="result-findings-col">
-                      <label class="field-label">Diagnostic Findings & Values:</label>
+                      <label class="field-label">Lab Findings & Values</label>
                       <input
                         class="rx-input"
                         [(ngModel)]="test.resultNotes"
-                        placeholder="Enter lab findings, abnormal markers, or test values..."
+                        placeholder="Enter lab findings or observations..."
                       />
                     </div>
 
-                    <!-- File Attachment Upload / Link -->
                     <div class="result-file-col">
-                      <label class="field-label">Report Attachment:</label>
+                      <label class="field-label">Report Attachment</label>
                       <div class="file-action-wrap">
                         <input
                           #fileInput
@@ -453,13 +446,13 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
                         >
                           <mat-spinner *ngIf="uploadingFileIndex === idx" diameter="16" class="mr-1"></mat-spinner>
                           <mat-icon *ngIf="uploadingFileIndex !== idx">attach_file</mat-icon>
-                          <span>Upload Report PDF/Image</span>
+                          <span>Upload PDF/Image</span>
                         </button>
 
                         <div *ngIf="test.resultFileUrl" class="file-attached-badge">
                           <a [href]="test.resultFileUrl" target="_blank" class="file-link">
                             <mat-icon>description</mat-icon>
-                            <span>View Attached Report</span>
+                            <span>View Report</span>
                           </a>
                           <button mat-icon-button (click)="fileInput.click()" title="Replace file">
                             <mat-icon class="text-xs">sync</mat-icon>
@@ -474,21 +467,18 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
           </mat-card>
         </div>
 
-        <!-- TAB 3: Patient Diagnostic Details -->
+        <!-- TAB 3: Patient Diagnostic Health Details -->
         <div *ngIf="activeTab === 'diagnosis_info'" class="tab-content-area">
           <mat-card class="section-card">
             <h2 class="card-title flex items-center gap-2">
               <mat-icon class="text-teal-700">monitor_heart</mat-icon>
-              <span>Patient Clinical Diagnosis & Health Profile</span>
+              <span>Patient Health Details</span>
             </h2>
-            <p class="card-desc">
-              Clinical background provided by patient to facilitate accurate diagnosis and prescription safety.
-            </p>
 
             <div class="clinical-details-grid mt-4">
               <div class="detail-box">
                 <span class="box-label">Blood Group</span>
-                <span class="box-value font-bold text-rose-700">
+                <span class="box-value font-bold" [class.text-rose-700]="!!appointment.bookedFor.bloodGroup">
                   {{ appointment.bookedFor.bloodGroup || 'Not Documented' }}
                 </span>
               </div>
@@ -501,7 +491,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
               </div>
 
               <div class="detail-box">
-                <span class="box-label">Biological Gender</span>
+                <span class="box-label">Gender</span>
                 <span class="box-value capitalize">
                   {{ appointment.bookedFor.gender || 'Not Documented' }}
                 </span>
@@ -516,16 +506,16 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
               </div>
 
               <div class="detail-box full-width">
-                <span class="box-label text-rose-700 font-bold">⚠️ Known Allergies & Drug Sensitivities</span>
+                <span class="box-label text-rose-700 font-bold">⚠️ Known Allergies & Sensitivities</span>
                 <div class="allergy-display-box" [class.alert-border]="!!appointment.bookedFor.allergies">
-                  {{ appointment.bookedFor.allergies || 'No known allergies reported by the patient.' }}
+                  {{ appointment.bookedFor.allergies || 'No known allergies reported.' }}
                 </div>
               </div>
 
               <div class="detail-box full-width">
-                <span class="box-label font-bold">Pre-Existing / Chronic Health Conditions</span>
+                <span class="box-label font-bold">Pre-Existing Conditions</span>
                 <div class="condition-display-box">
-                  {{ appointment.bookedFor.chronicConditions || 'No pre-existing or chronic medical conditions reported.' }}
+                  {{ appointment.bookedFor.chronicConditions || 'No chronic medical conditions reported.' }}
                 </div>
               </div>
 
@@ -542,30 +532,21 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
         <!-- TAB 4: Patient History Under THIS Doctor (Strict Doctor Scoping) -->
         <div *ngIf="activeTab === 'past_history'" class="tab-content-area">
           <mat-card class="section-card">
-            <div class="card-title-bar">
-              <div>
-                <h2 class="card-title flex items-center gap-2">
-                  <mat-icon class="text-teal-700">history_edu</mat-icon>
-                  <span>Patient Past Consultation & Prescription History (Under Your Care)</span>
-                </h2>
-                <p class="card-desc">
-                  Chronological record of visits and prescriptions provided by your practice to this patient.
-                </p>
-              </div>
-            </div>
+            <h2 class="card-title flex items-center gap-2">
+              <mat-icon class="text-teal-700">history_edu</mat-icon>
+              <span>Past Visits Under Your Care</span>
+            </h2>
 
             <!-- First-time patient with this doctor -->
-            <div *ngIf="pastVisitsWithThisDoctor.length === 0" class="privacy-notice-box mt-4">
-              <mat-icon class="privacy-icon">shield</mat-icon>
-              <div>
-                <h3 class="privacy-title">First Visit Under Your Practice</h3>
-                <p class="privacy-desc">
-                  This patient has no previous completed consultations or prescriptions recorded under your care.
-                </p>
-                <div class="privacy-policy-tag">
-                  🔒 Doctor-Patient Confidentiality: In accordance with medical privacy standards, consultations and prescriptions from other practitioners are strictly confidential and inaccessible to other doctors.
-                </div>
-              </div>
+            <div *ngIf="pastVisitsWithThisDoctor.length === 0" class="empty-history-box mt-4">
+              <mat-icon class="empty-icon">history</mat-icon>
+              <h3 class="empty-title">First Visit Under Your Practice</h3>
+              <p class="empty-desc">
+                This patient has no previous completed consultations or prescriptions recorded under your care.
+              </p>
+              <span class="privacy-tag">
+                🔒 Doctor Privacy: Records from other practitioners remain confidential.
+              </span>
             </div>
 
             <!-- List of Past Prescriptions & Consultations under THIS Doctor -->
@@ -583,7 +564,6 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
                   <app-status-badge [status]="pastApt.status"></app-status-badge>
                 </div>
 
-                <!-- Past Prescription (if prescribed) -->
                 <div *ngIf="pastApt.prescription?.medicines?.length" class="past-section mt-3">
                   <span class="past-lbl">Prescribed Medications:</span>
                   <div class="past-meds-table">
@@ -597,24 +577,11 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
                   </div>
                 </div>
 
-                <!-- Past Advice -->
                 <div *ngIf="pastApt.prescription?.generalAdvice" class="past-section mt-2">
                   <span class="past-lbl">Clinical Advice:</span>
                   <p class="past-text">{{ pastApt.prescription?.generalAdvice }}</p>
                 </div>
 
-                <!-- Past Tests -->
-                <div *ngIf="pastApt.medicalTests?.length" class="past-section mt-2">
-                  <span class="past-lbl">Diagnostic Tests:</span>
-                  <div class="past-tests-pills">
-                    <span *ngFor="let t of pastApt.medicalTests" class="past-test-pill">
-                      {{ t.testName }} ({{ t.status }})
-                      <span *ngIf="t.resultNotes"> - Findings: {{ t.resultNotes }}</span>
-                    </span>
-                  </div>
-                </div>
-
-                <!-- Past Clinical Notes -->
                 <div *ngIf="pastApt.notes" class="past-section mt-2">
                   <span class="past-lbl">Visit Notes:</span>
                   <p class="past-text">{{ pastApt.notes }}</p>
@@ -629,17 +596,16 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
           <mat-card class="section-card">
             <h2 class="card-title flex items-center gap-2">
               <mat-icon class="text-teal-700">edit_note</mat-icon>
-              <span>Doctor's Clinical Notes</span>
+              <span>Clinical Notes</span>
             </h2>
-            <p class="card-desc">Record private consultation observations, patient symptoms, and treatment plan.</p>
 
             <mat-form-field appearance="outline" class="w-full mt-4">
-              <mat-label>Clinical Visit Observations & Diagnosis</mat-label>
+              <mat-label>Clinical Observations & Diagnosis</mat-label>
               <textarea
                 matInput
                 rows="6"
                 [(ngModel)]="visitNotes"
-                placeholder="Enter clinical examination notes, patient presentation, and treatment evaluation..."
+                placeholder="Enter private examination notes and diagnosis..."
               ></textarea>
             </mat-form-field>
 
@@ -672,7 +638,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
               matInput
               rows="3"
               [(ngModel)]="cancelReason"
-              placeholder="e.g. Doctor emergency or clinical rescheduling"
+              placeholder="e.g. Clinical rescheduling or emergency"
             ></textarea>
           </mat-form-field>
 
@@ -696,7 +662,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
     .detail-page {
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 16px;
     }
 
     .back-link {
@@ -725,7 +691,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
       background: #FFFFFF;
       border-radius: 12px;
       border: 1px solid #E7E5E0;
-      padding: 20px 24px;
+      padding: 18px 24px;
     }
 
     .header-main {
@@ -737,7 +703,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
     }
 
     .page-title {
-      font-size: 22px;
+      font-size: 20px;
       font-weight: 800;
       color: #1A2E2E;
       margin: 0;
@@ -753,9 +719,9 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      background: #E0F2FE;
-      color: #0369A1;
-      padding: 3px 8px;
+      background: #EFF6FF;
+      color: #1D4ED8;
+      padding: 3px 10px;
       border-radius: 12px;
       font-size: 11px;
       font-weight: 700;
@@ -778,11 +744,11 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
       color: #0F5C5C !important;
     }
 
-    /* Patient Snapshot Strip */
+    /* Clean Patient Snapshot Strip */
     .patient-snapshot-card {
-      padding: 16px 20px !important;
+      padding: 14px 20px !important;
       border-radius: 12px !important;
-      background: #FAFAF8;
+      background: #FFFFFF;
       border: 1px solid #E7E5E0;
     }
 
@@ -794,14 +760,8 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
       gap: 16px;
     }
 
-    .snapshot-item {
+    .snapshot-patient {
       display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .patient-main {
-      flex-direction: row;
       align-items: center;
       gap: 12px;
     }
@@ -813,74 +773,99 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
       color: #0F5C5C;
     }
 
-    .snapshot-name {
+    .patient-name {
       font-size: 15px;
       font-weight: 800;
       color: #1A2E2E;
     }
 
-    .snapshot-sub {
+    .patient-sub {
       font-size: 12px;
       color: #5C6B6B;
+      margin-top: 1px;
     }
 
-    .snapshot-lbl {
+    .vitals-pills-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .vital-pill {
+      display: flex;
+      flex-direction: column;
+      padding: 6px 12px;
+      border-radius: 8px;
+      background: #F8FAF9;
+      border: 1px solid #E7E5E0;
+      min-width: 100px;
+    }
+
+    .vital-lbl {
       font-size: 10px;
       font-weight: 700;
-      text-transform: uppercase;
       color: #5C6B6B;
-      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
     }
 
-    .blood-group-badge {
-      font-size: 13px;
-      font-weight: 800;
-      color: #B91C1C;
-    }
-
-    .allergies-pill {
+    .vital-val {
       font-size: 12px;
-      font-weight: 600;
-      color: #4B5563;
-    }
-
-    .allergies-pill.has-allergies {
-      background: #FEF2F2;
-      color: #B91C1C;
-      padding: 2px 6px;
-      border-radius: 4px;
-      border: 1px solid #FECACA;
       font-weight: 700;
-    }
-
-    .conditions-text {
-      font-size: 12px;
       color: #1A2E2E;
-      font-weight: 600;
-      max-width: 200px;
+      margin-top: 2px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      max-width: 140px;
     }
 
-    .fee-box {
-      align-items: flex-end;
+    .blood-pill .vital-val {
+      color: #B91C1C;
     }
 
-    .fee-amount {
-      font-size: 16px;
+    .blood-pill.unspecified .vital-val {
+      color: #6B7280;
+      font-weight: 600;
+    }
+
+    .allergy-alert {
+      background: #FEF2F2;
+      border-color: #FECACA;
+    }
+
+    .allergy-alert .vital-val {
+      color: #B91C1C;
+    }
+
+    .fee-pill {
+      background: #F0FDF4;
+      border-color: #BBF7D0;
+    }
+
+    .fee-text {
+      font-size: 14px;
       font-weight: 800;
-      color: #1A2E2E;
+      color: #14532D;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 2px;
     }
 
-    .pay-tag {
+    .pay-badge {
       font-size: 9px;
       font-weight: 700;
       color: #D97706;
+      padding: 1px 4px;
+      border-radius: 3px;
+      background: #FEF3C7;
     }
 
-    .pay-tag.paid {
-      color: #16A34A;
+    .pay-badge.paid {
+      color: #15803D;
+      background: #DCFCE7;
     }
 
     /* Workspace Tabs Bar */
@@ -888,14 +873,14 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
       display: flex;
       gap: 8px;
       overflow-x: auto;
-      padding-bottom: 4px;
+      padding-bottom: 2px;
     }
 
     .workspace-tab-btn {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 10px 16px;
+      padding: 9px 15px;
       background: #FFFFFF;
       border: 1px solid #E7E5E0;
       border-radius: 8px;
@@ -939,7 +924,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
 
     /* Section Cards & Forms */
     .section-card {
-      padding: 24px !important;
+      padding: 20px 24px !important;
       border-radius: 12px !important;
       background: #FFFFFF;
       border: 1px solid #E7E5E0;
@@ -951,7 +936,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
       justify-content: space-between;
       flex-wrap: wrap;
       gap: 16px;
-      padding-bottom: 16px;
+      padding-bottom: 14px;
       border-bottom: 1px solid #F0EFEA;
     }
 
@@ -960,12 +945,6 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
       font-weight: 800;
       color: #1A2E2E;
       margin: 0;
-    }
-
-    .card-desc {
-      font-size: 12px;
-      color: #5C6B6B;
-      margin: 2px 0 0;
     }
 
     /* Prescription Builder Table */
@@ -1049,14 +1028,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
       background: #F8FAF9;
       border: 1px dashed #A0C6C6;
       border-radius: 10px;
-      padding: 16px 18px;
-    }
-
-    .test-box-title {
-      font-size: 13px;
-      font-weight: 700;
-      color: #0F5C5C;
-      margin: 0 0 12px;
+      padding: 14px 16px;
     }
 
     .new-test-grid {
@@ -1090,27 +1062,27 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
 
     .empty-tests-box {
       text-align: center;
-      padding: 30px;
+      padding: 24px;
       color: #6B7280;
     }
 
     .empty-tests-box mat-icon {
-      font-size: 36px;
-      width: 36px;
-      height: 36px;
+      font-size: 32px;
+      width: 32px;
+      height: 32px;
       color: #9CA3AF;
     }
 
     .tests-cards-list {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
     }
 
     .test-card-item {
       border: 1px solid #E7E5E0;
       border-radius: 8px;
-      padding: 14px 16px;
+      padding: 12px 14px;
       background: #FAFAF8;
     }
 
@@ -1118,7 +1090,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
 
     .test-title {
@@ -1155,7 +1127,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
     .test-instructions {
       font-size: 12px;
       color: #4B5563;
-      margin-top: 4px;
+      margin-top: 3px;
     }
 
     .test-instructions .lbl {
@@ -1165,20 +1137,20 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
 
     .test-result-row {
       display: flex;
-      gap: 16px;
-      padding-top: 10px;
+      gap: 14px;
+      padding-top: 8px;
       border-top: 1px solid #E5E7EB;
       flex-wrap: wrap;
     }
 
     .result-findings-col {
       flex: 2;
-      min-width: 250px;
+      min-width: 220px;
     }
 
     .result-file-col {
       flex: 1;
-      min-width: 200px;
+      min-width: 180px;
     }
 
     .file-attached-badge {
@@ -1207,7 +1179,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
     .clinical-details-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 14px;
+      gap: 12px;
     }
 
     @media (max-width: 768px) {
@@ -1220,10 +1192,10 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
       background: #FAFAF8;
       border: 1px solid #E7E5E0;
       border-radius: 8px;
-      padding: 12px 14px;
+      padding: 10px 12px;
       display: flex;
       flex-direction: column;
-      gap: 3px;
+      gap: 2px;
     }
 
     .detail-box.full-width {
@@ -1231,15 +1203,15 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
     }
 
     .box-label {
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 700;
       color: #5C6B6B;
       text-transform: uppercase;
-      letter-spacing: 0.4px;
+      letter-spacing: 0.3px;
     }
 
     .box-value {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
       color: #1A2E2E;
     }
@@ -1251,7 +1223,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
       padding: 8px 12px;
       border-radius: 6px;
       border: 1px solid #E5E7EB;
-      margin-top: 4px;
+      margin-top: 3px;
       line-height: 1.4;
     }
 
@@ -1262,59 +1234,57 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
       font-weight: 700;
     }
 
-    /* Privacy Notice Box */
-    .privacy-notice-box {
-      display: flex;
-      align-items: flex-start;
-      gap: 14px;
-      background: #F0FDF4;
-      border: 1px solid #BBF7D0;
+    /* Clean History Box */
+    .empty-history-box {
+      text-align: center;
+      padding: 30px 20px;
+      background: #F8FAF9;
+      border: 1px dashed #A0C6C6;
       border-radius: 10px;
-      padding: 18px 20px;
     }
 
-    .privacy-icon {
-      color: #16A34A;
-      font-size: 28px;
-      width: 28px;
-      height: 28px;
-      flex-shrink: 0;
+    .empty-history-box .empty-icon {
+      font-size: 36px;
+      width: 36px;
+      height: 36px;
+      color: #0F5C5C;
+      margin-bottom: 6px;
     }
 
-    .privacy-title {
+    .empty-title {
       font-size: 15px;
       font-weight: 800;
-      color: #14532D;
+      color: #1A2E2E;
       margin: 0;
     }
 
-    .privacy-desc {
+    .empty-desc {
       font-size: 13px;
-      color: #166534;
-      margin: 4px 0 8px;
+      color: #5C6B6B;
+      margin: 4px 0 10px;
     }
 
-    .privacy-policy-tag {
+    .privacy-tag {
       font-size: 11px;
-      color: #374151;
-      background: #FFFFFF;
-      padding: 6px 10px;
+      color: #0F5C5C;
+      background: #E6F4F1;
+      padding: 4px 10px;
       border-radius: 6px;
-      border: 1px solid #E5E7EB;
       display: inline-block;
+      font-weight: 600;
     }
 
     /* Past Visits List */
     .past-visits-list {
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 12px;
     }
 
     .past-visit-card {
       border: 1px solid #E7E5E0;
-      border-radius: 10px;
-      padding: 16px;
+      border-radius: 8px;
+      padding: 14px;
       background: #FAFAF8;
     }
 
@@ -1322,12 +1292,12 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      padding-bottom: 8px;
+      padding-bottom: 6px;
       border-bottom: 1px solid #E5E7EB;
     }
 
     .past-visit-date {
-      font-size: 14px;
+      font-size: 13px;
       color: #0F5C5C;
     }
 
@@ -1365,21 +1335,6 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
       border-radius: 6px;
       border: 1px solid #E5E7EB;
       margin: 0;
-    }
-
-    .past-tests-pills {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-
-    .past-test-pill {
-      background: #EFF6FF;
-      color: #1E40AF;
-      padding: 3px 8px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 600;
     }
 
     /* Modal Backdrop */
@@ -1549,6 +1504,22 @@ export class DoctorAppointmentDetailComponent implements OnInit {
 
   get isFirstTimePatient(): boolean {
     return this.pastVisitsWithThisDoctor.length === 0;
+  }
+
+  get validPrescriptionMedicinesCount(): number {
+    return this.prescriptionMedicines.filter((m) => m.name && m.name.trim().length > 0).length;
+  }
+
+  /**
+   * Evaluates if there is a valid prescription to print.
+   * If the patient is on their first visit and no prescription has been written yet,
+   * print option is restricted until doctor enters/saves medications.
+   */
+  get hasPrescription(): boolean {
+    const hasSavedMeds = (this.appointment?.prescription?.medicines?.length || 0) > 0;
+    const hasCurrentMeds = this.validPrescriptionMedicinesCount > 0;
+    const hasAdvice = !!(this.prescriptionGeneralAdvice && this.prescriptionGeneralAdvice.trim());
+    return hasSavedMeds || hasCurrentMeds || hasAdvice;
   }
 
   getPatientName(): string {
@@ -1741,7 +1712,216 @@ export class DoctorAppointmentDetailComponent implements OnInit {
     });
   }
 
+  /**
+   * Generates a clean medical prescription document containing:
+   * 1. Doctor & Clinic Details
+   * 2. Patient Medical Details & Vitals
+   * 3. ℞ Prescribed Medicines, Advice, and Follow-Up Date
+   *
+   * Note: Strictly excludes test reports / files as requested.
+   */
   printPrescription(): void {
-    window.print();
+    if (!this.hasPrescription) {
+      this.notificationService.warning('Please write and save prescription details before printing.');
+      return;
+    }
+
+    const apt = this.appointment;
+    if (!apt) return;
+
+    const patientName = this.getPatientName();
+    const doctorName = this.currentDoctor
+      ? `${this.currentDoctor.title || 'Dr.'} ${this.currentDoctor.name}`
+      : 'Consulting Doctor';
+    const specialization =
+      (this.currentDoctor?.specializationId as any)?.name ||
+      (this.currentDoctor as any)?.specialization ||
+      'General Physician';
+    const clinicName = (this.currentDoctor?.clinicId as any)?.name || 'Docyra Healthcare Practice';
+    const license = this.currentDoctor?.licenseNumber || '';
+    const phone = this.currentDoctor?.phone || '';
+    const email = this.currentDoctor?.email || '';
+
+    // Patient Medical Details
+    const bloodGroup = apt.bookedFor?.bloodGroup ? apt.bookedFor.bloodGroup : 'Not Specified';
+    const allergies = apt.bookedFor?.allergies ? apt.bookedFor.allergies : 'None Reported';
+    const conditions = apt.bookedFor?.chronicConditions ? apt.bookedFor.chronicConditions : 'None Reported';
+    const gender = apt.bookedFor?.gender ? apt.bookedFor.gender.toUpperCase() : 'N/A';
+    const dob = apt.bookedFor?.dateOfBirth
+      ? new Date(apt.bookedFor.dateOfBirth).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+      : 'N/A';
+    const visitDate = apt.slotStart
+      ? new Date(apt.slotStart).toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })
+      : '';
+    const visitTime = apt.slotStart
+      ? new Date(apt.slotStart).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
+      : '';
+
+    // Medicines from active state or saved state
+    const validMeds = this.prescriptionMedicines.filter((m) => m.name && m.name.trim().length > 0);
+    const medsToPrint = validMeds.length > 0 ? validMeds : (apt.prescription?.medicines || []);
+
+    const medicinesRowsHtml = medsToPrint
+      .map(
+        (m, idx) => `
+        <tr>
+          <td style="padding: 10px 8px; border-bottom: 1px solid #E5E7EB; font-weight: 700; color: #111827;">${idx + 1}. ${m.name}</td>
+          <td style="padding: 10px 8px; border-bottom: 1px solid #E5E7EB; color: #374151;">${m.dosage || '-'}</td>
+          <td style="padding: 10px 8px; border-bottom: 1px solid #E5E7EB; color: #374151;">${m.frequency || '-'}</td>
+          <td style="padding: 10px 8px; border-bottom: 1px solid #E5E7EB; color: #374151;">${m.duration || '-'}</td>
+          <td style="padding: 10px 8px; border-bottom: 1px solid #E5E7EB; color: #4B5563; font-size: 12px;">${m.instructions || '-'}</td>
+        </tr>
+      `
+      )
+      .join('');
+
+    const adviceText = this.prescriptionGeneralAdvice.trim() || apt.prescription?.generalAdvice || '';
+    const adviceHtml = adviceText
+      ? `
+        <div style="margin-top: 18px; padding: 12px 14px; background: #F9FAFB; border-left: 4px solid #0F5C5C; border-radius: 4px;">
+          <div style="font-size: 11px; font-weight: 700; color: #0F5C5C; text-transform: uppercase; margin-bottom: 4px;">General Advice & Instructions</div>
+          <div style="font-size: 13px; color: #1F2937; line-height: 1.5;">${adviceText.replace(/\n/g, '<br/>')}</div>
+        </div>
+      `
+      : '';
+
+    const followUpText = this.prescriptionFollowUpDate.trim() || apt.prescription?.followUpDate || '';
+    const followUpHtml = followUpText
+      ? `
+        <div style="margin-top: 14px; font-size: 13px; color: #374151;">
+          <strong>Recommended Follow-up Visit:</strong> ${followUpText}
+        </div>
+      `
+      : '';
+
+    const printWindow = window.open('', '_blank', 'width=850,height=900');
+    if (!printWindow) {
+      this.notificationService.error('Please allow popups to print or download prescription');
+      return;
+    }
+
+    const printableDocument = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Prescription - ${patientName}</title>
+        <meta charset="utf-8" />
+        <style>
+          @page { size: A4; margin: 15mm; }
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; color: #1F2937; margin: 0; padding: 24px; font-size: 13px; line-height: 1.4; }
+          .header-table { width: 100%; border-bottom: 2px solid #0F5C5C; padding-bottom: 12px; margin-bottom: 14px; }
+          .clinic-brand { font-size: 20px; font-weight: 800; color: #0F5C5C; }
+          .doc-name { font-size: 17px; font-weight: 700; color: #111827; }
+          .doc-spec { font-size: 12px; color: #4B5563; font-weight: 600; }
+          .patient-box { background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 6px; padding: 12px 14px; margin-bottom: 16px; }
+          .patient-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+          .grid-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #6B7280; }
+          .grid-val { font-size: 13px; font-weight: 600; color: #111827; margin-top: 2px; }
+          .alert-val { color: #B91C1C; font-weight: 700; }
+          .rx-symbol { font-size: 26px; font-weight: 800; font-family: serif; color: #0F5C5C; margin: 12px 0 6px; }
+          .meds-table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+          .meds-table th { background: #F3F4F6; text-align: left; padding: 8px; font-size: 11px; text-transform: uppercase; color: #4B5563; border-bottom: 1px solid #D1D5DB; }
+          .footer-section { margin-top: 50px; display: flex; justify-content: space-between; align-items: flex-end; padding-top: 20px; border-top: 1px solid #E5E7EB; }
+          .seal-text { font-size: 11px; color: #6B7280; }
+          .sign-line { width: 180px; border-top: 1px dashed #4B5563; text-align: center; padding-top: 4px; font-size: 12px; font-weight: 600; }
+          @media print {
+            body { padding: 0; }
+          }
+        </style>
+      </head>
+      <body>
+        <table class="header-table">
+          <tr>
+            <td style="vertical-align: top;">
+              <div class="clinic-brand">${clinicName}</div>
+              <div style="font-size: 11px; color: #6B7280; margin-top: 2px;">Docyra Verified Practice</div>
+            </td>
+            <td style="text-align: right; vertical-align: top;">
+              <div class="doc-name">${doctorName}</div>
+              <div class="doc-spec">${specialization} ${license ? '• Reg: ' + license : ''}</div>
+              <div style="font-size: 11px; color: #6B7280;">${phone ? 'Tel: ' + phone : ''} ${email ? '• ' + email : ''}</div>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Patient Medical Details Section -->
+        <div class="patient-box">
+          <div class="patient-grid">
+            <div>
+              <div class="grid-lbl">Patient Name</div>
+              <div class="grid-val">${patientName}</div>
+            </div>
+            <div>
+              <div class="grid-lbl">DOB / Gender</div>
+              <div class="grid-val">${dob} / ${gender}</div>
+            </div>
+            <div>
+              <div class="grid-lbl">Blood Group</div>
+              <div class="grid-val alert-val">${bloodGroup}</div>
+            </div>
+            <div>
+              <div class="grid-lbl">Consultation Date</div>
+              <div class="grid-val">${visitDate} ${visitTime}</div>
+            </div>
+          </div>
+          <div class="patient-grid" style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed #E5E7EB;">
+            <div style="grid-column: span 2;">
+              <div class="grid-lbl">Known Allergies</div>
+              <div class="grid-val" style="color: ${allergies !== 'None Reported' ? '#B91C1C' : '#111827'}; font-weight: 700;">${allergies}</div>
+            </div>
+            <div style="grid-column: span 2;">
+              <div class="grid-lbl">Pre-Existing Conditions</div>
+              <div class="grid-val">${conditions}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ℞ Digital Prescription -->
+        <div class="rx-symbol">℞</div>
+        <table class="meds-table">
+          <thead>
+            <tr>
+              <th style="width: 35%;">Medicine & Strength</th>
+              <th style="width: 15%;">Dosage</th>
+              <th style="width: 20%;">Frequency</th>
+              <th style="width: 15%;">Duration</th>
+              <th style="width: 15%;">Instructions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${medicinesRowsHtml || '<tr><td colspan="5" style="padding: 12px; text-align: center; color: #6B7280;">No medications prescribed.</td></tr>'}
+          </tbody>
+        </table>
+
+        ${adviceHtml}
+        ${followUpHtml}
+
+        <div class="footer-section">
+          <div class="seal-text">
+            Generated via Docyra Digital Healthcare<br/>
+            Appointment #${apt._id ? apt._id.slice(-8) : ''} • Date: ${new Date().toLocaleDateString('en-IN')}
+          </div>
+          <div>
+            <div class="sign-line">
+              ${doctorName}<br/>
+              <span style="font-size: 10px; color: #6B7280; font-weight: normal;">Digitally Authorized</span>
+            </div>
+          </div>
+        </div>
+
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+            }, 300);
+          };
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.open();
+    printWindow.document.write(printableDocument);
+    printWindow.document.close();
   }
 }
