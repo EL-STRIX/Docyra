@@ -37,10 +37,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
           </p>
         </div>
         <div class="header-actions">
-          <button mat-stroked-button (click)="loadProfile()" [disabled]="saving || loading">
-            <mat-icon>refresh</mat-icon>
-            <span>Reset</span>
-          </button>
           <button mat-flat-button color="primary" (click)="saveProfile()" [disabled]="saving || loading">
             <mat-spinner *ngIf="saving" diameter="18" class="mr-2"></mat-spinner>
             <mat-icon *ngIf="!saving">check</mat-icon>
