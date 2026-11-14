@@ -1,4 +1,5 @@
 import { doctorService } from '../services/doctorService.js';
+import { clinicService } from '../services/clinicService.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
 export const addDoctorToClinic = asyncHandler(async (req, res) => {
@@ -81,10 +82,30 @@ export const reviewClinicDoctorApplication = asyncHandler(async (req, res) => {
   });
 });
 
+export const getClinicRevenue = asyncHandler(async (req, res) => {
+  const clinicId = req.user.clinicId;
+  const { period, startDate, endDate, year, doctorId } = req.query;
+
+  const result = await clinicService.getClinicRevenueAnalytics({
+    clinicId,
+    period,
+    startDate,
+    endDate,
+    year,
+    doctorId,
+  });
+
+  res.status(200).json({
+    success: true,
+    data: result,
+  });
+});
+
 export default {
   addDoctorToClinic,
   listClinicDoctors,
   updateClinicDoctor,
   listClinicDoctorApplications,
   reviewClinicDoctorApplication,
+  getClinicRevenue,
 };

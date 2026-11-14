@@ -5,6 +5,7 @@ import {
   updateClinicDoctor,
   listClinicDoctorApplications,
   reviewClinicDoctorApplication,
+  getClinicRevenue,
 } from '../../controllers/clinicAdmin.controller.js';
 import { getClinicAppointments } from '../../controllers/appointment.controller.js';
 import { authenticate } from '../../middleware/auth.js';
@@ -41,5 +42,8 @@ router.patch(
 
 // Clinic Appointments management
 router.get('/appointments', getClinicAppointments);
+
+// Clinic Revenue & Income Analytics (strictly completed consultations)
+router.get('/revenue', getClinicRevenue);
 
 export default router;

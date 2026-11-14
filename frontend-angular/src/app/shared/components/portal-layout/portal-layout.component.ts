@@ -465,6 +465,7 @@ export class PortalLayoutComponent {
         { label: 'Doctor Applications', path: '/clinic/applications', icon: 'how_to_reg' },
         { label: 'Manage Doctors', path: '/clinic/doctors', icon: 'medical_services' },
         { label: 'Clinic Appointments', path: '/clinic/appointments', icon: 'event_note' },
+        { label: 'Revenue Analytics', path: '/clinic/revenue', icon: 'payments' },
         { label: 'Clinic Profile', path: '/clinic/profile', icon: 'domain' },
       ];
     } else if (role === 'admin') {

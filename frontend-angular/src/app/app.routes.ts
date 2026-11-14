@@ -45,6 +45,7 @@ import { ManageDoctorsComponent } from './features/clinic-admin/doctors/manage-d
 import { ClinicAppointmentsComponent } from './features/clinic-admin/appointments/clinic-appointments.component';
 import { ClinicProfileComponent } from './features/clinic-admin/profile/clinic-profile.component';
 import { ClinicDoctorApplicationsComponent } from './features/clinic-admin/applications/clinic-doctor-applications.component';
+import { ClinicRevenueComponent } from './features/clinic-admin/revenue/clinic-revenue.component';
 
 // Platform Admin Components (Screen 41-48)
 import { AdminDashboardComponent } from './features/admin/dashboard/admin-dashboard.component';
@@ -101,6 +102,7 @@ export const routes: Routes = [
         children: [
           { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
           { path: 'dashboard', component: ClinicDashboardComponent },
+          { path: 'revenue', component: ClinicRevenueComponent },
           { path: 'applications', component: ClinicDoctorApplicationsComponent },
           { path: 'doctors', component: ManageDoctorsComponent },
           { path: 'appointments', component: ClinicAppointmentsComponent },

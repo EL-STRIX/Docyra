@@ -109,4 +109,20 @@ export class ClinicService {
       { withCredentials: true }
     );
   }
+
+  getClinicRevenue(params?: { period?: string; startDate?: string; endDate?: string; year?: number; doctorId?: string }): Observable<ApiResponse<any>> {
+    let query = '';
+    if (params) {
+      const q = new URLSearchParams();
+      if (params.period) q.set('period', params.period);
+      if (params.startDate) q.set('startDate', params.startDate);
+      if (params.endDate) q.set('endDate', params.endDate);
+      if (params.year) q.set('year', params.year.toString());
+      if (params.doctorId) q.set('doctorId', params.doctorId);
+      query = `?${q.toString()}`;
+    }
+    return this.http.get<ApiResponse<any>>(`${environment.apiBaseUrl}/clinic-admin/revenue${query}`, {
+      withCredentials: true,
+    });
+  }
 }

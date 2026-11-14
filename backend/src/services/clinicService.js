@@ -1,5 +1,6 @@
-import { Clinic, DoctorProfile } from '../models/index.js';
-import { CLINIC_SUBSCRIPTION_STATUS, ERROR_CODES } from '../config/constants.js';
+import mongoose from 'mongoose';
+import { Clinic, DoctorProfile, Appointment } from '../models/index.js';
+import { CLINIC_SUBSCRIPTION_STATUS, ERROR_CODES, APPOINTMENT_STATUS } from '../config/constants.js';
 import { NotFoundError, ConflictError } from '../utils/AppError.js';
 import logger from '../utils/logger.js';
 
@@ -233,6 +234,244 @@ class ClinicService {
         total,
         totalPages: Math.ceil(total / safeLimit),
       },
+    };
+  }
+
+  /**
+   * Clinic Admin: Revenue Analytics & Records based strictly on completed consultations
+   */
+  async getClinicRevenueAnalytics({ clinicId, period = 'day', startDate, endDate, year, doctorId }) {
+    if (!clinicId) {
+      throw new NotFoundError('Clinic ID is required', ERROR_CODES.VALIDATION_ERROR);
+    }
+
+    const query = {
+      clinicId: new mongoose.Types.ObjectId(clinicId),
+      status: APPOINTMENT_STATUS.COMPLETED, // STRICTLY COMPLETED APPOINTMENTS ONLY
+    };
+
+    if (doctorId && mongoose.Types.ObjectId.isValid(doctorId)) {
+      query.doctorId = new mongoose.Types.ObjectId(doctorId);
+    }
+
+    const completedAppointments = await Appointment.find(query)
+      .populate({
+        path: 'doctorId',
+        select: 'userId specializationId consultationFee title qualifications',
+        populate: [
+          { path: 'userId', select: 'name email phone' },
+          { path: 'specializationId', select: 'name' },
+        ],
+      })
+      .populate('patientId', 'name email phone')
+      .populate('bookedForId', 'name relationship gender')
+      .sort({ updatedAt: -1, slotStart: -1 })
+      .lean();
+
+    // Helper for Indian Standard Time (Asia/Kolkata) formatting
+    const toIST = (date) => {
+      const d = new Date(date);
+      const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(d); // YYYY-MM-DD
+      const [y, m, day] = dateStr.split('-');
+      return {
+        fullDate: dateStr,
+        year: y,
+        month: `${y}-${m}`,
+        day,
+        formatted: new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric' }).format(d),
+        shortDay: new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short' }).format(d),
+        monthLabel: new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', month: 'short', year: 'numeric' }).format(d),
+        shortMonth: new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', month: 'short' }).format(d),
+      };
+    };
+
+    const todayIST = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
+    const currentYearIST = todayIST.split('-')[0];
+
+    let todayRevenue = 0;
+    let todayCompletedVisits = 0;
+    let totalRevenue = 0;
+    let totalCompletedVisits = completedAppointments.length;
+
+    const doctorMap = new Map();
+
+    const processedApts = completedAppointments.map((apt) => {
+      const fee = typeof apt.consultationFee === 'number' && apt.consultationFee >= 0
+        ? apt.consultationFee
+        : (apt.doctorId?.consultationFee || 500);
+
+      const completionDate = apt.updatedAt || apt.slotStart || apt.createdAt;
+      const ist = toIST(completionDate);
+
+      totalRevenue += fee;
+
+      if (ist.fullDate === todayIST) {
+        todayRevenue += fee;
+        todayCompletedVisits += 1;
+      }
+
+      // Group doctor revenue
+      const docId = apt.doctorId?._id?.toString() || 'unknown';
+      let docEntry = doctorMap.get(docId);
+      if (!docEntry) {
+        const dObj = apt.doctorId || {};
+        let docName = dObj.userId?.name || dObj.name || 'Practitioner';
+        if (!/^dr\.?\s+/i.test(docName)) {
+          docName = `Dr. ${docName}`;
+        }
+        docEntry = {
+          doctorId: docId,
+          doctorName: docName,
+          specialization: dObj.specializationId?.name || 'General Medicine',
+          consultationFee: dObj.consultationFee || 500,
+          completedVisits: 0,
+          revenue: 0,
+        };
+        doctorMap.set(docId, docEntry);
+      }
+      docEntry.completedVisits += 1;
+      docEntry.revenue += fee;
+
+      let patientName = apt.bookedForId?.name || apt.patientId?.name || 'Patient';
+      if (apt.bookedForType === 'dependent' && apt.bookedForId?.relationship) {
+        patientName += ` (${apt.bookedForId.relationship})`;
+      }
+
+      let docName = apt.doctorId?.userId?.name || apt.doctorId?.name || 'Practitioner';
+      if (!/^dr\.?\s+/i.test(docName)) {
+        docName = `Dr. ${docName}`;
+      }
+
+      return {
+        _id: apt._id,
+        appointmentId: apt._id,
+        patientName,
+        patientEmail: apt.patientId?.email || '',
+        patientPhone: apt.patientId?.phone || '',
+        doctorName,
+        doctorId: apt.doctorId?._id,
+        specialization: apt.doctorId?.specializationId?.name || 'General Medicine',
+        fee,
+        status: apt.status,
+        completedAt: completionDate,
+        appointmentDate: apt.slotStart,
+        istDate: ist.fullDate,
+        istMonth: ist.month,
+        istYear: ist.year,
+        istFormatted: ist.formatted,
+        reasonForVisit: apt.reasonForVisit || 'Medical Consultation',
+      };
+    });
+
+    const averageFeePerVisit = totalCompletedVisits > 0 ? Math.round(totalRevenue / totalCompletedVisits) : 0;
+
+    // Doctor Breakdown
+    const doctorBreakdown = Array.from(doctorMap.values()).map((doc) => ({
+      ...doc,
+      percentage: totalRevenue > 0 ? Math.round((doc.revenue / totalRevenue) * 100) : 0,
+    })).sort((a, b) => b.revenue - a.revenue);
+
+    // Build Chart Data based on period
+    let chartData = [];
+    let periodRevenue = 0;
+    let periodCompletedVisits = 0;
+
+    if (period === 'month') {
+      const selectedYear = year ? String(year) : currentYearIST;
+      const monthsMap = new Map();
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      for (let m = 1; m <= 12; m++) {
+        const mKey = `${selectedYear}-${String(m).padStart(2, '0')}`;
+        monthsMap.set(mKey, {
+          key: mKey,
+          label: `${monthNames[m - 1]} ${selectedYear}`,
+          shortLabel: monthNames[m - 1],
+          revenue: 0,
+          count: 0,
+        });
+      }
+
+      for (const apt of processedApts) {
+        if (apt.istYear === selectedYear && monthsMap.has(apt.istMonth)) {
+          const entry = monthsMap.get(apt.istMonth);
+          entry.revenue += apt.fee;
+          entry.count += 1;
+          periodRevenue += apt.fee;
+          periodCompletedVisits += 1;
+        }
+      }
+
+      chartData = Array.from(monthsMap.values());
+    } else if (period === 'year') {
+      const currentY = parseInt(currentYearIST, 10);
+      const yearsMap = new Map();
+      for (let y = currentY - 4; y <= currentY; y++) {
+        const yKey = String(y);
+        yearsMap.set(yKey, {
+          key: yKey,
+          label: yKey,
+          shortLabel: yKey,
+          revenue: 0,
+          count: 0,
+        });
+      }
+
+      for (const apt of processedApts) {
+        if (yearsMap.has(apt.istYear)) {
+          const entry = yearsMap.get(apt.istYear);
+          entry.revenue += apt.fee;
+          entry.count += 1;
+          periodRevenue += apt.fee;
+          periodCompletedVisits += 1;
+        }
+      }
+
+      chartData = Array.from(yearsMap.values());
+    } else {
+      // Default: 'day' - Show continuous daily breakdown (last 14 days)
+      const daysMap = new Map();
+      for (let i = 13; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dateKey = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(d);
+        const shortLabel = new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short' }).format(d);
+        daysMap.set(dateKey, {
+          key: dateKey,
+          label: shortLabel,
+          shortLabel,
+          date: dateKey,
+          revenue: 0,
+          count: 0,
+        });
+      }
+
+      for (const apt of processedApts) {
+        if (daysMap.has(apt.istDate)) {
+          const entry = daysMap.get(apt.istDate);
+          entry.revenue += apt.fee;
+          entry.count += 1;
+          periodRevenue += apt.fee;
+          periodCompletedVisits += 1;
+        }
+      }
+
+      chartData = Array.from(daysMap.values());
+    }
+
+    return {
+      summary: {
+        todayRevenue,
+        todayCompletedVisits,
+        totalRevenue,
+        totalCompletedVisits,
+        periodRevenue,
+        periodCompletedVisits,
+        averageFeePerVisit,
+        period,
+      },
+      chartData,
+      doctorBreakdown,
+      transactions: processedApts,
     };
   }
 }
