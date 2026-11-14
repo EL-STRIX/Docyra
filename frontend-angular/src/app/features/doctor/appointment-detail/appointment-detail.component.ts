@@ -60,21 +60,37 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
         <!-- Top Status & Actions Header -->
         <div class="detail-header-card">
           <div class="header-main">
-            <div>
-              <div class="flex items-center gap-3 flex-wrap">
+            <div class="header-info">
+              <!-- Title & Status Badge -->
+              <div class="header-title-row">
                 <h1 class="page-title">Appointment #{{ appointment._id | slice:-6 }}</h1>
-                <span class="header-patient-pill">
-                  <mat-icon class="patient-pill-ic">account_circle</mat-icon>
-                  <span class="patient-pill-name">{{ getPatientName() }}</span>
-                  <span *ngIf="appointment.bookedFor.type === 'dependent'" class="header-dep-pill">
-                    {{ appointment.bookedFor.relationship || 'Dependent' }}
-                  </span>
-                </span>
                 <app-status-badge [status]="appointment.status"></app-status-badge>
               </div>
-              <p class="subtitle">
-                {{ appointment.slotStart | portalDate:'EEEE, dd MMM yyyy • h:mm a' }}
-              </p>
+
+              <!-- Subtitle Metadata Bar -->
+              <div class="header-meta-bar">
+                <div class="meta-patient">
+                  <mat-icon class="meta-icon">person</mat-icon>
+                  <span class="meta-patient-name">{{ getPatientName() }}</span>
+                  <span *ngIf="appointment.bookedFor.type === 'dependent'" class="meta-dep-badge">
+                    {{ appointment.bookedFor.relationship || 'Dependent' }}
+                  </span>
+                </div>
+
+                <span class="meta-divider">•</span>
+
+                <div class="meta-item">
+                  <mat-icon class="meta-icon">calendar_today</mat-icon>
+                  <span>{{ appointment.slotStart | portalDate:'EEEE, dd MMM yyyy' }}</span>
+                </div>
+
+                <span class="meta-divider">•</span>
+
+                <div class="meta-item">
+                  <mat-icon class="meta-icon">schedule</mat-icon>
+                  <span>{{ appointment.slotStart | portalDate:'h:mm a' }}</span>
+                </div>
+              </div>
             </div>
 
             <!-- Action Buttons -->
@@ -723,58 +739,77 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
       gap: 16px;
     }
 
-    .page-title {
-      font-size: 20px;
-      font-weight: 800;
-      color: #1A2E2E;
-      margin: 0;
+    .header-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
 
-    .subtitle {
-      font-size: 13px;
-      color: #5C6B6B;
-      margin: 4px 0 0;
-    }
-
-    .status-action-btns {
+    .header-title-row {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       flex-wrap: wrap;
     }
 
-    .print-btn {
-      color: #0F5C5C !important;
+    .page-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: #111827;
+      margin: 0;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
     }
 
-    /* Header Patient Pill */
-    .header-patient-pill {
+    .header-meta-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 4px;
+      flex-wrap: wrap;
+      font-size: 13px;
+      color: #4B5563;
+    }
+
+    .meta-patient {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      padding: 4px 10px;
-      border-radius: 20px;
-      background: #F0FDF4;
-      border: 1px solid #BBF7D0;
-      color: #166534;
-      font-size: 13px;
+      gap: 5px;
+      color: #111827;
+    }
+
+    .meta-patient-name {
       font-weight: 700;
+      color: #111827;
     }
 
-    .patient-pill-ic {
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
-      color: #15803D;
-    }
-
-    .header-dep-pill {
+    .meta-dep-badge {
       font-size: 10px;
       font-weight: 700;
       color: #0369A1;
       background: #E0F2FE;
       padding: 1px 6px;
       border-radius: 4px;
+      margin-left: 2px;
+    }
+
+    .meta-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      color: #4B5563;
+    }
+
+    .meta-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      color: #0F5C5C;
+    }
+
+    .meta-divider {
+      color: #D1D5DB;
+      font-size: 14px;
     }
 
     .payment-indicator {
