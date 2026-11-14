@@ -73,6 +73,48 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: 'Asia/Kolkata',
     },
+    bloodGroup: {
+      type: String,
+      enum: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'unknown', null],
+      default: null,
+    },
+    dateOfBirth: {
+      type: Date,
+      default: null,
+    },
+    gender: {
+      type: String,
+      enum: ['male', 'female', 'other', 'prefer_not_to_say', null],
+      default: null,
+    },
+    allergies: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    chronicConditions: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    emergencyContactName: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    emergencyContactPhone: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    heightCm: {
+      type: Number,
+      default: null,
+    },
+    weightKg: {
+      type: Number,
+      default: null,
+    },
     acceptedTermsVersion: {
       type: String,
       default: '1.0',

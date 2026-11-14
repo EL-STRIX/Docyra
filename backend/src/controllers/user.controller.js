@@ -22,12 +22,36 @@ export const updateMyConsent = asyncHandler(async (req, res) => {
 });
 
 export const updateMyProfile = asyncHandler(async (req, res) => {
-  const { name, phone, timezone, profilePhotoUrl } = req.body;
+  const {
+    name,
+    phone,
+    timezone,
+    profilePhotoUrl,
+    bloodGroup,
+    dateOfBirth,
+    gender,
+    allergies,
+    chronicConditions,
+    emergencyContactName,
+    emergencyContactPhone,
+    heightCm,
+    weightKg,
+  } = req.body;
+
   const result = await userService.updateProfile(req.user._id, {
     name,
     phone,
     timezone,
     profilePhotoUrl,
+    bloodGroup,
+    dateOfBirth,
+    gender,
+    allergies,
+    chronicConditions,
+    emergencyContactName,
+    emergencyContactPhone,
+    heightCm,
+    weightKg,
   });
 
   res.status(200).json({

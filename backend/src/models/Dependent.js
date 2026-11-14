@@ -26,6 +26,39 @@ const dependentSchema = new mongoose.Schema(
       enum: ['male', 'female', 'other', 'prefer_not_to_say'],
       default: 'prefer_not_to_say',
     },
+    bloodGroup: {
+      type: String,
+      enum: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'unknown', null],
+      default: null,
+    },
+    allergies: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    chronicConditions: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    emergencyContactName: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    emergencyContactPhone: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    heightCm: {
+      type: Number,
+      default: null,
+    },
+    weightKg: {
+      type: Number,
+      default: null,
+    },
   },
   {
     timestamps: true,

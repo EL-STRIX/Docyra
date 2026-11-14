@@ -6,6 +6,13 @@ export const createDependentSchema = z.object({
     relationship: z.string().min(2, 'Relationship is required (e.g. child, spouse, parent)').max(50),
     dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date of birth must be in YYYY-MM-DD format'),
     gender: z.enum(['male', 'female', 'other', 'prefer_not_to_say']).default('prefer_not_to_say'),
+    bloodGroup: z.enum(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'unknown']).optional().nullable(),
+    allergies: z.string().max(500).optional().nullable(),
+    chronicConditions: z.string().max(500).optional().nullable(),
+    emergencyContactName: z.string().max(100).optional().nullable(),
+    emergencyContactPhone: z.string().max(30).optional().nullable(),
+    heightCm: z.number().min(20).max(300).optional().nullable(),
+    weightKg: z.number().min(1).max(500).optional().nullable(),
   }),
 });
 
@@ -15,5 +22,12 @@ export const updateDependentSchema = z.object({
     relationship: z.string().min(2).max(50).optional(),
     dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
     gender: z.enum(['male', 'female', 'other', 'prefer_not_to_say']).optional(),
+    bloodGroup: z.enum(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'unknown']).optional().nullable(),
+    allergies: z.string().max(500).optional().nullable(),
+    chronicConditions: z.string().max(500).optional().nullable(),
+    emergencyContactName: z.string().max(100).optional().nullable(),
+    emergencyContactPhone: z.string().max(30).optional().nullable(),
+    heightCm: z.number().min(20).max(300).optional().nullable(),
+    weightKg: z.number().min(1).max(500).optional().nullable(),
   }),
 });

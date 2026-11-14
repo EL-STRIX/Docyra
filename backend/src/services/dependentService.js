@@ -16,6 +16,13 @@ class DependentService {
       relationship: data.relationship,
       dateOfBirth: new Date(data.dateOfBirth),
       gender: data.gender || 'prefer_not_to_say',
+      bloodGroup: data.bloodGroup || null,
+      allergies: data.allergies || '',
+      chronicConditions: data.chronicConditions || '',
+      emergencyContactName: data.emergencyContactName || '',
+      emergencyContactPhone: data.emergencyContactPhone || '',
+      heightCm: data.heightCm ? parseFloat(data.heightCm) : null,
+      weightKg: data.weightKg ? parseFloat(data.weightKg) : null,
     });
 
     logger.info(`Dependent created: ${dependent.name} for patient ${patientId}`);
@@ -80,6 +87,13 @@ class DependentService {
     if (updateData.relationship) dependent.relationship = updateData.relationship;
     if (updateData.dateOfBirth) dependent.dateOfBirth = new Date(updateData.dateOfBirth);
     if (updateData.gender) dependent.gender = updateData.gender;
+    if (updateData.bloodGroup !== undefined) dependent.bloodGroup = updateData.bloodGroup || null;
+    if (updateData.allergies !== undefined) dependent.allergies = updateData.allergies || '';
+    if (updateData.chronicConditions !== undefined) dependent.chronicConditions = updateData.chronicConditions || '';
+    if (updateData.emergencyContactName !== undefined) dependent.emergencyContactName = updateData.emergencyContactName || '';
+    if (updateData.emergencyContactPhone !== undefined) dependent.emergencyContactPhone = updateData.emergencyContactPhone || '';
+    if (updateData.heightCm !== undefined) dependent.heightCm = updateData.heightCm ? parseFloat(updateData.heightCm) : null;
+    if (updateData.weightKg !== undefined) dependent.weightKg = updateData.weightKg ? parseFloat(updateData.weightKg) : null;
 
     await dependent.save();
     return dependent;

@@ -98,16 +98,27 @@ class UserService {
   /**
    * Update profile information
    */
-  async updateProfile(userId, { name, phone, timezone, profilePhotoUrl }) {
+  async updateProfile(userId, updateData = {}) {
     const user = await User.findById(userId);
     if (!user) {
       throw new NotFoundError('User not found', ERROR_CODES.NOT_FOUND);
     }
 
-    if (name) user.name = name;
-    if (phone !== undefined) user.phone = phone;
-    if (timezone) user.timezone = timezone;
-    if (profilePhotoUrl !== undefined) user.profilePhotoUrl = profilePhotoUrl;
+    if (updateData.name) user.name = updateData.name;
+    if (updateData.phone !== undefined) user.phone = updateData.phone;
+    if (updateData.timezone) user.timezone = updateData.timezone;
+    if (updateData.profilePhotoUrl !== undefined) user.profilePhotoUrl = updateData.profilePhotoUrl;
+    if (updateData.bloodGroup !== undefined) user.bloodGroup = updateData.bloodGroup || null;
+    if (updateData.dateOfBirth !== undefined) {
+      user.dateOfBirth = updateData.dateOfBirth ? new Date(updateData.dateOfBirth) : null;
+    }
+    if (updateData.gender !== undefined) user.gender = updateData.gender || null;
+    if (updateData.allergies !== undefined) user.allergies = updateData.allergies || '';
+    if (updateData.chronicConditions !== undefined) user.chronicConditions = updateData.chronicConditions || '';
+    if (updateData.emergencyContactName !== undefined) user.emergencyContactName = updateData.emergencyContactName || '';
+    if (updateData.emergencyContactPhone !== undefined) user.emergencyContactPhone = updateData.emergencyContactPhone || '';
+    if (updateData.heightCm !== undefined) user.heightCm = updateData.heightCm ? parseFloat(updateData.heightCm) : null;
+    if (updateData.weightKg !== undefined) user.weightKg = updateData.weightKg ? parseFloat(updateData.weightKg) : null;
 
     await user.save();
 
