@@ -72,10 +72,6 @@ export interface ClinicDoctorApp {
             <mat-icon>people</mat-icon>
             <span>Manage Doctors</span>
           </button>
-          <button mat-stroked-button (click)="loadApplications()" [disabled]="loading" class="refresh-btn">
-            <mat-icon [class.spin]="loading">refresh</mat-icon>
-            <span>Refresh</span>
-          </button>
         </div>
       </div>
 
@@ -470,11 +466,6 @@ export interface ClinicDoctorApp {
       color: #0F5C5C !important;
       border-color: #0F5C5C !important;
       font-weight: 700 !important;
-    }
-
-    .refresh-btn {
-      border-color: #D1D5DB !important;
-      color: #374151 !important;
     }
 
     .spin {
