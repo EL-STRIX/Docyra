@@ -4,12 +4,48 @@ import { Clinic } from './clinic.model';
 
 export type AppointmentStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
 
+export interface PrescriptionMedicine {
+  name: string;
+  dosage: string;
+  frequency: string;
+  duration: string;
+  instructions: string;
+}
+
+export interface Prescription {
+  medicines: PrescriptionMedicine[];
+  generalAdvice?: string;
+  followUpDate?: string | null;
+  followUpDays?: number | null;
+  prescribedAt?: string | null;
+}
+
+export interface MedicalTest {
+  _id?: string;
+  testName: string;
+  instructions?: string;
+  resultNotes?: string;
+  resultFileUrl?: string | null;
+  status?: 'ordered' | 'completed' | 'normal' | 'abnormal';
+  orderedAt?: string;
+}
+
 export interface BookedFor {
   type: 'self' | 'dependent';
   dependentId?: string;
   name: string;
   relationship?: string;
   dateOfBirth?: string;
+  gender?: string;
+  bloodGroup?: string;
+  allergies?: string;
+  chronicConditions?: string;
+  heightCm?: number;
+  weightKg?: number;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  phone?: string;
+  email?: string;
 }
 
 export interface Appointment {
@@ -24,6 +60,8 @@ export interface Appointment {
   bookedFor: BookedFor;
   reasonForVisit?: string;
   notes?: string;
+  prescription?: Prescription;
+  medicalTests?: MedicalTest[];
   consultationFee: number;
   paymentStatus: 'pending' | 'completed' | 'refunded';
   cancelledBy?: 'patient' | 'doctor' | 'clinic_admin' | 'system';

@@ -3,7 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
-import { Appointment, AppointmentStatus, AppointmentSlot } from '../models/appointment.model';
+import { Appointment, AppointmentStatus, AppointmentSlot, Prescription, MedicalTest } from '../models/appointment.model';
 import { ApiResponse, PaginationParams } from '../models/api-response.model';
 
 @Injectable({
@@ -70,6 +70,48 @@ export class AppointmentService {
     return this.http.patch<ApiResponse<Appointment>>(
       `${this.API_URL}/${id}/status`,
       { status, notes },
+      { withCredentials: true }
+    ).pipe(
+      tap((res) => {
+        if (res.success && res.data) {
+          const current = this.appointmentsSubject.value;
+          this.appointmentsSubject.next(
+            current.map((apt) => (apt._id === id ? res.data : apt))
+          );
+        }
+      })
+    );
+  }
+
+  updateAppointmentDetails(
+    id: string,
+    payload: {
+      status?: AppointmentStatus;
+      notes?: string;
+      prescription?: Prescription;
+      medicalTests?: MedicalTest[];
+    }
+  ): Observable<ApiResponse<Appointment>> {
+    return this.http.patch<ApiResponse<Appointment>>(
+      `${this.API_URL}/${id}/status`,
+      payload,
+      { withCredentials: true }
+    ).pipe(
+      tap((res) => {
+        if (res.success && res.data) {
+          const current = this.appointmentsSubject.value;
+          this.appointmentsSubject.next(
+            current.map((apt) => (apt._id === id ? res.data : apt))
+          );
+        }
+      })
+    );
+  }
+
+  uploadTestResult(id: string, formData: FormData): Observable<ApiResponse<Appointment>> {
+    return this.http.post<ApiResponse<Appointment>>(
+      `${this.API_URL}/${id}/test-result`,
+      formData,
       { withCredentials: true }
     ).pipe(
       tap((res) => {

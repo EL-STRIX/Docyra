@@ -1,4 +1,5 @@
 import express from 'express';
+import multer from 'multer';
 import {
   bookAppointment,
   getMyAppointments,
@@ -8,6 +9,7 @@ import {
   updateAppointmentStatus,
   cancelAppointment,
   exportAppointmentIcs,
+  uploadTestResult,
 } from '../../controllers/appointment.controller.js';
 import { authenticate } from '../../middleware/auth.js';
 import { requireRole } from '../../middleware/rbac.js';
@@ -20,6 +22,11 @@ import {
 import { ROLES } from '../../config/constants.js';
 
 const router = express.Router();
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+});
 
 // All appointment routes require authentication
 router.use(authenticate);
@@ -63,6 +70,13 @@ router.patch(
   requireRole(ROLES.DOCTOR, ROLES.CLINIC_ADMIN, ROLES.ADMIN),
   validate(updateAppointmentStatusSchema),
   updateAppointmentStatus
+);
+
+router.post(
+  '/:id/test-result',
+  requireRole(ROLES.DOCTOR, ROLES.CLINIC_ADMIN, ROLES.ADMIN),
+  upload.single('file'),
+  uploadTestResult
 );
 
 router.patch(

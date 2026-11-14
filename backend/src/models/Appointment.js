@@ -65,6 +65,35 @@ const appointmentSchema = new mongoose.Schema(
       default: '',
       trim: true,
     },
+    prescription: {
+      medicines: [
+        {
+          name: { type: String, trim: true, default: '' },
+          dosage: { type: String, trim: true, default: '' },
+          frequency: { type: String, trim: true, default: '' },
+          duration: { type: String, trim: true, default: '' },
+          instructions: { type: String, trim: true, default: '' },
+        },
+      ],
+      generalAdvice: { type: String, default: '', trim: true },
+      followUpDate: { type: String, default: null },
+      followUpDays: { type: Number, default: null },
+      prescribedAt: { type: Date, default: null },
+    },
+    medicalTests: [
+      {
+        testName: { type: String, trim: true, default: '' },
+        instructions: { type: String, default: '', trim: true },
+        resultNotes: { type: String, default: '', trim: true },
+        resultFileUrl: { type: String, default: null },
+        status: {
+          type: String,
+          enum: ['ordered', 'completed', 'normal', 'abnormal'],
+          default: 'ordered',
+        },
+        orderedAt: { type: Date, default: Date.now },
+      },
+    ],
     reminder24hSent: {
       type: Boolean,
       default: false,

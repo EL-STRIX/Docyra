@@ -20,8 +20,11 @@ export const updateAppointmentStatusSchema = z.object({
       APPOINTMENT_STATUS.COMPLETED,
       APPOINTMENT_STATUS.CANCELLED,
       APPOINTMENT_STATUS.NO_SHOW,
-    ]),
+    ]).optional(),
     reason: z.string().max(500).optional(),
+    notes: z.string().optional(),
+    prescription: z.any().optional(),
+    medicalTests: z.any().optional(),
   }),
 });
 

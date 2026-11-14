@@ -1,6 +1,7 @@
 import { appointmentService } from '../services/appointmentService.js';
+import { storageService } from '../services/storageService.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
-import { DoctorProfile } from '../models/index.js';
+import { DoctorProfile, Appointment } from '../models/index.js';
 import { ForbiddenError, NotFoundError } from '../utils/AppError.js';
 import { ERROR_CODES, ROLES } from '../config/constants.js';
 
@@ -66,7 +67,7 @@ export const getAppointmentById = asyncHandler(async (req, res) => {
  * Doctor: List doctor's appointments
  */
 export const getDoctorAppointments = asyncHandler(async (req, res) => {
-  const { page, limit, status, date, upcoming } = req.query;
+  const { page, limit, status, date, upcoming, patientId } = req.query;
 
   // Find doctorProfile for logged-in doctor
   let doctorProfileId;
@@ -88,6 +89,7 @@ export const getDoctorAppointments = asyncHandler(async (req, res) => {
     status,
     date,
     upcoming,
+    patientId,
   });
 
   res.status(200).json({
@@ -126,17 +128,17 @@ export const getClinicAppointments = asyncHandler(async (req, res) => {
  */
 export const updateAppointmentStatus = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { status, reason } = req.body;
+  const { status, reason, notes, prescription, medicalTests } = req.body;
 
   const updatedAppointment = await appointmentService.updateStatus(
     id,
-    { status, reason },
+    { status, reason, notes, prescription, medicalTests },
     req.user
   );
 
   res.status(200).json({
     success: true,
-    message: `Appointment status updated to ${status}`,
+    message: status ? `Appointment status updated to ${status}` : 'Appointment updated successfully',
     data: updatedAppointment,
   });
 });
@@ -196,6 +198,45 @@ export const exportAppointmentIcs = asyncHandler(async (req, res) => {
   res.status(200).send(content);
 });
 
+/**
+ * Doctor / Clinic Admin: Record medical test and optionally upload lab report file
+ */
+export const uploadTestResult = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { testName, instructions, resultNotes, status } = req.body;
+
+  const appointment = await Appointment.findById(id);
+  if (!appointment) {
+    throw new NotFoundError('Appointment not found', ERROR_CODES.NOT_FOUND);
+  }
+
+  let fileUrl = null;
+  if (req.file) {
+    fileUrl = await storageService.uploadFile(req.file, 'test-results');
+  }
+
+  const newTest = {
+    testName: testName || 'Diagnostic Lab Test',
+    instructions: instructions || '',
+    resultNotes: resultNotes || '',
+    resultFileUrl: fileUrl,
+    status: status || (fileUrl || resultNotes ? 'completed' : 'ordered'),
+    orderedAt: new Date(),
+  };
+
+  if (!appointment.medicalTests) {
+    appointment.medicalTests = [];
+  }
+  appointment.medicalTests.push(newTest);
+  await appointment.save();
+
+  res.status(200).json({
+    success: true,
+    message: 'Medical test and report recorded successfully',
+    data: appointment,
+  });
+});
+
 export default {
   bookAppointment,
   getMyAppointments,
@@ -206,4 +247,5 @@ export default {
   cancelAppointment,
   emergencyUnavailable,
   exportAppointmentIcs,
+  uploadTestResult,
 };

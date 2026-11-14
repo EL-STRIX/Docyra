@@ -283,7 +283,7 @@ class AppointmentService {
    */
   async getAppointmentById(appointmentId, currentUser) {
     const appointment = await Appointment.findById(appointmentId)
-      .populate('patientId', 'name email phone')
+      .populate('patientId', 'name email phone bloodGroup dateOfBirth gender allergies chronicConditions heightCm weightKg emergencyContactName emergencyContactPhone')
       .populate({
         path: 'doctorId',
         populate: [
@@ -323,9 +323,28 @@ class AppointmentService {
       name: aptObj.bookedForId.name,
       relationship: aptObj.bookedForId.relationship,
       dateOfBirth: aptObj.bookedForId.dateOfBirth,
+      gender: aptObj.bookedForId.gender,
+      bloodGroup: aptObj.bookedForId.bloodGroup,
+      allergies: aptObj.bookedForId.allergies,
+      chronicConditions: aptObj.bookedForId.chronicConditions,
+      heightCm: aptObj.bookedForId.heightCm,
+      weightKg: aptObj.bookedForId.weightKg,
+      emergencyContactName: aptObj.bookedForId.emergencyContactName,
+      emergencyContactPhone: aptObj.bookedForId.emergencyContactPhone,
       type: 'dependent',
     } : {
       name: aptObj.patientId?.name || 'Patient',
+      email: aptObj.patientId?.email,
+      phone: aptObj.patientId?.phone,
+      bloodGroup: aptObj.patientId?.bloodGroup,
+      dateOfBirth: aptObj.patientId?.dateOfBirth,
+      gender: aptObj.patientId?.gender,
+      allergies: aptObj.patientId?.allergies,
+      chronicConditions: aptObj.patientId?.chronicConditions,
+      heightCm: aptObj.patientId?.heightCm,
+      weightKg: aptObj.patientId?.weightKg,
+      emergencyContactName: aptObj.patientId?.emergencyContactName,
+      emergencyContactPhone: aptObj.patientId?.emergencyContactPhone,
       type: 'self',
     });
     const consultationFee = aptObj.consultationFee || aptObj.doctorId?.consultationFee || 500;
@@ -342,8 +361,12 @@ class AppointmentService {
   /**
    * Get appointments for a Doctor
    */
-  async getDoctorAppointments(doctorId, { page = 1, limit = 10, status, date, upcoming } = {}) {
+  async getDoctorAppointments(doctorId, { page = 1, limit = 10, status, date, upcoming, patientId } = {}) {
     const query = { doctorId: new mongoose.Types.ObjectId(doctorId) };
+
+    if (patientId && mongoose.Types.ObjectId.isValid(patientId)) {
+      query.patientId = new mongoose.Types.ObjectId(patientId);
+    }
 
     if (status) {
       query.status = status;
@@ -483,7 +506,7 @@ class AppointmentService {
   /**
    * Update appointment status (Doctor / Clinic Admin / Platform Admin)
    */
-  async updateStatus(appointmentId, { status, reason }, currentUser) {
+  async updateStatus(appointmentId, { status, reason, notes, prescription, medicalTests } = {}, currentUser) {
     const appointment = await Appointment.findById(appointmentId).populate('doctorId');
     if (!appointment) {
       throw new NotFoundError('Appointment not found', ERROR_CODES.NOT_FOUND);
@@ -507,6 +530,24 @@ class AppointmentService {
       );
     }
 
+    if (notes !== undefined) {
+      appointment.notes = notes;
+    }
+
+    if (prescription !== undefined) {
+      appointment.prescription = {
+        medicines: prescription?.medicines || [],
+        generalAdvice: prescription?.generalAdvice || '',
+        followUpDate: prescription?.followUpDate || null,
+        followUpDays: prescription?.followUpDays || null,
+        prescribedAt: new Date(),
+      };
+    }
+
+    if (medicalTests !== undefined) {
+      appointment.medicalTests = medicalTests;
+    }
+
     // Status transition validation
     const currentStatus = appointment.status;
     const validTransitions = {
@@ -521,22 +562,24 @@ class AppointmentService {
       [APPOINTMENT_STATUS.NO_SHOW]: [],
     };
 
-    if (!validTransitions[currentStatus]?.includes(status)) {
-      throw new BadRequestError(
-        `Cannot transition appointment from status '${currentStatus}' to '${status}'`,
-        ERROR_CODES.INVALID_STATUS_TRANSITION
-      );
-    }
+    if (status && status !== currentStatus) {
+      if (!validTransitions[currentStatus]?.includes(status)) {
+        throw new BadRequestError(
+          `Cannot transition appointment from status '${currentStatus}' to '${status}'`,
+          ERROR_CODES.INVALID_STATUS_TRANSITION
+        );
+      }
 
-    appointment.status = status;
+      appointment.status = status;
 
-    if (status === APPOINTMENT_STATUS.CANCELLED) {
-      appointment.cancelledBy = currentUser.role === ROLES.DOCTOR ? 'doctor' : currentUser.role;
-      appointment.cancellationReason = reason || 'Cancelled by provider';
-      appointment.cancelledAt = new Date();
+      if (status === APPOINTMENT_STATUS.CANCELLED) {
+        appointment.cancelledBy = currentUser.role === ROLES.DOCTOR ? 'doctor' : currentUser.role;
+        appointment.cancellationReason = reason || 'Cancelled by provider';
+        appointment.cancelledAt = new Date();
 
-      // Free the slot
-      await AppointmentSlot.findByIdAndUpdate(appointment.slotId, { $set: { isBooked: false } });
+        // Free the slot
+        await AppointmentSlot.findByIdAndUpdate(appointment.slotId, { $set: { isBooked: false } });
+      }
     }
 
     await appointment.save();
