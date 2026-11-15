@@ -203,15 +203,6 @@ export function ProfilePage() {
       {/* Header Banner */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-neutral-border shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="badge-primary text-[10px]">Patient Sovereignty</span>
-            {user?.bloodGroup && (
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1">
-                <Droplet className="w-3 h-3 text-rose-600" />
-                <span>Blood Group: {user.bloodGroup}</span>
-              </span>
-            )}
-          </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-neutral-text-primary tracking-tight">
             Profile & Medical Information
           </h1>
