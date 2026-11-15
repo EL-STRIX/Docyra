@@ -65,9 +65,9 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'notes';
               <div class="header-title-row">
                 <h1 class="page-title">Appointment #{{ appointment._id | slice:-6 }}</h1>
                 <app-status-badge [status]="appointment.status"></app-status-badge>
-                <span *ngIf="appointment.isFollowUp || appointment.previousAppointmentId" class="follow-up-badge">
+                <span *ngIf="appointment.isFollowUp || appointment.previousAppointmentId" class="follow-up-badge" [title]="priorAppointment ? ('Linked to prior visit #' + (priorAppointment._id | slice:-6)) : 'Follow-up visit'">
                   <mat-icon class="follow-up-ic">sync</mat-icon>
-                  <span>Follow-Up Visit</span>
+                  <span>Follow-Up Visit {{ priorAppointment ? '(Linked #' + (priorAppointment._id | slice:-6) + ')' : '' }}</span>
                 </span>
                 <span *ngIf="appointment.status === 'cancelled' && appointment.cancellationReason" class="cancelled-reason-chip" [title]="appointment.cancellationReason">
                   <mat-icon class="cancelled-reason-ic">info</mat-icon>
@@ -261,6 +261,61 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'notes';
               </button>
             </div>
 
+            <!-- Prior Prescription Context from Linked Initial Visit (if Follow-Up) -->
+            <div *ngIf="priorAppointment && priorAppointment.prescription?.medicines?.length" class="prior-prescription-box mt-4">
+              <div class="prior-prescription-header">
+                <div class="flex items-center gap-2">
+                  <mat-icon class="prior-rx-icon">history_edu</mat-icon>
+                  <div>
+                    <h3 class="prior-rx-title">
+                      Medications Prescribed on Linked Prior Consultation
+                      <span class="prior-rx-meta">
+                        (#{{ priorAppointment._id | slice:-6 }} • {{ priorAppointment.slotStart | portalDate:'dd MMM yyyy' }})
+                      </span>
+                    </h3>
+                    <p class="prior-rx-sub" *ngIf="priorAppointment.reasonForVisit">
+                      Initial Reason: {{ priorAppointment.reasonForVisit }}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  *ngIf="!isReadOnly"
+                  type="button"
+                  mat-stroked-button
+                  color="primary"
+                  class="copy-rx-btn"
+                  (click)="copyPriorMedicines()"
+                  title="Copy these medicines into current prescription for review and editing"
+                >
+                  <mat-icon>content_copy</mat-icon>
+                  <span>Re-Prescribe / Copy Medications</span>
+                </button>
+              </div>
+
+              <div class="prior-meds-grid mt-3">
+                <div *ngFor="let med of priorAppointment.prescription.medicines" class="prior-med-card">
+                  <div class="prior-med-name-col">
+                    <span class="prior-med-name">{{ med.name }}</span>
+                    <span class="prior-med-dose">{{ med.dosage }}</span>
+                  </div>
+                  <div class="prior-med-schedule">
+                    <span class="schedule-pill">{{ med.frequency }}</span>
+                    <span class="duration-pill">{{ med.duration }}</span>
+                  </div>
+                  <div class="prior-med-inst" *ngIf="med.instructions">
+                    <mat-icon class="inst-ic">info_outline</mat-icon>
+                    <span>{{ med.instructions }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div *ngIf="priorAppointment.prescription?.generalAdvice" class="prior-advice-strip mt-3">
+                <span class="font-bold text-xs text-teal-900">Prior Advice:</span>
+                <span class="text-xs text-neutral-700 ml-1.5">{{ priorAppointment.prescription.generalAdvice }}</span>
+              </div>
+            </div>
+
             <!-- Medicines Table -->
             <div *ngIf="isReadOnly && validPrescriptionMedicinesCount === 0" class="empty-view-state mt-4">
               <mat-icon class="empty-view-ic">medication</mat-icon>
@@ -351,6 +406,19 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'notes';
                 <button *ngIf="!isReadOnly" mat-stroked-button color="primary" type="button" (click)="addSuggestedTestRow()">
                   <mat-icon>add</mat-icon>
                   <span>Suggest Lab Test</span>
+                </button>
+              </div>
+
+              <!-- Linked Prior Diagnostic Tests Reference (if Follow-Up) -->
+              <div *ngIf="priorAppointment && priorAppointment.medicalTests && priorAppointment.medicalTests.length > 0" class="prior-tests-summary-strip mt-3">
+                <div class="flex items-center gap-1.5">
+                  <mat-icon class="text-teal-700 text-sm">sync</mat-icon>
+                  <span class="text-xs font-semibold text-teal-900">
+                    {{ priorAppointment.medicalTests.length }} diagnostic test(s) were advised during linked prior consultation.
+                  </span>
+                </div>
+                <button type="button" class="view-prior-tests-link" (click)="activeTab = 'tests'">
+                  View Results & Reports in Lab Tests Tab →
                 </button>
               </div>
 
@@ -500,21 +568,21 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'notes';
             </div>
 
             <!-- Linked Diagnostic Tests from Prior Visit if Follow-up -->
-            <div *ngIf="appointment.previousAppointmentId && appointment.previousAppointmentId.medicalTests && appointment.previousAppointmentId.medicalTests.length > 0" class="linked-tests-container mt-6">
+            <div *ngIf="priorAppointment && priorAppointment.medicalTests && priorAppointment.medicalTests.length > 0" class="linked-tests-container mt-6">
               <div class="linked-tests-header">
                 <div class="flex items-center gap-2">
                   <mat-icon class="text-teal-700">sync</mat-icon>
                   <h3 class="font-bold text-sm text-teal-900">
-                    Diagnostic Tests from Linked Prior Consultation ({{ appointment.previousAppointmentId.slotStart | portalDate:'dd MMM yyyy' }})
+                    Diagnostic Tests from Linked Prior Consultation ({{ priorAppointment.slotStart | portalDate:'dd MMM yyyy' }})
                   </h3>
                 </div>
                 <span class="text-xs text-neutral-500">
-                  Reason: {{ appointment.previousAppointmentId.reasonForVisit || 'General' }}
+                  Reason: {{ priorAppointment.reasonForVisit || 'General Consultation' }}
                 </span>
               </div>
 
               <div class="tests-cards-list mt-3">
-                <div *ngFor="let test of appointment.previousAppointmentId.medicalTests" class="test-card-item prior-test-card">
+                <div *ngFor="let test of priorAppointment.medicalTests" class="test-card-item prior-test-card">
                   <div class="test-main-row">
                     <div class="test-info">
                       <div class="test-title">
@@ -704,6 +772,12 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'notes';
                       {{ appointment.reasonForVisit }}
                     </div>
                   </div>
+                  <div class="info-item span-full" *ngIf="priorAppointment">
+                    <span class="item-label">Consultation Continuity</span>
+                    <div class="clinical-box continuity-box">
+                      <strong>Follow-Up Consultation:</strong> Linked to prior consultation #{{ priorAppointment._id | slice:-6 }} on {{ priorAppointment.slotStart | portalDate:'dd MMM yyyy' }} (Initial Reason: {{ priorAppointment.reasonForVisit || 'General' }}).
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -719,6 +793,17 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'notes';
                 <span>Consultation Notes</span>
                 <span *ngIf="isReadOnly" class="readonly-pill">Read-Only</span>
               </h2>
+            </div>
+
+            <!-- Prior Clinical Notes from Linked Initial Consultation -->
+            <div *ngIf="priorAppointment && priorAppointment.notes" class="prior-notes-box mt-4">
+              <div class="prior-notes-header">
+                <mat-icon class="prior-notes-ic">history</mat-icon>
+                <span class="font-bold text-xs text-teal-950">
+                  Clinical Examination Notes from Linked Prior Consultation ({{ priorAppointment.slotStart | portalDate:'dd MMM yyyy • h:mm a' }})
+                </span>
+              </div>
+              <p class="prior-notes-text">{{ priorAppointment.notes }}</p>
             </div>
 
             <mat-form-field appearance="outline" class="w-full mt-4">
@@ -990,6 +1075,217 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'notes';
       padding: 1px 6px;
       border-radius: 4px;
       margin-left: 6px;
+    }
+
+    /* Prior Consultation Context Boxes */
+    .prior-prescription-box {
+      background: #F0FDF4;
+      border: 1px solid #BBF7D0;
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .prior-prescription-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #DCFCE7;
+    }
+
+    .prior-rx-icon {
+      font-size: 26px;
+      width: 26px;
+      height: 26px;
+      color: #0F5C5C;
+    }
+
+    .prior-rx-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: #0F5C5C;
+      margin: 0;
+    }
+
+    .prior-rx-meta {
+      font-weight: 600;
+      color: #065F46;
+      font-size: 12px;
+      margin-left: 4px;
+    }
+
+    .prior-rx-sub {
+      font-size: 11px;
+      color: #4B5563;
+      margin: 2px 0 0 0;
+    }
+
+    .copy-rx-btn {
+      font-size: 11px !important;
+      font-weight: 700 !important;
+      color: #0F5C5C !important;
+      border-color: #0F5C5C !important;
+      background: #FFFFFF !important;
+      line-height: 28px !important;
+      height: 32px !important;
+      padding: 0 12px !important;
+    }
+
+    .copy-rx-btn mat-icon {
+      font-size: 16px !important;
+      width: 16px !important;
+      height: 16px !important;
+      margin-right: 4px;
+    }
+
+    .prior-meds-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 10px;
+    }
+
+    .prior-med-card {
+      background: #FFFFFF;
+      border: 1px solid #D1FAE5;
+      border-radius: 8px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .prior-med-name-col {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .prior-med-name {
+      font-weight: 800;
+      font-size: 13px;
+      color: #111827;
+    }
+
+    .prior-med-dose {
+      font-size: 11px;
+      font-weight: 700;
+      color: #0F5C5C;
+    }
+
+    .prior-med-schedule {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .schedule-pill {
+      font-size: 10px;
+      font-weight: 700;
+      background: #E0F2FE;
+      color: #0369A1;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .duration-pill {
+      font-size: 10px;
+      font-weight: 700;
+      background: #FEF3C7;
+      color: #92400E;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .prior-med-inst {
+      font-size: 11px;
+      color: #4B5563;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-style: italic;
+    }
+
+    .inst-ic {
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+      color: #9CA3AF;
+    }
+
+    .prior-advice-strip {
+      background: #FFFFFF;
+      border: 1px solid #D1FAE5;
+      border-radius: 6px;
+      padding: 8px 12px;
+    }
+
+    .prior-tests-summary-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      background: #F0FDF4;
+      border: 1px solid #BBF7D0;
+      border-radius: 8px;
+      padding: 8px 12px;
+    }
+
+    .view-prior-tests-link {
+      background: none;
+      border: none;
+      color: #0F5C5C;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      padding: 0;
+      text-decoration: underline;
+    }
+
+    .view-prior-tests-link:hover {
+      color: #065F46;
+    }
+
+    .prior-notes-box {
+      background: #F0FDF4;
+      border: 1px solid #BBF7D0;
+      border-radius: 10px;
+      padding: 12px 16px;
+    }
+
+    .prior-notes-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+
+    .prior-notes-ic {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      color: #0F5C5C;
+    }
+
+    .prior-notes-text {
+      font-size: 12px;
+      color: #1F2937;
+      line-height: 1.5;
+      margin: 0;
+      background: #FFFFFF;
+      padding: 10px 12px;
+      border-radius: 6px;
+      border: 1px solid #D1FAE5;
+    }
+
+    .continuity-box {
+      background: #F0FDF4 !important;
+      border-color: #BBF7D0 !important;
+      color: #065F46 !important;
+      font-size: 12px !important;
     }
 
     .header-meta-bar {
@@ -2008,6 +2304,26 @@ export class DoctorAppointmentDetailComponent implements OnInit {
     const slotEnd = this.appointment.slotEnd || this.appointment.slotStart;
     if (slotEnd && new Date(slotEnd) < now) return 'time_ended';
     return null;
+  }
+
+  get priorAppointment(): any {
+    if (!this.appointment?.previousAppointmentId) return null;
+    if (typeof this.appointment.previousAppointmentId === 'object') {
+      return this.appointment.previousAppointmentId;
+    }
+    return null;
+  }
+
+  copyPriorMedicines(): void {
+    if (this.isReadOnly) return;
+    const priorMeds = this.priorAppointment?.prescription?.medicines;
+    if (!priorMeds || priorMeds.length === 0) return;
+    const currentValid = this.prescriptionMedicines.filter((m) => m.name && m.name.trim().length > 0);
+    this.prescriptionMedicines = [...currentValid, ...JSON.parse(JSON.stringify(priorMeds))];
+    if (this.priorAppointment?.prescription?.generalAdvice && !this.prescriptionGeneralAdvice) {
+      this.prescriptionGeneralAdvice = this.priorAppointment.prescription.generalAdvice;
+    }
+    this.notificationService.info('Medications copied from linked prior consultation');
   }
 
   initAppointmentState(apt: Appointment): void {
