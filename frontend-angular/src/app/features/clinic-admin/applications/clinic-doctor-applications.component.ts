@@ -454,6 +454,7 @@ export interface ClinicDoctorApp {
                 <input
                   type="date"
                   [(ngModel)]="meetingForm.date"
+                  (ngModelChange)="onMeetingFormChange()"
                   [min]="todayDate"
                   class="meet-input"
                 />
@@ -464,6 +465,7 @@ export interface ClinicDoctorApp {
                 <input
                   type="time"
                   [(ngModel)]="meetingForm.time"
+                  (ngModelChange)="onMeetingFormChange()"
                   class="meet-input"
                 />
               </div>
@@ -473,6 +475,7 @@ export interface ClinicDoctorApp {
                 <input
                   type="url"
                   [(ngModel)]="meetingForm.link"
+                  (ngModelChange)="onMeetingFormChange()"
                   placeholder="https://meet.google.com/xxx-xxxx-xxx"
                   class="meet-input"
                 />
@@ -482,82 +485,54 @@ export interface ClinicDoctorApp {
             <!-- Generated Professional Email Template Preview (Staff Copy & Paste) -->
             <div class="email-preview-box">
               <div class="email-preview-header">
-                <div class="flex items-center justify-between">
-                  <div class="email-meta-line">
-                    <span class="meta-label">To:</span>
-                    <span class="meta-val font-semibold">{{ selectedAppForReview.name }} &lt;{{ selectedAppForReview.email }}&gt;</span>
-                  </div>
-                  <button mat-stroked-button class="btn-copy-sm" (click)="copySubject()" title="Copy Subject">
-                    <mat-icon>content_copy</mat-icon>
-                    <span>Copy Subject</span>
-                  </button>
+                <div class="email-meta-line">
+                  <span class="meta-label">To:</span>
+                  <span class="meta-val">{{ selectedAppForReview.name }}</span>
                 </div>
                 <div class="email-meta-line mt-1">
                   <span class="meta-label">Subject:</span>
-                  <span class="meta-val font-bold text-teal-900">
+                  <span class="meta-val">
                     {{ getEmailSubject() }}
                   </span>
                 </div>
               </div>
 
               <div class="email-preview-body">
-                <p>Dear <strong>{{ selectedAppForReview.name }}</strong>,</p>
+                <p>Dear {{ selectedAppForReview.name }},</p>
                 <p>
-                  Thank you for applying to practice at <strong>{{ clinicProfile?.name || 'our clinic' }}</strong> as a {{ selectedAppForReview.specialization }} specialist.
+                  Thank you for applying to practice at {{ clinicProfile?.name || 'our clinic' }} as a {{ selectedAppForReview.specialization }} specialist.
                 </p>
                 <p>
                   We would like to invite you to an online negotiation discussion regarding our clinic affiliation, consultation schedules, and fee arrangements.
                 </p>
 
-                <div class="email-details-card">
-                  <div class="email-details-title">Scheduled Discussion Details</div>
-                  <div class="email-detail-row">
-                    <span class="ed-lbl">Date:</span>
-                    <span class="ed-val font-bold">{{ formatPreviewDate(meetingForm.date) }}</span>
-                  </div>
-                  <div class="email-detail-row">
-                    <span class="ed-lbl">Time:</span>
-                    <span class="ed-val font-bold">{{ formatMeetingTime(meetingForm.time) }}</span>
-                  </div>
-                  <div class="email-detail-row">
-                    <span class="ed-lbl">Meeting Link:</span>
-                    <span class="ed-val font-bold text-teal-800 break-all">{{ meetingForm.link || 'https://meet.google.com/new' }}</span>
-                  </div>
-                </div>
+                <p class="email-meeting-info">
+                  Date: {{ formatPreviewDate(meetingForm.date) }}<br />
+                  Time: {{ formatMeetingTime(meetingForm.time) }}<br />
+                  Meeting Link: {{ meetingForm.link || 'https://meet.google.com/new' }}
+                </p>
 
                 <p class="email-closing-note">
                   Please join the meeting using the link above at the scheduled time. If you need to propose an alternate time or have any questions, please reply directly to this email.
                 </p>
                 <p class="email-signature">
                   Sincerely,<br />
-                  <strong>{{ clinicProfile?.name || 'Clinic Administration' }}</strong><br />
-                  <span class="text-xs text-neutral-500">Docyra Healthcare Platform</span>
+                  {{ clinicProfile?.name || 'Clinic Administration' }}<br />
+                  Docyra Healthcare Platform
                 </p>
               </div>
 
-              <!-- Action Bar: Staff Copy Email + Save Schedule (No Direct Send Email Button) -->
+              <!-- Action Bar: Single Copy Button to Copy Entire Email -->
               <div class="email-send-bar">
                 <button
                   mat-flat-button
                   color="primary"
                   class="copy-email-btn"
                   (click)="copyFullEmail()"
-                  title="Copy complete email to clipboard for staff"
+                  title="Copy complete email to clipboard"
                 >
                   <mat-icon>{{ copiedEmail ? 'check_circle' : 'content_copy' }}</mat-icon>
-                  <span>{{ copiedEmail ? 'Email Copied to Clipboard!' : 'Copy Full Email (Staff Copy & Paste)' }}</span>
-                </button>
-
-                <button
-                  mat-stroked-button
-                  class="save-schedule-btn"
-                  [disabled]="savingSchedule || !meetingForm.date || !meetingForm.time"
-                  (click)="saveMeetingSchedule()"
-                  title="Save scheduled date & time to records"
-                >
-                  <mat-spinner *ngIf="savingSchedule" diameter="16" class="mr-2"></mat-spinner>
-                  <mat-icon *ngIf="!savingSchedule">save</mat-icon>
-                  <span>{{ savingSchedule ? 'Saving...' : 'Save Schedule to Records' }}</span>
+                  <span>{{ copiedEmail ? 'Email Copied!' : 'Copy Email' }}</span>
                 </button>
               </div>
             </div>
@@ -1854,6 +1829,12 @@ export interface ClinicDoctorApp {
       margin: 0 0 10px;
     }
 
+    .email-meeting-info {
+      margin: 12px 0 !important;
+      line-height: 1.8;
+      color: #1F2937;
+    }
+
     .email-details-card {
       background: #F0FDFA;
       border: 1px solid #99F6E4;
@@ -2355,14 +2336,20 @@ export class ClinicDoctorApplicationsComponent implements OnInit {
     }
   }
 
-  saveMeetingSchedule(): void {
-    if (!this.selectedAppForReview) return;
-    if (!this.meetingForm.date || !this.meetingForm.time) {
-      this.notificationService.error('Please select both meeting date and time.');
-      return;
-    }
+  private autoSaveTimer: any = null;
 
-    this.savingSchedule = true;
+  onMeetingFormChange(): void {
+    if (!this.selectedAppForReview || !this.meetingForm.date || !this.meetingForm.time) return;
+    if (this.autoSaveTimer) {
+      clearTimeout(this.autoSaveTimer);
+    }
+    this.autoSaveTimer = setTimeout(() => {
+      this.autoSaveMeetingSchedule();
+    }, 600);
+  }
+
+  autoSaveMeetingSchedule(): void {
+    if (!this.selectedAppForReview || !this.meetingForm.date || !this.meetingForm.time) return;
     const appId = this.selectedAppForReview._id;
     this.clinicService
       .scheduleDoctorApplicationMeeting(appId, {
@@ -2375,8 +2362,6 @@ export class ClinicDoctorApplicationsComponent implements OnInit {
       })
       .subscribe({
         next: (res) => {
-          this.savingSchedule = false;
-          this.notificationService.success('Meeting schedule saved successfully to records!');
           if (res.data?.interviewMeeting) {
             this.selectedAppForReview!.interviewMeeting = res.data.interviewMeeting;
             const found = this.applications.find((a) => a._id === appId);
@@ -2385,17 +2370,16 @@ export class ClinicDoctorApplicationsComponent implements OnInit {
             }
           }
         },
-        error: (err) => {
-          this.savingSchedule = false;
-          this.notificationService.error(
-            err.error?.message || 'Failed to save meeting schedule.'
-          );
-        },
+        error: () => {},
       });
   }
 
+  saveMeetingSchedule(): void {
+    this.autoSaveMeetingSchedule();
+  }
+
   sendMeetingEmail(): void {
-    this.saveMeetingSchedule();
+    this.autoSaveMeetingSchedule();
   }
 
   formatMeetingTime(timeStr?: string): string {
@@ -2437,10 +2421,9 @@ Thank you for applying to practice at ${clinicName} as a ${spec} specialist.
 
 We would like to invite you to an online negotiation discussion regarding our clinic affiliation, consultation schedules, and fee arrangements.
 
-Scheduled Discussion Details:
-• Date: ${dateFormatted}
-• Time: ${timeFormatted}
-• Meeting Link: ${link}
+Date: ${dateFormatted}
+Time: ${timeFormatted}
+Meeting Link: ${link}
 
 Please join the meeting using the link above at the scheduled time. If you need to propose an alternate time or have any questions, please reply directly to this email.
 
@@ -2451,7 +2434,7 @@ Docyra Healthcare Platform`;
 
   getFullEmailContent(): string {
     if (!this.selectedAppForReview) return '';
-    const recipient = `${this.selectedAppForReview.name} <${this.selectedAppForReview.email}>`;
+    const recipient = this.selectedAppForReview.name;
     const subject = this.getEmailSubject();
     const body = this.getEmailBodyText();
 
@@ -2465,11 +2448,13 @@ ${body}`;
     const text = this.getFullEmailContent();
     navigator.clipboard.writeText(text).then(() => {
       this.copiedEmail = true;
-      this.notificationService.success('Full email (Recipient, Subject & Body) copied to clipboard! Paste it into your email client.');
-      setTimeout(() => (this.copiedEmail = false), 3500);
+      this.notificationService.success('Email copied to clipboard!');
+      setTimeout(() => (this.copiedEmail = false), 3000);
     }).catch(() => {
       this.notificationService.error('Failed to copy to clipboard.');
     });
+
+    this.autoSaveMeetingSchedule();
   }
 
   copySubject(): void {
