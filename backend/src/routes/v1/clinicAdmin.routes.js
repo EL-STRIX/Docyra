@@ -19,7 +19,7 @@ import { ROLES } from '../../config/constants.js';
 const router = express.Router();
 
 // Enforce authentication, role check, and server-side clinic scoping across all clinic-admin routes
-router.use(authenticate, requireRole(ROLES.CLINIC_ADMIN), enforceClinicScope);
+router.use(authenticate, requireRole(ROLES.CLINIC_ADMIN, ROLES.ADMIN), enforceClinicScope);
 
 // Doctors management
 router.post('/doctors', validate(clinicAdminAddDoctorSchema), addDoctorToClinic);

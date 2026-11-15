@@ -123,11 +123,11 @@ export interface RevenueTransaction {
           </div>
 
           <!-- Doctor Filter -->
-          <div class="doc-filter-wrap" *ngIf="doctors.length > 0">
+          <div class="doc-filter-wrap" *ngIf="availableDoctorOptions.length > 0">
             <select [(ngModel)]="selectedDoctorId" (change)="loadRevenueData()" class="doc-select">
               <option value="">All Clinic Physicians</option>
-              <option *ngFor="let doc of doctors" [value]="doc._id">
-                {{ getDoctorDisplayName(doc) }}
+              <option *ngFor="let doc of availableDoctorOptions" [value]="doc.id">
+                {{ doc.name }}
               </option>
             </select>
           </div>
@@ -651,7 +651,7 @@ export interface RevenueTransaction {
     .chart-container {
       width: 100%;
       overflow-x: auto;
-      padding-top: 30px;
+      padding-top: 60px;
       padding-bottom: 8px;
     }
 
@@ -1165,6 +1165,28 @@ export class ClinicRevenueComponent implements OnInit {
     if (this.selectedPeriod !== 'day') return false;
     const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
     return item.date === today;
+  }
+
+  get availableDoctorOptions(): { id: string; name: string }[] {
+    const list: { id: string; name: string }[] = [];
+    const seen = new Set<string>();
+
+    for (const d of this.doctors) {
+      const id = (d as any)._id?.toString() || (d as any).id?.toString();
+      if (id && !seen.has(id)) {
+        seen.add(id);
+        list.push({ id, name: this.getDoctorDisplayName(d) });
+      }
+    }
+
+    for (const b of this.doctorBreakdown) {
+      if (b.doctorId && !seen.has(b.doctorId.toString()) && b.doctorId !== 'unknown') {
+        seen.add(b.doctorId.toString());
+        list.push({ id: b.doctorId.toString(), name: b.doctorName });
+      }
+    }
+
+    return list;
   }
 
   getDoctorDisplayName(doc: any): string {

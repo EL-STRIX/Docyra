@@ -1,6 +1,8 @@
 import { doctorService } from '../services/doctorService.js';
 import { clinicService } from '../services/clinicService.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
+import { Clinic } from '../models/index.js';
+import { ROLES } from '../config/constants.js';
 
 export const addDoctorToClinic = asyncHandler(async (req, res) => {
   const clinicId = req.user.clinicId || req.params.id;
@@ -103,7 +105,13 @@ export const scheduleDoctorApplicationMeeting = asyncHandler(async (req, res) =>
 });
 
 export const getClinicRevenue = asyncHandler(async (req, res) => {
-  const clinicId = req.user.clinicId;
+  let clinicId = req.user.clinicId || req.query.clinicId;
+
+  if (!clinicId && req.user.role === ROLES.ADMIN) {
+    const firstClinic = await Clinic.findOne().sort({ createdAt: 1 }).select('_id');
+    clinicId = firstClinic?._id;
+  }
+
   const { period, startDate, endDate, year, doctorId } = req.query;
 
   const result = await clinicService.getClinicRevenueAnalytics({

@@ -270,7 +270,10 @@ class ClinicService {
 
     // Helper for Indian Standard Time (Asia/Kolkata) formatting
     const toIST = (date) => {
-      const d = new Date(date);
+      let d = new Date(date);
+      if (isNaN(d.getTime())) {
+        d = new Date();
+      }
       const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(d); // YYYY-MM-DD
       const [y, m, day] = dateStr.split('-');
       return {
@@ -348,8 +351,8 @@ class ClinicService {
         patientName,
         patientEmail: apt.patientId?.email || '',
         patientPhone: apt.patientId?.phone || '',
-        doctorName,
-        doctorId: apt.doctorId?._id,
+        doctorName: docName,
+        doctorId: apt.doctorId?._id || null,
         specialization: apt.doctorId?.specializationId?.name || 'General Medicine',
         fee,
         status: apt.status,

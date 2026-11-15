@@ -1,6 +1,7 @@
 import { clinicService } from '../services/clinicService.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ROLES } from '../config/constants.js';
+import { Clinic } from '../models/index.js';
 
 export const listClinics = asyncHandler(async (req, res) => {
   const { page, limit, search, city } = req.query;
@@ -123,7 +124,11 @@ export const listAllClinicsAdmin = asyncHandler(async (req, res) => {
 });
 
 export const getMyClinic = asyncHandler(async (req, res) => {
-  const clinicId = req.user?.clinicId;
+  let clinicId = req.user?.clinicId;
+  if (!clinicId && req.user?.role === ROLES.ADMIN) {
+    const firstClinic = await Clinic.findOne().sort({ createdAt: 1 }).select('_id');
+    clinicId = firstClinic?._id;
+  }
   if (!clinicId) {
     return res.status(404).json({ success: false, error: { message: 'No clinic associated with this user' } });
   }
