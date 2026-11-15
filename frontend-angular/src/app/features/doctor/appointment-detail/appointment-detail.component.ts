@@ -104,16 +104,16 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'notes';
                 <span>Print Rx</span>
               </button>
 
-              <ng-container *ngIf="appointment.status === 'confirmed' && !isReadOnly">
+              <ng-container *ngIf="appointment.status === 'confirmed' || appointment.status === 'pending' || (appointment.status === 'cancelled' && appointment.cancelledBy === 'system')">
                 <button mat-flat-button color="primary" (click)="updateStatus('completed')" [disabled]="updating">
                   <mat-icon>done_all</mat-icon>
                   <span>Mark Completed</span>
                 </button>
-                <button mat-stroked-button (click)="updateStatus('no_show')" [disabled]="updating">
+                <button mat-stroked-button (click)="updateStatus('no-show')" [disabled]="updating">
                   <mat-icon>person_off</mat-icon>
                   <span>Mark No-Show</span>
                 </button>
-                <button mat-stroked-button color="warn" (click)="showCancelModal = true" [disabled]="updating">
+                <button *ngIf="appointment.status !== 'cancelled'" mat-stroked-button color="warn" (click)="showCancelModal = true" [disabled]="updating">
                   <mat-icon>cancel</mat-icon>
                   <span>Cancel Visit</span>
                 </button>
@@ -2216,23 +2216,15 @@ export class DoctorAppointmentDetailComponent implements OnInit {
 
   get isReadOnly(): boolean {
     if (!this.appointment) return true;
-    if (this.appointment.status === 'cancelled') return true;
-
-    // Check if appointment consultation time has ended
-    const now = new Date();
-    const slotEnd = this.appointment.slotEnd || this.appointment.slotStart;
-    if (slotEnd && new Date(slotEnd) < now) {
-      return true;
-    }
+    if (this.appointment.status === 'cancelled' && this.appointment.cancelledBy !== 'system') return true;
+    if (['completed', 'no_show', 'no-show'].includes(this.appointment.status)) return true;
     return false;
   }
 
-  get readOnlyReason(): 'cancelled' | 'time_ended' | null {
+  get readOnlyReason(): 'cancelled' | 'concluded' | null {
     if (!this.appointment) return null;
-    if (this.appointment.status === 'cancelled') return 'cancelled';
-    const now = new Date();
-    const slotEnd = this.appointment.slotEnd || this.appointment.slotStart;
-    if (slotEnd && new Date(slotEnd) < now) return 'time_ended';
+    if (this.appointment.status === 'cancelled' && this.appointment.cancelledBy !== 'system') return 'cancelled';
+    if (['completed', 'no_show', 'no-show'].includes(this.appointment.status)) return 'concluded';
     return null;
   }
 
@@ -2547,18 +2539,20 @@ export class DoctorAppointmentDetailComponent implements OnInit {
     });
   }
 
-  updateStatus(status: AppointmentStatus): void {
-    if (this.isReadOnly) {
-      this.notificationService.warning('Cannot update status for a cancelled or past-window appointment.');
+  updateStatus(status: AppointmentStatus | 'no-show' | 'no_show'): void {
+    if (this.appointment?.status === 'cancelled' && this.appointment?.cancelledBy !== 'system') {
+      this.notificationService.warning('Cannot update status for an already cancelled appointment.');
       return;
     }
+    const normalizedStatus = status === 'no_show' ? 'no-show' : status;
     this.updating = true;
-    this.appointmentService.updateAppointmentStatus(this.appointmentId, status, this.visitNotes).subscribe({
+    this.appointmentService.updateAppointmentStatus(this.appointmentId, normalizedStatus as any, this.visitNotes).subscribe({
       next: (res) => {
         this.updating = false;
         if (res.success && res.data) {
           this.appointment = res.data;
-          this.notificationService.success(`Appointment marked as ${status}`);
+          const label = normalizedStatus === 'no-show' ? 'No-Show' : normalizedStatus === 'completed' ? 'Completed' : normalizedStatus;
+          this.notificationService.success(`Appointment marked as ${label}`);
         }
       },
       error: (err) => {
@@ -2569,8 +2563,8 @@ export class DoctorAppointmentDetailComponent implements OnInit {
   }
 
   cancelAppointment(): void {
-    if (this.isReadOnly) {
-      this.notificationService.warning('Cannot cancel an appointment that has already elapsed or ended.');
+    if (this.appointment?.status === 'cancelled') {
+      this.notificationService.warning('Appointment is already cancelled.');
       return;
     }
     if (!this.cancelReason.trim()) return;

@@ -21,6 +21,7 @@ export const updateAppointmentStatusSchema = z.object({
       APPOINTMENT_STATUS.COMPLETED,
       APPOINTMENT_STATUS.CANCELLED,
       APPOINTMENT_STATUS.NO_SHOW,
+      'no_show',
     ]).optional(),
     reason: z.string().max(500).optional(),
     notes: z.string().optional(),

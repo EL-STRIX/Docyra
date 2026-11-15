@@ -129,7 +129,11 @@ export const getClinicAppointments = asyncHandler(async (req, res) => {
  */
 export const updateAppointmentStatus = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { status, reason, notes, prescription, medicalTests } = req.body;
+  let { status, reason, notes, prescription, medicalTests } = req.body;
+
+  if (status === 'no_show') {
+    status = 'no-show';
+  }
 
   const updatedAppointment = await appointmentService.updateStatus(
     id,

@@ -66,10 +66,11 @@ export class AppointmentService {
     return this.http.get<ApiResponse<Appointment>>(`${this.API_URL}/${id}`, { withCredentials: true });
   }
 
-  updateAppointmentStatus(id: string, status: AppointmentStatus, notes?: string): Observable<ApiResponse<Appointment>> {
+  updateAppointmentStatus(id: string, status: AppointmentStatus | 'no-show' | 'no_show', notes?: string): Observable<ApiResponse<Appointment>> {
+    const normalizedStatus = status === 'no_show' ? 'no-show' : status;
     return this.http.patch<ApiResponse<Appointment>>(
       `${this.API_URL}/${id}/status`,
-      { status, notes },
+      { status: normalizedStatus, notes },
       { withCredentials: true }
     ).pipe(
       tap((res) => {

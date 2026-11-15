@@ -395,7 +395,7 @@ class AppointmentService {
       throw new NotFoundError('Appointment not found', ERROR_CODES.NOT_FOUND);
     }
 
-    // Auto-cancel if appointment slot elapsed without being marked completed
+    // Auto-cancel past unattended appointments if slot elapsed without doctor completion
     if (
       [APPOINTMENT_STATUS.PENDING, APPOINTMENT_STATUS.CONFIRMED].includes(appointment.status) &&
       ((appointment.slotEnd && new Date(appointment.slotEnd) < new Date()) ||
@@ -657,11 +657,9 @@ class AppointmentService {
       );
     }
 
-    // Protection rule: after appointment is cancelled or its time has ended, writing prescriptions/tests/notes is prohibited
-    const now = new Date();
+    // Protection rule: after appointment is cancelled or concluded, writing prescriptions/tests/notes is prohibited
     const isCancelled = appointment.status === APPOINTMENT_STATUS.CANCELLED;
-    const slotEnd = appointment.slotEnd || appointment.slotStart;
-    const isTimeEnded = slotEnd ? new Date(slotEnd) < now : false;
+    const isConcluded = appointment.status === APPOINTMENT_STATUS.COMPLETED || appointment.status === APPOINTMENT_STATUS.NO_SHOW;
 
     const isWritingContent =
       prescription !== undefined ||
@@ -675,9 +673,9 @@ class AppointmentService {
           ERROR_CODES.INVALID_STATUS_TRANSITION
         );
       }
-      if (isTimeEnded) {
+      if (isConcluded) {
         throw new BadRequestError(
-          'Cannot write or edit prescriptions, lab tests, or clinical notes after the appointment consultation time has ended. This record is view-only.',
+          'Cannot write or edit prescriptions, lab tests, or clinical notes for an already completed or concluded consultation. This record is view-only.',
           ERROR_CODES.INVALID_STATUS_TRANSITION
         );
       }
@@ -702,6 +700,10 @@ class AppointmentService {
     }
 
     // Status transition validation
+    if (status === 'no_show') {
+      status = APPOINTMENT_STATUS.NO_SHOW;
+    }
+
     const currentStatus = appointment.status;
     const validTransitions = {
       [APPOINTMENT_STATUS.PENDING]: [APPOINTMENT_STATUS.CONFIRMED, APPOINTMENT_STATUS.CANCELLED],
@@ -716,7 +718,11 @@ class AppointmentService {
     };
 
     if (status && status !== currentStatus) {
-      if (!validTransitions[currentStatus]?.includes(status)) {
+      const isSystemCancelled = currentStatus === APPOINTMENT_STATUS.CANCELLED && appointment.cancelledBy === 'system';
+      const allowed = (validTransitions[currentStatus] || []).includes(status) ||
+        (isSystemCancelled && [APPOINTMENT_STATUS.COMPLETED, APPOINTMENT_STATUS.NO_SHOW].includes(status));
+
+      if (!allowed) {
         throw new BadRequestError(
           `Cannot transition appointment from status '${currentStatus}' to '${status}'`,
           ERROR_CODES.INVALID_STATUS_TRANSITION
@@ -731,7 +737,14 @@ class AppointmentService {
         appointment.cancelledAt = new Date();
 
         // Free the slot
-        await AppointmentSlot.findByIdAndUpdate(appointment.slotId, { $set: { isBooked: false } });
+        if (appointment.slotId) {
+          await AppointmentSlot.findByIdAndUpdate(appointment.slotId, { $set: { isBooked: false } });
+        }
+      } else if (status === APPOINTMENT_STATUS.NO_SHOW) {
+        // Free slot on no-show
+        if (appointment.slotId) {
+          await AppointmentSlot.findByIdAndUpdate(appointment.slotId, { $set: { isBooked: false } });
+        }
       }
     }
 
@@ -776,11 +789,24 @@ class AppointmentService {
       throw new BadRequestError('Cannot cancel a completed appointment', ERROR_CODES.VALIDATION_ERROR);
     }
 
+    const currentUserId = (currentUser.id || currentUser._id || '').toString();
+    const isDoctorOwner =
+      currentUser.role === ROLES.DOCTOR &&
+      (
+        appointment.doctorId?.userId?.toString() === currentUserId ||
+        appointment.doctorId?._id?.toString() === currentUserId ||
+        appointment.doctorId?.toString() === currentUserId
+      );
+    const isClinicAdmin =
+      currentUser.role === ROLES.CLINIC_ADMIN &&
+      appointment.clinicId &&
+      currentUser.clinicId &&
+      appointment.clinicId.toString() === currentUser.clinicId.toString();
     const isPatientOwner =
-      currentUser.role === ROLES.PATIENT && appointment.patientId.toString() === currentUser.id;
+      currentUser.role === ROLES.PATIENT && appointment.patientId.toString() === currentUserId;
     const isPlatformAdmin = currentUser.role === ROLES.ADMIN;
 
-    if (!isPatientOwner && !isPlatformAdmin) {
+    if (!isPatientOwner && !isDoctorOwner && !isClinicAdmin && !isPlatformAdmin) {
       throw new ForbiddenError(
         'You do not have permission to cancel this appointment',
         ERROR_CODES.FORBIDDEN
@@ -803,8 +829,8 @@ class AppointmentService {
     }
 
     appointment.status = APPOINTMENT_STATUS.CANCELLED;
-    appointment.cancelledBy = isPatientOwner ? 'patient' : 'admin';
-    appointment.cancellationReason = reason || 'Cancelled by user';
+    appointment.cancelledBy = isDoctorOwner ? 'doctor' : (isClinicAdmin ? 'clinic_admin' : (isPatientOwner ? 'patient' : 'admin'));
+    appointment.cancellationReason = reason || (isDoctorOwner ? 'Cancelled by doctor' : 'Cancelled by user');
     appointment.cancelledAt = new Date();
 
     // Free slot back up for booking

@@ -559,7 +559,7 @@ export class DoctorDashboardComponent implements OnInit {
             .filter((apt) => {
               try {
                 const d = parseISO(apt.slotStart);
-                return (!isPast(d) || isToday(d)) && apt.status !== 'cancelled' && apt.status !== 'no_show';
+                return (!isPast(d) || isToday(d)) && apt.status !== 'cancelled' && apt.status !== 'no_show' && apt.status !== 'no-show';
               } catch {
                 return false;
               }

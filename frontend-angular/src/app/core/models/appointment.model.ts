@@ -2,7 +2,7 @@ import { User } from './user.model';
 import { Doctor } from './doctor.model';
 import { Clinic } from './clinic.model';
 
-export type AppointmentStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
+export type AppointmentStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show' | 'no-show';
 
 export interface PrescriptionMedicine {
   name: string;

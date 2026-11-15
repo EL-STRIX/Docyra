@@ -31,6 +31,7 @@ export class HighlightStatusDirective implements OnChanges {
       case 'rejected':
       case 'suspended':
       case 'no_show':
+      case 'no-show':
         this.renderer.addClass(this.el.nativeElement, 'status-cancelled');
         break;
       case 'pending':

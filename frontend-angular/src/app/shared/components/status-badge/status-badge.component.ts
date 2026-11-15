@@ -70,6 +70,7 @@ export class StatusBadgeComponent {
       case 'rejected':
       case 'suspended':
       case 'no_show':
+      case 'no-show':
         return 'badge-error';
       default:
         return 'badge-neutral';
@@ -91,6 +92,7 @@ export class StatusBadgeComponent {
       case 'rejected':
       case 'suspended':
       case 'no_show':
+      case 'no-show':
         return 'bg-rose-500';
       default:
         return 'bg-gray-400';
