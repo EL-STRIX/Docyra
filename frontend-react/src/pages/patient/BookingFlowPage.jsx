@@ -254,11 +254,14 @@ export function BookingFlowPage() {
         const availableSlots = res.data.slots || [];
         setSlots(availableSlots);
 
-        // If a slot was pre-selected, find its full object
+        // If a slot was pre-selected, find its full object (only if not booked)
         if (selectedSlotId) {
           const match = availableSlots.find((s) => s._id === selectedSlotId);
-          if (match) {
+          if (match && !match.isBooked) {
             setSelectedSlot(match);
+          } else if (match && match.isBooked) {
+            setSelectedSlotId('');
+            setSelectedSlot(null);
           }
         }
       } else {
@@ -292,6 +295,7 @@ export function BookingFlowPage() {
 
   // Handle slot selection
   const handleSelectSlot = (slot) => {
+    if (slot.isBooked) return;
     setSelectedSlotId(slot._id);
     setSelectedSlot(slot);
     setError(null);
@@ -782,7 +786,7 @@ export function BookingFlowPage() {
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold uppercase tracking-wider text-neutral-text-secondary flex items-center gap-1.5">
                     <Clock className="w-4 h-4 text-brand-primary" />
-                    <span>Available Time Slots ({slots.length})</span>
+                    <span>Time Slots ({slots.filter((s) => !s.isBooked).length} Available)</span>
                   </label>
                   <span className="text-xs text-neutral-text-secondary">
                     {format(new Date(selectedDate), 'EEEE, MMMM dd, yyyy')}
@@ -811,28 +815,64 @@ export function BookingFlowPage() {
                     </Link>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 max-h-72 overflow-y-auto pr-1">
-                    {slots.map((slot) => {
-                      const isSelected = selectedSlotId === slot._id;
-                      return (
-                        <button
-                          key={slot._id}
-                          type="button"
-                          onClick={() => handleSelectSlot(slot)}
-                          className={`p-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                            isSelected
-                              ? 'bg-brand-primary text-white border-brand-primary shadow-sm ring-2 ring-brand-primary/20'
-                              : 'bg-white text-neutral-text-primary border-neutral-border hover:border-brand-primary hover:bg-brand-primary-light'
-                          }`}
+                  <div className="space-y-3">
+                    {slots.every((s) => s.isBooked) && (
+                      <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-amber-800">
+                        <span>All consultation slots for this date are already booked. You can join the waitlist or select another date.</span>
+                        <Link
+                          to={`/waitlist?doctorId=${selectedDoctorId}`}
+                          className="btn-outline text-amber-900 border-amber-300 hover:bg-amber-100 text-xs py-1 px-3 self-start sm:self-auto shrink-0 whitespace-nowrap"
                         >
-                          <Clock className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-white' : 'text-brand-primary'}`} />
-                          <span>
-                            {format(new Date(slot.slotStart), 'hh:mm a')}
-                            {slot.slotEnd ? ` - ${format(new Date(slot.slotEnd), 'hh:mm a')}` : ''}
-                          </span>
-                        </button>
-                      );
-                    })}
+                          Join Waitlist
+                        </Link>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 max-h-72 overflow-y-auto pr-1">
+                      {slots.map((slot) => {
+                        const isSelected = selectedSlotId === slot._id;
+                        const isBooked = !!slot.isBooked;
+
+                        if (isBooked) {
+                          return (
+                            <div
+                              key={slot._id}
+                              className="p-3 rounded-xl border border-neutral-200 bg-neutral-100/90 text-neutral-400 text-xs font-semibold flex items-center justify-between gap-1.5 cursor-not-allowed select-none opacity-80"
+                              title="This slot is already booked"
+                            >
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <Clock className="w-3.5 h-3.5 shrink-0 text-neutral-400" />
+                                <span className="truncate">
+                                  {format(new Date(slot.slotStart), 'hh:mm a')}
+                                </span>
+                              </div>
+                              <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-neutral-200 text-neutral-600 border border-neutral-300/60 shrink-0">
+                                Booked
+                              </span>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <button
+                            key={slot._id}
+                            type="button"
+                            onClick={() => handleSelectSlot(slot)}
+                            className={`p-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                              isSelected
+                                ? 'bg-brand-primary text-white border-brand-primary shadow-sm ring-2 ring-brand-primary/20'
+                                : 'bg-white text-neutral-text-primary border-neutral-border hover:border-brand-primary hover:bg-brand-primary-light'
+                            }`}
+                          >
+                            <Clock className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-white' : 'text-brand-primary'}`} />
+                            <span>
+                              {format(new Date(slot.slotStart), 'hh:mm a')}
+                              {slot.slotEnd ? ` - ${format(new Date(slot.slotEnd), 'hh:mm a')}` : ''}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>
@@ -841,11 +881,15 @@ export function BookingFlowPage() {
               <div className="pt-4 flex items-center justify-end border-t border-neutral-border">
                 <button
                   type="button"
-                  disabled={!selectedSlotId}
+                  disabled={!selectedSlotId || selectedSlot?.isBooked}
                   onClick={() => {
                     if (!selectedSlot && selectedSlotId) {
                       const found = slots.find((s) => s._id === selectedSlotId);
-                      if (found) setSelectedSlot(found);
+                      if (found && !found.isBooked) setSelectedSlot(found);
+                    }
+                    if (selectedSlot?.isBooked) {
+                      setError('This slot is already booked. Please choose an open slot.');
+                      return;
                     }
                     setCurrentStep(2);
                   }}

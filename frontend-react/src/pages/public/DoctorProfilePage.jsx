@@ -77,6 +77,7 @@ export function DoctorProfilePage() {
   }, [id, selectedDate]);
 
   const handleSlotSelect = (slot) => {
+    if (slot.isBooked) return;
     // Navigate to booking flow with preselected slot
     navigate(`/book?doctorId=${id}&slotId=${slot._id}&date=${selectedDate}`);
   };
@@ -341,7 +342,7 @@ export function DoctorProfilePage() {
                     <Clock className="w-6 h-6 text-neutral-text-secondary mx-auto" />
                     <p className="text-xs font-semibold text-neutral-text-primary">No Slots Available</p>
                     <p className="text-[11px] text-neutral-text-secondary">
-                      All slots for this date are booked or outside clinic hours.
+                      There are no consultation slots scheduled on this date.
                     </p>
                     <Link
                       to={`/waitlist?doctorId=${id}`}
@@ -351,17 +352,50 @@ export function DoctorProfilePage() {
                     </Link>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1">
-                    {slots.map((slot) => (
-                      <button
-                        key={slot._id}
-                        onClick={() => handleSlotSelect(slot)}
-                        className="p-2.5 rounded-xl border border-neutral-border bg-white hover:bg-brand-primary-light hover:border-brand-primary text-neutral-text-primary hover:text-brand-primary font-semibold text-xs transition-all flex items-center justify-center gap-1.5 group"
-                      >
-                        <Clock className="w-3.5 h-3.5 text-brand-primary group-hover:scale-110 transition-transform" />
-                        <span>{format(new Date(slot.slotStart), 'hh:mm a')}</span>
-                      </button>
-                    ))}
+                  <div className="space-y-2.5">
+                    {slots.every((s) => s.isBooked) && (
+                      <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-center space-y-1">
+                        <p className="text-[11px] text-amber-800 font-medium">All slots for this date are booked.</p>
+                        <Link
+                          to={`/waitlist?doctorId=${id}`}
+                          className="text-[11px] font-bold text-amber-900 underline block"
+                        >
+                          Join Waitlist
+                        </Link>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1">
+                      {slots.map((slot) => {
+                        const isBooked = !!slot.isBooked;
+                        if (isBooked) {
+                          return (
+                            <div
+                              key={slot._id}
+                              className="p-2.5 rounded-xl border border-neutral-200 bg-neutral-100/90 text-neutral-400 font-semibold text-xs flex items-center justify-between gap-1.5 cursor-not-allowed select-none opacity-80"
+                              title="This slot is already booked"
+                            >
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <Clock className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
+                                <span className="truncate">{format(new Date(slot.slotStart), 'hh:mm a')}</span>
+                              </div>
+                              <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-neutral-200 text-neutral-600 border border-neutral-300/60 shrink-0">
+                                Booked
+                              </span>
+                            </div>
+                          );
+                        }
+                        return (
+                          <button
+                            key={slot._id}
+                            onClick={() => handleSlotSelect(slot)}
+                            className="p-2.5 rounded-xl border border-neutral-border bg-white hover:bg-brand-primary-light hover:border-brand-primary text-neutral-text-primary hover:text-brand-primary font-semibold text-xs transition-all flex items-center justify-center gap-1.5 group"
+                          >
+                            <Clock className="w-3.5 h-3.5 text-brand-primary group-hover:scale-110 transition-transform" />
+                            <span>{format(new Date(slot.slotStart), 'hh:mm a')}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>

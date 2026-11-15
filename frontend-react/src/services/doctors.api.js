@@ -25,9 +25,9 @@ export const doctorsApi = {
       },
     };
   },
-  getDoctorSlots: async (id, date) => {
+  getDoctorSlots: async (id, date, includeBooked = true) => {
     const response = await apiClient.get(`/doctors/${id}/slots`, {
-      params: { date },
+      params: { date, includeBooked },
     });
     const raw = response.data;
     const slots = raw?.data?.slots || (Array.isArray(raw?.data) ? raw.data : []);

@@ -282,7 +282,7 @@ class SlotService {
   /**
    * Public: Query available open slots for a specific doctor on a given date (YYYY-MM-DD)
    */
-  async getAvailableSlots({ doctorId, date, timezone = 'UTC' }) {
+  async getAvailableSlots({ doctorId, date, timezone = 'UTC', includeBooked = false }) {
     if (!mongoose.Types.ObjectId.isValid(doctorId)) {
       throw new AppError(ERROR_CODES.VALIDATION_ERROR, 400, 'Invalid doctor ID format');
     }
@@ -351,24 +351,31 @@ class SlotService {
       });
     }
 
-    const slots = await AppointmentSlot.find({
+    const slotQuery = {
       doctorId: new mongoose.Types.ObjectId(doctorId),
-      isBooked: false,
       slotStart: {
         $gte: startOfDay,
         $lte: endOfDay,
         $gt: now, // Do not return slots in the past
       },
-    })
+    };
+
+    if (!includeBooked) {
+      slotQuery.isBooked = false;
+    }
+
+    const slots = await AppointmentSlot.find(slotQuery)
       .sort({ slotStart: 1 })
       .lean();
+
+    const openSlotsCount = slots.filter((s) => !s.isBooked).length;
 
     return {
       doctorId,
       doctorName: doctor.userId?.name || 'Doctor',
       date,
       timezone,
-      availableSlotCount: slots.length,
+      availableSlotCount: openSlotsCount,
       slots: slots.map((s) => ({
         _id: s._id,
         slotStart: s.slotStart,

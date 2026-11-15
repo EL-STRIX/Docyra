@@ -98,12 +98,13 @@ export const getDoctorAvailability = asyncHandler(async (req, res) => {
  */
 export const getDoctorSlots = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { date, timezone } = req.query;
+  const { date, timezone, includeBooked } = req.query;
 
   const result = await slotService.getAvailableSlots({
     doctorId: id,
     date,
     timezone,
+    includeBooked: includeBooked === 'true' || includeBooked === true,
   });
 
   res.status(200).json({

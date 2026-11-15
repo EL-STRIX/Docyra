@@ -45,6 +45,7 @@ export const getDoctorSlotsSchema = z.object({
   query: z.object({
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
     timezone: z.string().optional(),
+    includeBooked: z.union([z.boolean(), z.string()]).optional(),
   }),
 });
 
