@@ -104,7 +104,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
                 <span>Print Rx</span>
               </button>
 
-              <ng-container *ngIf="appointment.status === 'confirmed'">
+              <ng-container *ngIf="appointment.status === 'confirmed' && !isReadOnly">
                 <button mat-flat-button color="primary" (click)="updateStatus('completed')" [disabled]="updating">
                   <mat-icon>done_all</mat-icon>
                   <span>Mark Completed</span>
@@ -119,6 +119,20 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
                 </button>
               </ng-container>
             </div>
+          </div>
+        </div>
+
+        <!-- View-Only Notice Banner -->
+        <div *ngIf="isReadOnly" class="readonly-banner">
+          <mat-icon class="readonly-icon">lock</mat-icon>
+          <div class="readonly-content">
+            <h4 class="readonly-title">View-Only Consultation Record</h4>
+            <p *ngIf="readOnlyReason === 'cancelled'" class="readonly-desc">
+              This appointment was cancelled. Prescriptions, lab tests, and clinical notes cannot be added or modified.
+            </p>
+            <p *ngIf="readOnlyReason === 'time_ended'" class="readonly-desc">
+              The scheduled consultation time window has ended. All fields are locked in view-only mode.
+            </p>
           </div>
         </div>
 
@@ -248,8 +262,9 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
               <h2 class="card-title flex items-center gap-2">
                 <mat-icon class="text-teal-700">medication</mat-icon>
                 <span>Prescription</span>
+                <span *ngIf="isReadOnly" class="readonly-pill">Read-Only</span>
               </h2>
-              <button mat-flat-button color="primary" (click)="savePrescription()" [disabled]="saving">
+              <button *ngIf="!isReadOnly" mat-flat-button color="primary" (click)="savePrescription()" [disabled]="saving">
                 <mat-spinner *ngIf="saving" diameter="18" class="mr-2"></mat-spinner>
                 <mat-icon *ngIf="!saving">save</mat-icon>
                 <span>Save Prescription</span>
@@ -257,14 +272,19 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
             </div>
 
             <!-- Medicines Table -->
-            <div class="prescription-builder mt-4">
+            <div *ngIf="isReadOnly && validPrescriptionMedicinesCount === 0" class="empty-view-state mt-4">
+              <mat-icon class="empty-view-ic">medication</mat-icon>
+              <p>No medication was prescribed for this consultation.</p>
+            </div>
+
+            <div *ngIf="!isReadOnly || validPrescriptionMedicinesCount > 0" class="prescription-builder mt-4">
               <div class="table-header-row">
                 <div class="col-med">Medicine</div>
                 <div class="col-dosage">Dosage</div>
                 <div class="col-freq">Frequency</div>
                 <div class="col-dur">Duration</div>
                 <div class="col-inst">Instructions</div>
-                <div class="col-action"></div>
+                <div *ngIf="!isReadOnly" class="col-action"></div>
               </div>
 
               <div *ngFor="let med of prescriptionMedicines; let i = index" class="medicine-row">
@@ -272,6 +292,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
                   <input
                     class="rx-input"
                     [(ngModel)]="med.name"
+                    [disabled]="isReadOnly"
                     placeholder="Medicine name & strength"
                   />
                 </div>
@@ -279,6 +300,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
                   <input
                     class="rx-input"
                     [(ngModel)]="med.dosage"
+                    [disabled]="isReadOnly"
                     placeholder="e.g. 1 Tablet"
                   />
                 </div>
@@ -286,6 +308,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
                   <input
                     class="rx-input"
                     [(ngModel)]="med.frequency"
+                    [disabled]="isReadOnly"
                     placeholder="e.g. 1-0-1 / Twice Daily"
                   />
                 </div>
@@ -293,6 +316,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
                   <input
                     class="rx-input"
                     [(ngModel)]="med.duration"
+                    [disabled]="isReadOnly"
                     placeholder="e.g. 5 Days"
                   />
                 </div>
@@ -300,10 +324,11 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
                   <input
                     class="rx-input"
                     [(ngModel)]="med.instructions"
+                    [disabled]="isReadOnly"
                     placeholder="e.g. After meals"
                   />
                 </div>
-                <div class="col-action">
+                <div *ngIf="!isReadOnly" class="col-action">
                   <button
                     mat-icon-button
                     color="warn"
@@ -316,7 +341,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
                 </div>
               </div>
 
-              <div class="mt-3">
+              <div *ngIf="!isReadOnly" class="mt-3">
                 <button mat-stroked-button color="primary" type="button" (click)="addMedicineRow()">
                   <mat-icon>add</mat-icon>
                   <span>Add Medicine</span>
@@ -330,23 +355,25 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
                 <div class="flex items-center gap-2">
                   <mat-icon class="text-teal-700">science</mat-icon>
                   <h3 class="suggested-tests-title">Advise Diagnostic / Lab Tests</h3>
-                  <span class="optional-tag">Optional</span>
+                  <span class="optional-tag" *ngIf="!isReadOnly">Optional</span>
+                  <span class="readonly-pill" *ngIf="isReadOnly">Read-Only</span>
                 </div>
-                <button mat-stroked-button color="primary" type="button" (click)="addSuggestedTestRow()">
+                <button *ngIf="!isReadOnly" mat-stroked-button color="primary" type="button" (click)="addSuggestedTestRow()">
                   <mat-icon>add</mat-icon>
                   <span>Suggest Lab Test</span>
                 </button>
               </div>
 
               <div *ngIf="medicalTests.length === 0" class="empty-suggested-tests-box">
-                <p>No lab tests suggested for this patient yet. Click <strong>"Suggest Lab Test"</strong> above if diagnostic tests (e.g. Blood Test, X-Ray, Ultrasound) are required.</p>
+                <p *ngIf="!isReadOnly">No lab tests suggested for this patient yet. Click <strong>"Suggest Lab Test"</strong> above if diagnostic tests (e.g. Blood Test, X-Ray, Ultrasound) are required.</p>
+                <p *ngIf="isReadOnly">No diagnostic lab tests were advised for this consultation.</p>
               </div>
 
               <div *ngIf="medicalTests.length > 0" class="prescription-builder mt-3">
                 <div class="table-header-row">
                   <div class="col-test-name">Test Name</div>
                   <div class="col-test-inst">Clinical Notes / Instructions</div>
-                  <div class="col-action"></div>
+                  <div *ngIf="!isReadOnly" class="col-action"></div>
                 </div>
 
                 <div *ngFor="let test of medicalTests; let i = index" class="medicine-row">
@@ -354,6 +381,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
                     <input
                       class="rx-input"
                       [(ngModel)]="test.testName"
+                      [disabled]="isReadOnly"
                       placeholder="e.g. Complete Blood Count (CBC) / Fasting Blood Sugar"
                     />
                   </div>
@@ -361,10 +389,11 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
                     <input
                       class="rx-input"
                       [(ngModel)]="test.instructions"
+                      [disabled]="isReadOnly"
                       placeholder="e.g. 10 hours fasting required / Morning sample"
                     />
                   </div>
-                  <div class="col-action">
+                  <div *ngIf="!isReadOnly" class="col-action">
                     <button
                       mat-icon-button
                       color="warn"
@@ -387,6 +416,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
                   class="rx-textarea"
                   rows="3"
                   [(ngModel)]="prescriptionGeneralAdvice"
+                  [disabled]="isReadOnly"
                   placeholder="Dietary instructions, lifestyle advice, or special precautions..."
                 ></textarea>
               </div>
@@ -396,6 +426,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
                 <input
                   class="rx-input"
                   [(ngModel)]="prescriptionFollowUpDate"
+                  [disabled]="isReadOnly"
                   placeholder="e.g. 7 days / 22 Nov 2026"
                 />
               </div>
@@ -422,7 +453,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
                 <mat-icon class="empty-icon">science</mat-icon>
                 <h3 class="font-bold text-neutral-800 mt-2">No Diagnostic Tests Ordered</h3>
                 <p class="text-sm text-neutral-500 mt-1">No laboratory tests have been prescribed for this consultation yet.</p>
-                <button mat-stroked-button color="primary" class="mt-3" (click)="activeTab = 'prescription'">
+                <button *ngIf="!isReadOnly" mat-stroked-button color="primary" class="mt-3" (click)="activeTab = 'prescription'">
                   <mat-icon>medication</mat-icon>
                   <span>Go to Prescription to Suggest Tests</span>
                 </button>
@@ -754,10 +785,13 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
         <!-- TAB 5: Clinical Notes -->
         <div *ngIf="activeTab === 'notes'" class="tab-content-area">
           <mat-card class="section-card">
-            <h2 class="card-title flex items-center gap-2">
-              <mat-icon class="text-teal-700">edit_note</mat-icon>
-              <span>Consultation Notes</span>
-            </h2>
+            <div class="card-title-bar">
+              <h2 class="card-title flex items-center gap-2">
+                <mat-icon class="text-teal-700">edit_note</mat-icon>
+                <span>Consultation Notes</span>
+                <span *ngIf="isReadOnly" class="readonly-pill">Read-Only</span>
+              </h2>
+            </div>
 
             <mat-form-field appearance="outline" class="w-full mt-4">
               <mat-label>Clinical Observations</mat-label>
@@ -765,11 +799,12 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
                 matInput
                 rows="6"
                 [(ngModel)]="visitNotes"
+                [disabled]="isReadOnly"
                 placeholder="Enter consultation examination notes..."
               ></textarea>
             </mat-form-field>
 
-            <div class="mt-2">
+            <div *ngIf="!isReadOnly" class="mt-2">
               <button
                 mat-flat-button
                 color="primary"
@@ -928,6 +963,76 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
       height: 14px;
       color: #DC2626;
       flex-shrink: 0;
+    }
+
+    /* View-Only Readonly Banner & Pill Styles */
+    .readonly-banner {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 18px;
+      border-radius: 12px;
+      background: #FEF3C7;
+      border: 1px solid #FCD34D;
+      color: #92400E;
+      margin-bottom: 4px;
+    }
+
+    .readonly-icon {
+      font-size: 22px;
+      width: 22px;
+      height: 22px;
+      color: #B45309;
+      flex-shrink: 0;
+    }
+
+    .readonly-content {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .readonly-title {
+      font-size: 13px;
+      font-weight: 800;
+      margin: 0;
+      color: #78350F;
+    }
+
+    .readonly-desc {
+      font-size: 12px;
+      margin: 0;
+      color: #92400E;
+      line-height: 1.4;
+    }
+
+    .readonly-pill {
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      background: #FEF3C7;
+      color: #92400E;
+      border: 1px solid #FCD34D;
+      letter-spacing: 0.5px;
+    }
+
+    .empty-view-state {
+      padding: 28px;
+      text-align: center;
+      background: #F9FAFB;
+      border: 1px dashed #D1D5DB;
+      border-radius: 8px;
+      color: #6B7280;
+    }
+
+    .empty-view-ic {
+      font-size: 32px;
+      width: 32px;
+      height: 32px;
+      color: #9CA3AF;
+      margin-bottom: 4px;
     }
 
     .linked-tests-container {
@@ -1323,6 +1428,14 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
     .rx-input:focus, .rx-select:focus, .rx-textarea:focus {
       border-color: #0F5C5C;
       box-shadow: 0 0 0 2px rgba(15, 92, 92, 0.1);
+    }
+
+    .rx-input:disabled, .rx-select:disabled, .rx-textarea:disabled {
+      background: #F9FAFB;
+      color: #374151;
+      border-color: #E5E7EB;
+      cursor: not-allowed;
+      box-shadow: none;
     }
 
     .rx-additional-grid {
@@ -1949,6 +2062,28 @@ export class DoctorAppointmentDetailComponent implements OnInit {
     });
   }
 
+  get isReadOnly(): boolean {
+    if (!this.appointment) return true;
+    if (this.appointment.status === 'cancelled') return true;
+
+    // Check if appointment consultation time has ended
+    const now = new Date();
+    const slotEnd = this.appointment.slotEnd || this.appointment.slotStart;
+    if (slotEnd && new Date(slotEnd) < now) {
+      return true;
+    }
+    return false;
+  }
+
+  get readOnlyReason(): 'cancelled' | 'time_ended' | null {
+    if (!this.appointment) return null;
+    if (this.appointment.status === 'cancelled') return 'cancelled';
+    const now = new Date();
+    const slotEnd = this.appointment.slotEnd || this.appointment.slotStart;
+    if (slotEnd && new Date(slotEnd) < now) return 'time_ended';
+    return null;
+  }
+
   initAppointmentState(apt: Appointment): void {
     this.visitNotes = apt.notes || '';
 
@@ -1956,9 +2091,11 @@ export class DoctorAppointmentDetailComponent implements OnInit {
     if (apt.prescription?.medicines && apt.prescription.medicines.length > 0) {
       this.prescriptionMedicines = JSON.parse(JSON.stringify(apt.prescription.medicines));
     } else {
-      this.prescriptionMedicines = [
-        { name: '', dosage: '1 Tablet', frequency: '1-0-1', duration: '5 Days', instructions: 'After food' },
-      ];
+      this.prescriptionMedicines = this.isReadOnly
+        ? []
+        : [
+            { name: '', dosage: '1 Tablet', frequency: '1-0-1', duration: '5 Days', instructions: 'After food' },
+          ];
     }
     this.prescriptionGeneralAdvice = apt.prescription?.generalAdvice || '';
     this.prescriptionFollowUpDate = apt.prescription?.followUpDate || '';
@@ -2059,6 +2196,7 @@ export class DoctorAppointmentDetailComponent implements OnInit {
   }
 
   addMedicineRow(): void {
+    if (this.isReadOnly) return;
     this.prescriptionMedicines.push({
       name: '',
       dosage: '1 Tablet',
@@ -2069,10 +2207,12 @@ export class DoctorAppointmentDetailComponent implements OnInit {
   }
 
   removeMedicineRow(index: number): void {
+    if (this.isReadOnly) return;
     this.prescriptionMedicines.splice(index, 1);
   }
 
   addSuggestedTestRow(): void {
+    if (this.isReadOnly) return;
     this.medicalTests.push({
       testName: '',
       instructions: '',
@@ -2082,10 +2222,15 @@ export class DoctorAppointmentDetailComponent implements OnInit {
   }
 
   removeSuggestedTestRow(index: number): void {
+    if (this.isReadOnly) return;
     this.medicalTests.splice(index, 1);
   }
 
   savePrescription(): void {
+    if (this.isReadOnly) {
+      this.notificationService.warning('Cannot write or modify prescriptions for a cancelled or past-window appointment.');
+      return;
+    }
     const validMeds = this.prescriptionMedicines.filter((m) => m.name && m.name.trim().length > 0);
     const validTests = this.medicalTests
       .filter((t) => t.testName && t.testName.trim().length > 0)
@@ -2135,6 +2280,7 @@ export class DoctorAppointmentDetailComponent implements OnInit {
   }
 
   addTest(): void {
+    if (this.isReadOnly) return;
     if (!this.newTestName.trim()) return;
 
     this.medicalTests.push({
@@ -2151,10 +2297,15 @@ export class DoctorAppointmentDetailComponent implements OnInit {
   }
 
   removeTest(index: number): void {
+    if (this.isReadOnly) return;
     this.medicalTests.splice(index, 1);
   }
 
   saveMedicalTests(): void {
+    if (this.isReadOnly) {
+      this.notificationService.warning('Cannot write or modify diagnostic tests for a cancelled or past-window appointment.');
+      return;
+    }
     this.saving = true;
     this.appointmentService.updateAppointmentDetails(this.appointmentId, { medicalTests: this.medicalTests }).subscribe({
       next: (res) => {
@@ -2177,6 +2328,10 @@ export class DoctorAppointmentDetailComponent implements OnInit {
   }
 
   onTestFileSelected(event: any, testIndex: number): void {
+    if (this.isReadOnly) {
+      this.notificationService.warning('Cannot upload test reports for a cancelled or past-window appointment.');
+      return;
+    }
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -2215,6 +2370,10 @@ export class DoctorAppointmentDetailComponent implements OnInit {
   }
 
   saveNotes(): void {
+    if (this.isReadOnly) {
+      this.notificationService.warning('Cannot write or modify clinical notes for a cancelled or past-window appointment.');
+      return;
+    }
     this.savingNotes = true;
     this.appointmentService.updateAppointmentDetails(this.appointmentId, { notes: this.visitNotes }).subscribe({
       next: (res) => {
@@ -2237,6 +2396,10 @@ export class DoctorAppointmentDetailComponent implements OnInit {
   }
 
   updateStatus(status: AppointmentStatus): void {
+    if (this.isReadOnly) {
+      this.notificationService.warning('Cannot update status for a cancelled or past-window appointment.');
+      return;
+    }
     this.updating = true;
     this.appointmentService.updateAppointmentStatus(this.appointmentId, status, this.visitNotes).subscribe({
       next: (res) => {
@@ -2254,6 +2417,10 @@ export class DoctorAppointmentDetailComponent implements OnInit {
   }
 
   cancelAppointment(): void {
+    if (this.isReadOnly) {
+      this.notificationService.warning('Cannot cancel an appointment that has already elapsed or ended.');
+      return;
+    }
     if (!this.cancelReason.trim()) return;
 
     this.updating = true;

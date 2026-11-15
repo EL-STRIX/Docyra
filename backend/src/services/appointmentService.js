@@ -657,6 +657,32 @@ class AppointmentService {
       );
     }
 
+    // Protection rule: after appointment is cancelled or its time has ended, writing prescriptions/tests/notes is prohibited
+    const now = new Date();
+    const isCancelled = appointment.status === APPOINTMENT_STATUS.CANCELLED;
+    const slotEnd = appointment.slotEnd || appointment.slotStart;
+    const isTimeEnded = slotEnd ? new Date(slotEnd) < now : false;
+
+    const isWritingContent =
+      prescription !== undefined ||
+      medicalTests !== undefined ||
+      (notes !== undefined && notes !== appointment.notes);
+
+    if (isWritingContent) {
+      if (isCancelled) {
+        throw new BadRequestError(
+          'Cannot write or edit prescriptions, lab tests, or clinical notes for a cancelled appointment. This record is view-only.',
+          ERROR_CODES.INVALID_STATUS_TRANSITION
+        );
+      }
+      if (isTimeEnded) {
+        throw new BadRequestError(
+          'Cannot write or edit prescriptions, lab tests, or clinical notes after the appointment consultation time has ended. This record is view-only.',
+          ERROR_CODES.INVALID_STATUS_TRANSITION
+        );
+      }
+    }
+
     if (notes !== undefined) {
       appointment.notes = notes;
     }
