@@ -34,6 +34,7 @@ export function BookingFlowPage() {
   const queryDate = searchParams.get('date');
   const queryPreviousAppointmentId = searchParams.get('previousAppointmentId') || searchParams.get('followUpId');
   const queryRescheduleId = searchParams.get('rescheduleId');
+  const queryIsRebook = searchParams.get('rebook') === 'true';
 
   // Master lists
   const [allDoctors, setAllDoctors] = useState([]);
@@ -43,11 +44,9 @@ export function BookingFlowPage() {
 
   // Follow-up context state
   const [previousAppointment, setPreviousAppointment] = useState(null);
-  const [loadingPreviousAppointment, setLoadingPreviousAppointment] = useState(!!queryPreviousAppointmentId);
 
   // Reschedule context state
   const [rescheduleAppointment, setRescheduleAppointment] = useState(null);
-  const [loadingReschedule, setLoadingReschedule] = useState(!!queryRescheduleId);
 
   // Current booking selections
   const [selectedDoctorId, setSelectedDoctorId] = useState(queryDoctorId || '');
@@ -136,7 +135,6 @@ export function BookingFlowPage() {
   useEffect(() => {
     if (!queryPreviousAppointmentId) return;
     async function loadPriorAppointment() {
-      setLoadingPreviousAppointment(true);
       try {
         const res = await appointmentsApi.getAppointmentById(queryPreviousAppointmentId);
         if (res.success && res.data.appointment) {
@@ -167,7 +165,7 @@ export function BookingFlowPage() {
           }
 
           // Pre-fill reason for visit for continuous diagnosis
-          const isRebook = searchParams.get('rebook') === 'true' || prev.status === 'cancelled';
+          const isRebook = queryIsRebook || prev.status === 'cancelled';
           const origReason = prev.reasonForVisit || 'Medical Consultation';
           setReasonForVisit((prevVal) => {
             if (prevVal) return prevVal;
@@ -185,18 +183,15 @@ export function BookingFlowPage() {
         }
       } catch (err) {
         console.error('Failed to load prior appointment for follow up:', err);
-      } finally {
-        setLoadingPreviousAppointment(false);
       }
     }
     loadPriorAppointment();
-  }, [queryPreviousAppointmentId]);
+  }, [queryPreviousAppointmentId, queryIsRebook]);
 
   // Load appointment if this is a reschedule flow
   useEffect(() => {
     if (!queryRescheduleId) return;
     async function loadRescheduleAppointment() {
-      setLoadingReschedule(true);
       try {
         const res = await appointmentsApi.getAppointmentById(queryRescheduleId);
         if (res.success && res.data.appointment) {
@@ -234,8 +229,6 @@ export function BookingFlowPage() {
       } catch (err) {
         console.error('Failed to load appointment for rescheduling:', err);
         setError('Failed to load original appointment for rescheduling.');
-      } finally {
-        setLoadingReschedule(false);
       }
     }
     loadRescheduleAppointment();
@@ -534,7 +527,7 @@ export function BookingFlowPage() {
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">
                 <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-teal-100 text-teal-800">
-                  {previousAppointment.status === 'cancelled' || searchParams.get('rebook') === 'true'
+                  {previousAppointment.status === 'cancelled' || queryIsRebook
                     ? 'Rebooking Missed Appointment'
                     : 'Continuous Care Follow-up'}
                 </span>
@@ -543,13 +536,13 @@ export function BookingFlowPage() {
                 </span>
               </div>
               <h2 className="text-sm sm:text-base font-bold text-neutral-text-primary">
-                {previousAppointment.status === 'cancelled' || searchParams.get('rebook') === 'true'
+                {previousAppointment.status === 'cancelled' || queryIsRebook
                   ? `Rebooking Consultation with Dr. ${doctorName}`
                   : `Follow-Up Consultation with Dr. ${doctorName}`}
               </h2>
               <p className="text-xs text-neutral-text-secondary">
                 Diagnosing for: <strong className="text-neutral-text-primary">&ldquo;{previousAppointment.reasonForVisit || 'Medical Consultation'}&rdquo;</strong>.
-                {previousAppointment.status === 'cancelled' || searchParams.get('rebook') === 'true'
+                {previousAppointment.status === 'cancelled' || queryIsRebook
                   ? ' All previous patient details, physician, clinic, and medical context are preserved.'
                   : ' Your prior prescriptions and diagnostic lab reports are linked for tracking.'}
               </p>

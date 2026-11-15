@@ -3,7 +3,6 @@ import { useParams, Link } from 'react-router-dom';
 import { format, differenceInHours } from 'date-fns';
 import {
   Clock,
-  MapPin,
   CheckCircle2,
   XCircle,
   AlertCircle,
