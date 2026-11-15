@@ -16,6 +16,10 @@ import {
   Pill,
   ExternalLink,
   Activity,
+  Printer,
+  Calendar,
+  User,
+  Building2,
 } from 'lucide-react';
 import appointmentsApi from '../../services/appointments.api.js';
 import reviewsApi from '../../services/reviews.api.js';
@@ -157,12 +161,291 @@ export function AppointmentDetailPage() {
 
   const doctorProfile = appointment.doctorId || {};
   const doctorUser = typeof doctorProfile.userId === 'object' && doctorProfile.userId !== null ? doctorProfile.userId : {};
-  const doctorName = doctorProfile.name || doctorUser.name || 'Doctor';
+  const rawDoctorName = doctorProfile.name || doctorUser.name || 'Doctor';
+  const doctorName = rawDoctorName.startsWith('Dr.') ? rawDoctorName : `Dr. ${rawDoctorName}`;
+  const doctorSpecialization = doctorProfile.specializationId?.name || 'General Practice';
   const clinic = appointment.clinicId || {};
-  const isDependent = appointment.bookedForType === 'dependent';
-  const dependent = appointment.bookedForId;
+
+  const isDependent = appointment.bookedForType === 'dependent' || appointment.bookedFor?.type === 'dependent';
+  const dependent = appointment.bookedForId || (isDependent ? appointment.bookedFor : null);
+  const patientName = appointment.bookedFor?.name || dependent?.name || appointment.patientId?.name || 'Patient';
+  const patientPhone = appointment.bookedFor?.phone || dependent?.phone || appointment.patientId?.phone || '';
+  const patientEmail = appointment.bookedFor?.email || dependent?.email || appointment.patientId?.email || '';
+  const patientGender = appointment.bookedFor?.gender || dependent?.gender || appointment.patientId?.gender || '';
+  const patientDob = appointment.bookedFor?.dateOfBirth || dependent?.dateOfBirth || appointment.patientId?.dateOfBirth;
+
+  const calculateAge = (dobString) => {
+    if (!dobString) return '';
+    try {
+      const dob = new Date(dobString);
+      const diffMs = Date.now() - dob.getTime();
+      const ageDate = new Date(diffMs);
+      return Math.abs(ageDate.getUTCFullYear() - 1970);
+    } catch {
+      return '';
+    }
+  };
+  const patientAge = patientDob ? `${calculateAge(patientDob)} yrs` : '';
+  const consultationFee = appointment.consultationFee ?? doctorProfile.consultationFee ?? 500;
 
   const hoursUntilAppointment = differenceInHours(new Date(appointment.slotStart), new Date());
+
+  const formatTestStatus = (status) => {
+    switch (status) {
+      case 'completed': return 'Completed';
+      case 'in_progress':
+      case 'process': return 'In Progress';
+      case 'not_started': return 'Not Started';
+      case 'ordered': return 'Ordered';
+      default: return (status || 'Not Started').replace(/_/g, ' ');
+    }
+  };
+
+  const getTestStatusBadgeClass = (status) => {
+    switch (status) {
+      case 'completed':
+        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      case 'in_progress':
+      case 'process':
+        return 'bg-blue-50 text-blue-700 border-blue-200';
+      case 'not_started':
+      case 'ordered':
+      default:
+        return 'bg-amber-50 text-amber-700 border-amber-200';
+    }
+  };
+
+  const getPaymentStatusDisplay = (status) => {
+    if (status === 'completed' || status === 'paid') return 'Paid Online';
+    if (status === 'refunded') return 'Refunded';
+    return 'Pay at Clinic';
+  };
+
+  const getPaymentStatusBadgeClass = (status) => {
+    if (status === 'completed' || status === 'paid') return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+    if (status === 'refunded') return 'bg-rose-50 text-rose-700 border-rose-200';
+    return 'bg-amber-50 text-amber-700 border-amber-200';
+  };
+
+  const printMedicines = () => {
+    if (!appointment) return;
+    const clinicName = clinic.name || 'Docyra Healthcare Partner';
+    const clinicAddress = formatAddress(clinic.address, doctorProfile.clinicAddress || '');
+    const clinicPhone = clinic.contactPhone || '';
+    const dateStr = format(new Date(appointment.slotStart), 'dd MMM yyyy');
+    const medicines = appointment.prescription?.medicines || [];
+
+    const rowsHtml = medicines.map((m, idx) => `
+      <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #E5E7EB; text-align: center; color: #6B7280;">${idx + 1}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #E5E7EB; font-weight: 700; color: #111827;">${m.name}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #E5E7EB; color: #374151;">${m.dosage || '-'}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #E5E7EB; color: #374151;">${m.frequency || '-'}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #E5E7EB; color: #374151;">${m.duration || '-'}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #E5E7EB; color: #4B5563;">${m.instructions || 'As advised'}</td>
+      </tr>
+    `).join('');
+
+    const adviceHtml = appointment.prescription?.generalAdvice ? `
+      <div style="margin-top: 20px; padding: 12px 16px; background: #F8FAFC; border-left: 4px solid #0F5C54; border-radius: 4px;">
+        <strong style="color: #0F5C54; font-size: 13px; text-transform: uppercase;">Doctor's General Advice:</strong>
+        <p style="margin: 4px 0 0; color: #334155; font-size: 13px; line-height: 1.5;">${appointment.prescription.generalAdvice}</p>
+      </div>
+    ` : '';
+
+    const followUpHtml = appointment.prescription?.followUpDate ? `
+      <div style="margin-top: 10px; font-size: 12px; color: #475569;">
+        <strong>Follow-up Recommendation:</strong> ${appointment.prescription.followUpDate}
+      </div>
+    ` : '';
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Prescription Dispensing Slip - #${appointment._id.slice(-6)}</title>
+        <style>
+          @page { size: A4 portrait; margin: 15mm; }
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; color: #1F2937; margin: 0; padding: 10px; }
+          .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0F5C54; padding-bottom: 14px; margin-bottom: 16px; }
+          .clinic-name { font-size: 20px; font-weight: 800; color: #0F5C54; margin: 0; }
+          .clinic-sub { font-size: 12px; color: #6B7280; margin-top: 3px; }
+          .badge-dispense { font-size: 11px; font-weight: 800; background: #E6F4F1; color: #0F5C54; padding: 4px 10px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+          .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; background: #F9FAFB; padding: 12px 16px; border-radius: 8px; border: 1px solid #E5E7EB; margin-bottom: 20px; font-size: 12px; }
+          .meta-item { margin-bottom: 4px; }
+          .meta-lbl { color: #6B7280; font-weight: 600; width: 110px; display: inline-block; }
+          .meta-val { font-weight: 700; color: #111827; }
+          .table-title { font-size: 13px; font-weight: 800; color: #0F5C54; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+          table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; }
+          th { background: #0F5C54; color: #FFFFFF; padding: 8px 10px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+          .footer { margin-top: 40px; display: flex; justify-content: space-between; align-items: flex-end; padding-top: 20px; border-top: 1px solid #E5E7EB; font-size: 11px; color: #6B7280; }
+          .sig-line { border-top: 1px solid #9CA3AF; width: 180px; text-align: center; padding-top: 6px; font-weight: 600; color: #111827; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <h1 class="clinic-name">${clinicName}</h1>
+            <div class="clinic-sub">${clinicAddress} ${clinicPhone ? '• Tel: ' + clinicPhone : ''}</div>
+          </div>
+          <div style="text-align: right;">
+            <div class="badge-dispense">Prescription Slip</div>
+            <div style="font-size: 11px; color: #6B7280; margin-top: 4px;">Ref #${appointment._id.slice(-6)} • ${dateStr}</div>
+          </div>
+        </div>
+
+        <div class="meta-grid">
+          <div>
+            <div class="meta-item"><span class="meta-lbl">Patient Name:</span> <span class="meta-val">${patientName}</span></div>
+            <div class="meta-item"><span class="meta-lbl">Age / Gender:</span> <span class="meta-val">${patientAge || '-'} ${patientGender ? '/ ' + patientGender.toUpperCase() : ''}</span></div>
+            ${patientPhone ? `<div class="meta-item"><span class="meta-lbl">Phone:</span> <span class="meta-val">${patientPhone}</span></div>` : ''}
+          </div>
+          <div>
+            <div class="meta-item"><span class="meta-lbl">Doctor:</span> <span class="meta-val">${doctorName}</span></div>
+            <div class="meta-item"><span class="meta-lbl">Specialty:</span> <span class="meta-val">${doctorSpecialization}</span></div>
+            <div class="meta-item"><span class="meta-lbl">Consultation:</span> <span class="meta-val">${dateStr}</span></div>
+          </div>
+        </div>
+
+        <div class="table-title">Prescribed Medications</div>
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 40px; text-align: center;">#</th>
+              <th>Medicine Name</th>
+              <th>Dosage</th>
+              <th>Frequency</th>
+              <th>Duration</th>
+              <th>Instructions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+          </tbody>
+        </table>
+
+        ${adviceHtml}
+        ${followUpHtml}
+
+        <div class="footer">
+          <div>Docyra Healthcare • Generated on ${new Date().toLocaleDateString('en-IN')}</div>
+          <div class="sig-line">Doctor / Pharmacist Signature</div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const printWin = window.open('', '_blank', 'width=800,height=900');
+    if (printWin) {
+      printWin.document.open();
+      printWin.document.write(htmlContent);
+      printWin.document.close();
+      setTimeout(() => {
+        printWin.focus();
+        printWin.print();
+      }, 350);
+    }
+  };
+
+  const printTests = () => {
+    if (!appointment) return;
+    const clinicName = clinic.name || 'Docyra Healthcare Partner';
+    const clinicAddress = formatAddress(clinic.address, doctorProfile.clinicAddress || '');
+    const clinicPhone = clinic.contactPhone || '';
+    const dateStr = format(new Date(appointment.slotStart), 'dd MMM yyyy');
+    const tests = appointment.medicalTests || [];
+
+    const rowsHtml = tests.map((t, idx) => `
+      <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #E5E7EB; text-align: center; color: #6B7280;">${idx + 1}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #E5E7EB; font-weight: 700; color: #111827;">${t.testName}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #E5E7EB; color: #374151;">${t.instructions || 'Routine evaluation as requested'}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #E5E7EB; text-align: center; text-transform: uppercase; font-weight: 600; color: #0F5C54;">${formatTestStatus(t.status)}</td>
+      </tr>
+    `).join('');
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Diagnostic Tests Requisition - #${appointment._id.slice(-6)}</title>
+        <style>
+          @page { size: A4 portrait; margin: 15mm; }
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; color: #1F2937; margin: 0; padding: 10px; }
+          .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0F5C54; padding-bottom: 14px; margin-bottom: 16px; }
+          .clinic-name { font-size: 20px; font-weight: 800; color: #0F5C54; margin: 0; }
+          .clinic-sub { font-size: 12px; color: #6B7280; margin-top: 3px; }
+          .badge-lab { font-size: 11px; font-weight: 800; background: #E6F4F1; color: #0F5C54; padding: 4px 10px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+          .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; background: #F9FAFB; padding: 12px 16px; border-radius: 8px; border: 1px solid #E5E7EB; margin-bottom: 20px; font-size: 12px; }
+          .meta-item { margin-bottom: 4px; }
+          .meta-lbl { color: #6B7280; font-weight: 600; width: 110px; display: inline-block; }
+          .meta-val { font-weight: 700; color: #111827; }
+          .table-title { font-size: 13px; font-weight: 800; color: #0F5C54; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+          table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; }
+          th { background: #0F5C54; color: #FFFFFF; padding: 8px 10px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+          .footer { margin-top: 50px; display: flex; justify-content: space-between; align-items: flex-end; padding-top: 20px; border-top: 1px solid #E5E7EB; font-size: 11px; color: #6B7280; }
+          .sig-line { border-top: 1px solid #9CA3AF; width: 180px; text-align: center; padding-top: 6px; font-weight: 600; color: #111827; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <h1 class="clinic-name">${clinicName}</h1>
+            <div class="clinic-sub">${clinicAddress} ${clinicPhone ? '• Tel: ' + clinicPhone : ''}</div>
+          </div>
+          <div style="text-align: right;">
+            <div class="badge-lab">Diagnostic / Lab Requisition Slip</div>
+            <div style="font-size: 11px; color: #6B7280; margin-top: 4px;">Ref #${appointment._id.slice(-6)} • ${dateStr}</div>
+          </div>
+        </div>
+
+        <div class="meta-grid">
+          <div>
+            <div class="meta-item"><span class="meta-lbl">Patient Name:</span> <span class="meta-val">${patientName}</span></div>
+            <div class="meta-item"><span class="meta-lbl">Age / Gender:</span> <span class="meta-val">${patientAge || '-'} ${patientGender ? '/ ' + patientGender.toUpperCase() : ''}</span></div>
+            ${patientPhone ? `<div class="meta-item"><span class="meta-lbl">Phone:</span> <span class="meta-val">${patientPhone}</span></div>` : ''}
+          </div>
+          <div>
+            <div class="meta-item"><span class="meta-lbl">Referring Doctor:</span> <span class="meta-val">${doctorName}</span></div>
+            <div class="meta-item"><span class="meta-lbl">Department:</span> <span class="meta-val">${doctorSpecialization}</span></div>
+            <div class="meta-item"><span class="meta-lbl">Date Advised:</span> <span class="meta-val">${dateStr}</span></div>
+          </div>
+        </div>
+
+        <div class="table-title">Advised Diagnostic Tests</div>
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 40px; text-align: center;">#</th>
+              <th>Test Name</th>
+              <th>Clinical Notes / Instructions</th>
+              <th style="width: 120px; text-align: center;">Current Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+          </tbody>
+        </table>
+
+        <div class="footer">
+          <div>Requisitioned via Docyra Healthcare • Generated on ${new Date().toLocaleDateString('en-IN')}</div>
+          <div class="sig-line">Lab Technician / Pathologist Signature</div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const printWin = window.open('', '_blank', 'width=800,height=900');
+    if (printWin) {
+      printWin.document.open();
+      printWin.document.write(htmlContent);
+      printWin.document.close();
+      setTimeout(() => {
+        printWin.focus();
+        printWin.print();
+      }, 350);
+    }
+  };
 
   return (
     <div className="max-w-4xl mx-auto px-4 space-y-8 pb-16">
@@ -184,11 +467,11 @@ export function AppointmentDetailPage() {
               Appointment #{appointment._id?.slice(-8)}
             </span>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-neutral-text-primary">
-              Consultation Details
+              Appointment Summary &amp; Clinical Details
             </h1>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
             {(appointment.isFollowUp || appointment.previousAppointmentId) && (
               <span className="badge-primary text-xs py-1 px-3 flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-200">
                 <RotateCcw className="w-3.5 h-3.5" />
@@ -223,208 +506,219 @@ export function AppointmentDetailPage() {
                 </span>
               </span>
             )}
-          </div>
-        </div>
 
-        {/* Doctor & Clinic Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Doctor Info */}
-          <div className="p-6 rounded-2xl bg-neutral-bg border border-neutral-border space-y-3">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-brand-primary">
-              Physician
-            </span>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-brand-primary text-white flex items-center justify-center font-bold text-lg">
-                {doctorName ? doctorName.charAt(0) : 'D'}
-              </div>
-              <div>
-                <h3 className="font-bold text-base text-neutral-text-primary">{doctorName}</h3>
-                <p className="text-xs font-semibold text-brand-primary">
-                  {doctorProfile.specializationId?.name || 'Specialist'}
-                </p>
-                <p className="text-[11px] text-neutral-text-secondary">{doctorProfile.qualifications}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Clinic Location */}
-          <div className="p-6 rounded-2xl bg-neutral-bg border border-neutral-border space-y-3">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-brand-primary">
-              Clinic Location
-            </span>
-            <div className="space-y-1 text-xs">
-              <h4 className="font-bold text-sm text-neutral-text-primary">
-                {clinic.name || doctorProfile.clinicAddress || 'Clinic Partner'}
-              </h4>
-              <p className="text-neutral-text-secondary flex items-start gap-1">
-                <MapPin className="w-3.5 h-3.5 text-brand-primary shrink-0 mt-0.5" />
-                <span>{formatAddress(clinic.address, doctorProfile.clinicAddress || 'Address on file')}</span>
-              </p>
-              {clinic.contactPhone && (
-                <p className="text-neutral-text-secondary pt-1">
-                  Phone: <strong>{clinic.contactPhone}</strong>
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Slot Schedule & Patient Details */}
-        <div className="p-6 rounded-2xl border border-neutral-border space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-            <div>
-              <span className="text-neutral-text-secondary block">Date & Time</span>
-              <span className="font-bold text-sm text-neutral-text-primary block mt-0.5">
-                {format(new Date(appointment.slotStart), 'EEE, MMM dd, yyyy')}
-              </span>
-              <span className="text-brand-primary font-semibold">
-                {format(new Date(appointment.slotStart), 'hh:mm a')}
-              </span>
-            </div>
-
-            <div>
-              <span className="text-neutral-text-secondary block">Patient Profile</span>
-              <span className="font-bold text-sm text-neutral-text-primary block mt-0.5">
-                {isDependent ? `${dependent?.name || 'Dependent'} (Family)` : 'Self'}
-              </span>
-            </div>
-
-            <div>
-              <span className="text-neutral-text-secondary block">Reason for Visit</span>
-              <span className="font-medium text-neutral-text-primary block mt-0.5 italic">
-                &ldquo;{appointment.reasonForVisit || 'General Consultation'}&rdquo;
-              </span>
-            </div>
-          </div>
-
-          {appointment.cancelledBy && (
-            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 space-y-1">
-              <span className="font-bold">Cancellation Notice:</span>
-              <p>Cancelled by: {appointment.cancelledBy} &bull; Reason: {appointment.cancellationReason || 'No details'}</p>
-            </div>
-          )}
-        </div>
-
-        {/* Linked Prior Visit if this is a follow-up */}
-        {(appointment.isFollowUp || appointment.previousAppointmentId) && (
-          <div className="p-4 rounded-2xl bg-blue-50/60 border border-blue-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 mt-0.5">
-                <RotateCcw className="w-4 h-4" />
-              </div>
-              <div className="space-y-0.5">
-                <span className="font-bold text-blue-900 block">
-                  Follow-Up Consultation
-                </span>
-                <p className="text-blue-700">
-                  This consultation is linked to prior visit #{typeof appointment.previousAppointmentId === 'object' ? (appointment.previousAppointmentId?._id?.slice(-8) || '') : (appointment.previousAppointmentId?.slice(-8) || '')} for continuity of diagnostic tests and treatment.
-                </p>
-              </div>
-            </div>
-            {typeof appointment.previousAppointmentId === 'object' && appointment.previousAppointmentId?._id && (
-              <Link
-                to={`/appointments/${appointment.previousAppointmentId._id}`}
-                className="btn-outline text-blue-700 border-blue-300 hover:bg-blue-100 text-xs py-1.5 px-3 self-start sm:self-auto shrink-0"
+            {/* Quick Print Actions in Header */}
+            {appointment.prescription?.medicines?.length > 0 && (
+              <button
+                type="button"
+                onClick={printMedicines}
+                className="btn-outline text-xs py-1 px-2.5 flex items-center gap-1.5 font-bold text-neutral-text-primary hover:text-brand-primary cursor-pointer"
+                title="Print Prescribed Medicines"
               >
-                View Prior Visit
-              </Link>
+                <Printer className="w-3.5 h-3.5 text-brand-primary" />
+                <span className="hidden sm:inline">Print Medicines</span>
+              </button>
+            )}
+            {appointment.medicalTests?.length > 0 && (
+              <button
+                type="button"
+                onClick={printTests}
+                className="btn-outline text-xs py-1 px-2.5 flex items-center gap-1.5 font-bold text-neutral-text-primary hover:text-brand-primary cursor-pointer"
+                title="Print Advised Lab Tests"
+              >
+                <Printer className="w-3.5 h-3.5 text-brand-primary" />
+                <span className="hidden sm:inline">Print Tests</span>
+              </button>
             )}
           </div>
-        )}
+        </div>
 
-        {/* Book Follow-Up Action Callout if Completed */}
-        {appointment.status === 'completed' && (
-          <div className="p-6 rounded-2xl bg-gradient-to-r from-teal-50 via-emerald-50 to-teal-50 border border-teal-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <RotateCcw className="w-4 h-4 text-brand-primary" />
-                <h3 className="text-base font-bold text-neutral-text-primary">
-                  Need a Follow-Up Consultation?
-                </h3>
+        {/* Schedule Date & Time Banner (Matching Clinic Admin View) */}
+        <div className="p-4 sm:p-5 rounded-2xl bg-teal-50/70 border border-teal-200/80 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-teal-100 text-teal-800 flex items-center justify-center shrink-0">
+            <Calendar className="w-6 h-6" />
+          </div>
+          <div>
+            <div className="text-base sm:text-lg font-bold text-neutral-900">
+              {appointment.slotStart ? format(new Date(appointment.slotStart), 'EEEE, dd MMMM yyyy') : 'Scheduled Date'}
+            </div>
+            <div className="text-xs sm:text-sm font-semibold text-teal-800">
+              {appointment.slotStart ? format(new Date(appointment.slotStart), 'h:mm a') : ''}
+              {appointment.slotEnd ? ` - ${format(new Date(appointment.slotEnd), 'h:mm a')}` : ''}
+            </div>
+          </div>
+        </div>
+
+        {/* 2-Column Summary: Patient Information & Physician / Consultation Fee */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Patient Information */}
+          <div className="p-5 rounded-2xl bg-neutral-bg border border-neutral-border space-y-3">
+            <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-neutral-500">
+              <User className="w-3.5 h-3.5 text-brand-primary" />
+              <span>Patient Information</span>
+            </div>
+
+            <div className="space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-neutral-text-secondary">Patient Name</span>
+                <span className="font-bold text-neutral-text-primary flex items-center gap-1.5">
+                  {patientName}
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 border border-teal-200">
+                    {isDependent ? (dependent?.relationship || 'Dependent') : 'Self Booking'}
+                  </span>
+                </span>
               </div>
-              <p className="text-xs text-neutral-text-secondary max-w-xl">
-                Book a follow-up visit with Dr. {doctorName} for continuous tracking of this medical issue. Your prescribed diagnostic tests and treatment history will be seamlessly available to the physician.
-              </p>
-              {appointment.prescription?.followUpDate && (
-                <p className="text-xs font-semibold text-brand-primary">
-                  Doctor's Recommended Follow-up Date: {appointment.prescription.followUpDate}
-                </p>
+
+              <div className="flex items-center justify-between">
+                <span className="text-neutral-text-secondary">Booking Type</span>
+                <span className="font-semibold text-neutral-text-primary">
+                  {isDependent ? 'Family Dependent' : 'Self Booking'}
+                </span>
+              </div>
+
+              {patientEmail && (
+                <div className="flex items-center justify-between">
+                  <span className="text-neutral-text-secondary">Email Address</span>
+                  <span className="font-medium text-neutral-text-primary">{patientEmail}</span>
+                </div>
+              )}
+
+              {patientPhone && (
+                <div className="flex items-center justify-between">
+                  <span className="text-neutral-text-secondary">Phone Number</span>
+                  <span className="font-medium text-neutral-text-primary">{patientPhone}</span>
+                </div>
+              )}
+
+              {(patientGender || patientAge) && (
+                <div className="flex items-center justify-between">
+                  <span className="text-neutral-text-secondary">Gender / Age</span>
+                  <span className="font-medium text-neutral-text-primary capitalize">
+                    {patientGender || '-'}{patientAge ? ` • ${patientAge}` : ''}
+                  </span>
+                </div>
               )}
             </div>
-
-            <Link
-              to={`/book?doctorId=${doctorProfile._id}&previousAppointmentId=${appointment._id}&followUp=true`}
-              className="btn-accent text-xs py-2.5 px-5 flex items-center gap-2 font-bold shrink-0 shadow-sm"
-            >
-              <RotateCcw className="w-4 h-4" />
-              <span>Book Follow-up Visit</span>
-            </Link>
           </div>
-        )}
 
-        {/* Book Again Action Callout if Cancelled or Missed */}
-        {appointment.status === 'cancelled' && (
-          <div className="p-6 rounded-2xl bg-gradient-to-r from-amber-50 via-rose-50 to-amber-50 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <RotateCcw className="w-4 h-4 text-amber-700" />
-                <h3 className="text-base font-bold text-neutral-text-primary">
-                  {appointment.cancelledBy === 'system' || appointment.cancellationReason?.toLowerCase()?.includes('missed')
-                    ? 'Appointment Missed & Auto-Cancelled'
-                    : 'Appointment Cancelled'}
-                </h3>
-              </div>
-              <p className="text-xs text-neutral-text-secondary max-w-xl">
-                {appointment.cancellationReason || 'This appointment was cancelled because the visit time elapsed.'}{' '}
-                You can rebook this consultation with Dr. {doctorName} at {clinic.name || 'the clinic'} using all your previous details without starting from scratch.
-              </p>
+          {/* Physician & Consultation Fee */}
+          <div className="p-5 rounded-2xl bg-neutral-bg border border-neutral-border space-y-3">
+            <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-neutral-500">
+              <Building2 className="w-3.5 h-3.5 text-brand-primary" />
+              <span>Physician &amp; Consultation Fee</span>
             </div>
 
-            <Link
-              to={`/book?doctorId=${doctorProfile._id}&previousAppointmentId=${appointment._id}&rebook=true`}
-              className="btn-accent text-xs py-2.5 px-5 flex items-center gap-2 font-bold shrink-0 shadow-sm"
-            >
-              <RotateCcw className="w-4 h-4" />
-              <span>Book This Appointment Again</span>
-            </Link>
+            <div className="space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-neutral-text-secondary">Attending Physician</span>
+                <span className="font-bold text-teal-800">{doctorName}</span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-neutral-text-secondary">Department / Specialty</span>
+                <span className="font-semibold text-neutral-text-primary">{doctorSpecialization}</span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-neutral-text-secondary">Clinic Location</span>
+                <span className="font-medium text-neutral-text-primary text-right truncate max-w-[200px]" title={clinic.name || doctorProfile.clinicAddress || 'Docyra Clinic'}>
+                  {clinic.name || doctorProfile.clinicAddress || 'Docyra Clinic'}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between pt-1 border-t border-neutral-border/60">
+                <span className="text-neutral-text-secondary">Consultation Fee</span>
+                <span className="font-bold text-sm text-neutral-text-primary">₹{consultationFee}</span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-neutral-text-secondary">Payment Status</span>
+                <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${getPaymentStatusBadgeClass(appointment.paymentStatus)}`}>
+                  {getPaymentStatusDisplay(appointment.paymentStatus)}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Reason for Visit */}
+        {appointment.reasonForVisit && (
+          <div className="p-4 rounded-xl bg-white border border-neutral-border space-y-1 text-xs">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-text-secondary flex items-center gap-1.5">
+              <FileText className="w-3.5 h-3.5 text-brand-primary" />
+              <span>Reason for Visit</span>
+            </span>
+            <p className="font-medium text-neutral-text-primary italic">
+              &ldquo;{appointment.reasonForVisit}&rdquo;
+            </p>
           </div>
         )}
 
-        {/* Doctor's Prescription (if recorded) */}
+        {/* Doctor's Clinical Notes (Recorded by Doctor) */}
+        {appointment.notes && (
+          <div className="p-6 rounded-2xl bg-white border border-neutral-border space-y-3">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-brand-primary" />
+                <h3 className="text-sm font-bold uppercase tracking-wider text-neutral-text-primary">
+                  Doctor&apos;s Clinical Notes
+                </h3>
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-neutral-100 text-neutral-600 border border-neutral-200">
+                Doctor&apos;s Record &bull; Read-Only
+              </span>
+            </div>
+            <div className="p-4 rounded-xl bg-neutral-bg border border-neutral-border text-xs text-neutral-800 whitespace-pre-wrap leading-relaxed">
+              {appointment.notes}
+            </div>
+          </div>
+        )}
+
+        {/* Prescribed Medicines (if recorded) */}
         {appointment.prescription && (appointment.prescription.medicines?.length > 0 || appointment.prescription.generalAdvice) && (
           <div className="p-6 rounded-2xl bg-white border border-neutral-border space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-brand-primary font-bold">
-                <Pill className="w-4 h-4" />
-                <h3 className="text-base font-bold text-neutral-text-primary">Prescription & Medications</h3>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Pill className="w-4 h-4 text-brand-primary" />
+                <h3 className="text-sm font-bold uppercase tracking-wider text-neutral-text-primary">
+                  Prescribed Medicines
+                </h3>
               </div>
-              {appointment.prescription.prescribedAt && (
-                <span className="text-[11px] text-neutral-text-secondary">
-                  Prescribed: {format(new Date(appointment.prescription.prescribedAt), 'dd MMM yyyy')}
-                </span>
-              )}
+
+              <button
+                type="button"
+                onClick={printMedicines}
+                className="btn-outline text-xs py-1.5 px-3 flex items-center gap-1.5 font-bold text-neutral-text-primary hover:text-brand-primary self-start sm:self-auto cursor-pointer"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>Print Medicine List</span>
+              </button>
             </div>
 
             {appointment.prescription.medicines?.length > 0 && (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto rounded-xl border border-neutral-border">
                 <table className="w-full text-xs text-left">
-                  <thead>
-                    <tr className="border-b border-neutral-border text-neutral-text-secondary">
-                      <th className="py-2 font-semibold">Medicine</th>
-                      <th className="py-2 font-semibold">Dosage</th>
-                      <th className="py-2 font-semibold">Frequency</th>
-                      <th className="py-2 font-semibold">Duration</th>
-                      <th className="py-2 font-semibold">Instructions</th>
+                  <thead className="bg-neutral-bg border-b border-neutral-border text-neutral-text-secondary">
+                    <tr>
+                      <th className="py-2.5 px-3 font-bold uppercase text-[10px]">Medicine Name</th>
+                      <th className="py-2.5 px-3 font-bold uppercase text-[10px]">Dosage</th>
+                      <th className="py-2.5 px-3 font-bold uppercase text-[10px]">Frequency</th>
+                      <th className="py-2.5 px-3 font-bold uppercase text-[10px]">Duration</th>
+                      <th className="py-2.5 px-3 font-bold uppercase text-[10px]">Instructions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-border">
                     {appointment.prescription.medicines.map((m, idx) => (
                       <tr key={idx} className="hover:bg-neutral-bg/50">
-                        <td className="py-2.5 font-bold text-neutral-text-primary">{m.name}</td>
-                        <td className="py-2.5 text-neutral-text-secondary">{m.dosage || '-'}</td>
-                        <td className="py-2.5 text-neutral-text-secondary">{m.frequency || '-'}</td>
-                        <td className="py-2.5 text-neutral-text-secondary">{m.duration || '-'}</td>
-                        <td className="py-2.5 text-neutral-text-secondary italic">{m.instructions || '-'}</td>
+                        <td className="py-2.5 px-3 font-bold text-neutral-text-primary">{m.name}</td>
+                        <td className="py-2.5 px-3 text-neutral-text-secondary">{m.dosage || '-'}</td>
+                        <td className="py-2.5 px-3">
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-neutral-100 text-neutral-700 border border-neutral-200">
+                            {m.frequency || '-'}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3 text-neutral-text-secondary">{m.duration || '-'}</td>
+                        <td className="py-2.5 px-3 text-neutral-600 italic">{m.instructions || 'As advised'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -433,70 +727,104 @@ export function AppointmentDetailPage() {
             )}
 
             {appointment.prescription.generalAdvice && (
-              <div className="p-3 rounded-xl bg-neutral-bg border border-neutral-border text-xs space-y-1">
-                <span className="font-bold text-neutral-text-primary">Clinical Advice:</span>
-                <p className="text-neutral-text-secondary">{appointment.prescription.generalAdvice}</p>
+              <div className="p-3.5 rounded-xl bg-neutral-bg border-l-4 border-l-brand-primary border border-neutral-border text-xs space-y-1">
+                <span className="font-bold text-brand-primary uppercase text-[10px] tracking-wider block">Clinical Advice:</span>
+                <p className="text-neutral-text-secondary leading-relaxed">{appointment.prescription.generalAdvice}</p>
+              </div>
+            )}
+
+            {appointment.prescription.followUpDate && (
+              <div className="text-xs text-neutral-text-secondary font-medium">
+                <strong className="text-neutral-text-primary">Recommended Follow-up Date: </strong>
+                <span>{appointment.prescription.followUpDate}</span>
               </div>
             )}
           </div>
         )}
 
-        {/* Diagnostic & Laboratory Tests (if ordered) */}
+        {/* Advised Diagnostic & Lab Tests (if ordered) */}
         {appointment.medicalTests?.length > 0 && (
           <div className="p-6 rounded-2xl bg-white border border-neutral-border space-y-4">
-            <div className="flex items-center gap-2 text-brand-primary font-bold">
-              <Activity className="w-4 h-4" />
-              <h3 className="text-base font-bold text-neutral-text-primary">Diagnostic & Lab Tests</h3>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Activity className="w-4 h-4 text-brand-primary" />
+                <h3 className="text-sm font-bold uppercase tracking-wider text-neutral-text-primary">
+                  Advised Diagnostic &amp; Lab Tests
+                </h3>
+              </div>
+
+              <button
+                type="button"
+                onClick={printTests}
+                className="btn-outline text-xs py-1.5 px-3 flex items-center gap-1.5 font-bold text-neutral-text-primary hover:text-brand-primary self-start sm:self-auto cursor-pointer"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>Print Lab Tests</span>
+              </button>
             </div>
 
             <div className="space-y-3">
               {appointment.medicalTests.map((test, idx) => (
-                <div key={idx} className="p-4 rounded-xl border border-neutral-border bg-neutral-bg/40 space-y-2">
+                <div key={idx} className="p-4 sm:p-5 rounded-2xl border border-neutral-border bg-neutral-bg/40 space-y-3">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-xs text-neutral-text-primary">{test.testName}</span>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
-                        test.status === 'completed' || test.status === 'normal'
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          : test.status === 'abnormal'
-                          ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                          : 'bg-amber-50 text-amber-700 border border-amber-200'
-                      }`}>
-                        {test.status || 'ordered'}
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-teal-100 text-teal-800 flex items-center justify-center shrink-0">
+                        <Activity className="w-4 h-4" />
+                      </div>
+                      <span className="font-bold text-sm text-neutral-text-primary">{test.testName}</span>
+                      <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase border ${getTestStatusBadgeClass(test.status)}`}>
+                        {formatTestStatus(test.status)}
                       </span>
                     </div>
 
-                    {test.resultFileUrl && (
+                    {test.resultFileUrl ? (
                       <a
                         href={test.resultFileUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="btn-outline text-xs py-1 px-3 flex items-center gap-1.5 text-brand-primary border-brand-primary self-start sm:self-auto"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-50 text-teal-800 hover:bg-teal-100 border border-teal-200 text-xs font-bold transition-colors self-start sm:self-auto"
                       >
-                        <FileText className="w-3.5 h-3.5" />
+                        <FileText className="w-3.5 h-3.5 text-teal-700" />
                         <span>View Lab Report</span>
-                        <ExternalLink className="w-3 h-3" />
+                        <ExternalLink className="w-3 h-3 text-teal-700" />
                       </a>
+                    ) : (
+                      <span className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-xl font-medium self-start sm:self-auto">
+                        Result report pending upload by clinic diagnostics
+                      </span>
                     )}
                   </div>
 
                   {test.instructions && (
                     <p className="text-xs text-neutral-text-secondary">
-                      <span className="font-semibold text-neutral-text-primary">Instructions: </span>
+                      <strong className="text-neutral-text-primary">Doctor&apos;s Instructions: </strong>
                       {test.instructions}
                     </p>
                   )}
 
                   {test.resultNotes && (
-                    <div className="p-2.5 rounded-lg bg-white border border-neutral-border text-xs text-neutral-text-primary">
-                      <span className="font-bold text-neutral-text-secondary block text-[10px] uppercase">Lab Findings:</span>
-                      {test.resultNotes}
+                    <div className="p-3 rounded-xl bg-white border border-neutral-border text-xs text-neutral-text-primary space-y-1">
+                      <span className="font-bold text-neutral-text-secondary block text-[10px] uppercase tracking-wider">
+                        Test Findings / Result Notes:
+                      </span>
+                      <p className="whitespace-pre-wrap">{test.resultNotes}</p>
                     </div>
                   )}
                 </div>
               ))}
             </div>
           </div>
+        )}
+
+        {/* Notice if Doctor hasn't recorded clinical notes, medicines, or tests yet */}
+        {!appointment.notes &&
+          (!appointment.prescription?.medicines || appointment.prescription.medicines.length === 0) &&
+          (!appointment.medicalTests || appointment.medicalTests.length === 0) &&
+          appointment.status !== 'cancelled' && (
+            <div className="p-4 rounded-2xl bg-neutral-bg border border-neutral-border text-xs text-neutral-text-secondary flex items-center gap-3">
+              <Clock className="w-4 h-4 text-neutral-400 shrink-0" />
+              <span>Consultation notes, prescribed medicines, and lab tests will appear here once recorded by the doctor.</span>
+            </div>
         )}
 
         {/* Action Controls */}
