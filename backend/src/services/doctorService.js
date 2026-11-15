@@ -40,7 +40,8 @@ class DoctorService {
       profileMatch.avgRating = { $gte: parseFloat(minRating) };
     }
 
-    const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 10, 1), 50);
+    const parsedLimit = parseInt(limit, 10);
+    const safeLimit = limit === 'all' || limit === 0 ? 1000 : Math.min(Math.max(parsedLimit || 10, 1), 1000);
     const safePage = Math.max(parseInt(page, 10) || 1, 1);
     const skip = (safePage - 1) * safeLimit;
 
@@ -78,7 +79,12 @@ class DoctorService {
           as: 'specialization',
         },
       },
-      { $unwind: '$specialization' },
+      {
+        $unwind: {
+          path: '$specialization',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
     ];
 
     if (search) {
@@ -115,6 +121,7 @@ class DoctorService {
             profilePhotoUrl: '$user.profilePhotoUrl',
           },
           name: '$user.name',
+          title: { $ifNull: ['$title', 'Dr.'] },
           email: '$user.email',
           phone: '$user.phone',
           profilePhotoUrl: '$user.profilePhotoUrl',
@@ -136,9 +143,15 @@ class DoctorService {
             $ifNull: ['$clinic.address', '$clinicAddress'],
           },
           specializationId: {
-            _id: '$specialization._id',
-            name: '$specialization.name',
-            iconName: '$specialization.iconName',
+            $cond: [
+              { $ifNull: ['$specialization._id', false] },
+              {
+                _id: '$specialization._id',
+                name: '$specialization.name',
+                iconName: '$specialization.iconName',
+              },
+              null,
+            ],
           },
           specializationName: '$specialization.name',
           specializationIcon: '$specialization.iconName',

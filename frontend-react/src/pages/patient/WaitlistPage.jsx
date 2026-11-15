@@ -1,10 +1,44 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { Clock, AlertCircle, Plus, ArrowRight, Trash2 } from 'lucide-react';
 import waitlistApi from '../../services/waitlist.api.js';
 import doctorsApi from '../../services/doctors.api.js';
 import useSocket from '../../context/useSocket.js';
+
+/**
+ * Format doctor name ensuring professional "Dr." title
+ */
+const formatDoctorName = (doc) => {
+  if (!doc) return 'Doctor';
+  const rawName =
+    doc.name ||
+    (typeof doc.userId === 'object' && doc.userId !== null ? doc.userId.name : '') ||
+    doc.doctorName ||
+    '';
+  if (!rawName) return 'Doctor';
+  const trimmed = rawName.trim();
+  if (/^(dr\.?|prof\.?)\s+/i.test(trimmed)) {
+    return trimmed;
+  }
+  const title = (doc.title || 'Dr.').trim();
+  return `${title} ${trimmed}`;
+};
+
+/**
+ * Extract specialization and clinic details for dropdown subtitle
+ */
+const getDoctorSubtitle = (doc) => {
+  const spec =
+    doc.specializationName ||
+    (typeof doc.specializationId === 'object' && doc.specializationId !== null ? doc.specializationId.name : '') ||
+    '';
+  const clinic =
+    doc.clinicName ||
+    (typeof doc.clinicId === 'object' && doc.clinicId !== null ? doc.clinicId.name : '') ||
+    (doc.clinicAddress ? `Independent (${doc.clinicAddress})` : (doc.isIndependent ? 'Independent Practice' : ''));
+  return [spec, clinic].filter(Boolean).join(' • ');
+};
 
 export function WaitlistPage() {
   const [searchParams] = useSearchParams();
@@ -26,7 +60,7 @@ export function WaitlistPage() {
     try {
       const [wRes, dRes] = await Promise.allSettled([
         waitlistApi.getMyWaitlists(),
-        doctorsApi.getDoctors(),
+        doctorsApi.getDoctors({ limit: 500, all: true }),
       ]);
 
       if (wRes.status === 'fulfilled' && wRes.value.success) {
@@ -46,6 +80,15 @@ export function WaitlistPage() {
     loadData();
   }, []);
 
+  // Sort doctors alphabetically by name so user can quickly locate any doctor
+  const sortedDoctors = useMemo(() => {
+    return [...doctors].sort((a, b) => {
+      const nameA = formatDoctorName(a).toLowerCase();
+      const nameB = formatDoctorName(b).toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
+  }, [doctors]);
+
   const handleJoinWaitlist = async (e) => {
     e.preventDefault();
     setError(null);
@@ -59,15 +102,14 @@ export function WaitlistPage() {
       if (res.success) {
         setShowJoinModal(false);
         const selectedDoc = doctors.find((d) => d._id === doctorId);
-        const docUser = selectedDoc?.userId || {};
-        const docName = docUser.name || selectedDoc?.name || 'the specialist';
+        const docName = formatDoctorName(selectedDoc);
         loadData();
         if (addNotification) {
           addNotification({
             type: 'waitlist:joined',
             category: 'waitlist',
             title: 'Waitlist Joined',
-            message: `You are queued for upcoming openings with Dr. ${docName.replace(/^Dr\.\s*/i, '')}.`,
+            message: `You are queued for upcoming openings with ${docName}.`,
             link: '/waitlist',
             actionLabel: 'View Waitlist',
           });
@@ -94,7 +136,7 @@ export function WaitlistPage() {
             type: 'waitlist:removed',
             category: 'waitlist',
             title: 'Waitlist Cancelled',
-            message: 'You have left the waitlist for the requested time frame.',
+            message: 'You have left the waitlist for the requested doctor.',
             link: '/waitlist',
           });
         }
@@ -153,12 +195,17 @@ export function WaitlistPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {waitlists.map((w) => {
             const docObj = w.doctorId || {};
-            const docUser = docObj.userId || {};
-            const docName = docObj.name || docUser.name || 'Doctor';
-            const spec = docObj.specializationId || {};
+            const docUser = typeof docObj.userId === 'object' && docObj.userId !== null ? docObj.userId : {};
+            const docName = formatDoctorName({
+              name: docObj.name,
+              userId: docUser,
+              title: docObj.title,
+            });
+            const spec = typeof docObj.specializationId === 'object' && docObj.specializationId !== null ? docObj.specializationId : {};
             const specName = docObj.specializationName || spec.name || 'Specialist';
-            const clinic = docObj.clinicName || docObj.clinicId?.name || '';
+            const clinic = docObj.clinicName || (typeof docObj.clinicId === 'object' ? docObj.clinicId?.name : '') || (docObj.clinicAddress ? 'Independent Practice' : '');
             const isNotified = !!w.notifiedAt;
+            const avatarInitial = docName.replace(/^(dr\.?|prof\.?)\s+/i, '').charAt(0) || 'D';
 
             return (
               <div
@@ -178,8 +225,8 @@ export function WaitlistPage() {
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-brand-primary text-white flex items-center justify-center font-bold text-sm">
-                      {docName.charAt(0) || 'D'}
+                    <div className="w-10 h-10 rounded-xl bg-brand-primary text-white flex items-center justify-center font-bold text-sm uppercase">
+                      {avatarInitial}
                     </div>
                     <div>
                       <h3 className="font-bold text-sm text-neutral-text-primary">{docName}</h3>
@@ -232,7 +279,9 @@ export function WaitlistPage() {
 
             <form onSubmit={handleJoinWaitlist} className="space-y-3.5">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-neutral-text-primary">Select Doctor</label>
+                <label className="text-xs font-bold text-neutral-text-primary">
+                  Select Doctor ({sortedDoctors.length} Available)
+                </label>
                 <select
                   required
                   value={doctorId}
@@ -240,11 +289,9 @@ export function WaitlistPage() {
                   className="w-full p-2.5 rounded-xl border border-neutral-border text-xs text-neutral-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary bg-white cursor-pointer"
                 >
                   <option value="">Choose a physician...</option>
-                  {doctors.map((doc) => {
-                    const docName = doc.name || doc.userId?.name || 'Doctor';
-                    const specName = doc.specializationName || doc.specializationId?.name || '';
-                    const clinic = doc.clinicName || doc.clinicId?.name || '';
-                    const details = [specName, clinic].filter(Boolean).join(' • ');
+                  {sortedDoctors.map((doc) => {
+                    const docName = formatDoctorName(doc);
+                    const details = getDoctorSubtitle(doc);
                     return (
                       <option key={doc._id} value={doc._id}>
                         {docName} {details ? `(${details})` : ''}

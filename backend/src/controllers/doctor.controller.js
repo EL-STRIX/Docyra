@@ -25,10 +25,10 @@ export const uploadMiddleware = (req, res, next) => {
 };
 
 export const searchDoctors = asyncHandler(async (req, res) => {
-  const { page, limit, search, specializationId, specialization, clinicId, isIndependent, minRating } = req.query;
+  const { page, limit, search, specializationId, specialization, clinicId, isIndependent, minRating, all } = req.query;
   const result = await doctorService.searchDoctors({
     page,
-    limit,
+    limit: (all === 'true' || all === true) ? 'all' : limit,
     search,
     specializationId: specializationId || specialization,
     clinicId,

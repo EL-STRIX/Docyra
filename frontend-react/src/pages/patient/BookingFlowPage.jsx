@@ -79,7 +79,7 @@ export function BookingFlowPage() {
       setError(null);
       try {
         const [docsRes, clinicsRes, depsRes] = await Promise.allSettled([
-          doctorsApi.getDoctors(),
+          doctorsApi.getDoctors({ limit: 500, all: true }),
           clinicsApi.getClinics(),
           dependentsApi.getDependents(),
         ]);
