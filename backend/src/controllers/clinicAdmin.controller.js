@@ -87,7 +87,7 @@ export const reviewClinicDoctorApplication = asyncHandler(async (req, res) => {
 export const scheduleDoctorApplicationMeeting = asyncHandler(async (req, res) => {
   const clinicId = req.user.clinicId;
   const { id } = req.params;
-  const { meetingDate, meetingTime, meetingLink, agenda, customNotes } = req.body;
+  const { meetingDate, meetingTime, meetingLink, agenda, customNotes, sendEmail } = req.body;
 
   const result = await doctorService.scheduleClinicDoctorMeeting(id, clinicId, {
     meetingDate,
@@ -95,6 +95,7 @@ export const scheduleDoctorApplicationMeeting = asyncHandler(async (req, res) =>
     meetingLink,
     agenda,
     customNotes,
+    sendEmail: sendEmail === true,
     scheduledBy: req.user._id || req.user.id,
   });
 

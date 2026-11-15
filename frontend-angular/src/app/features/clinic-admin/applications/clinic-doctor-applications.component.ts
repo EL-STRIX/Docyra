@@ -427,38 +427,27 @@ export interface ClinicDoctorApp {
           </div>
 
           <!-- Negotiation Meeting & Email Section -->
+          <!-- Negotiation & Meeting Scheduler -->
           <div class="negotiation-card">
             <div class="negotiation-header">
               <div class="flex items-center gap-2">
                 <mat-icon class="text-teal-700">videocam</mat-icon>
                 <div>
                   <h4 class="neg-title">Online Negotiation Meeting & Email Invitation</h4>
-                  <p class="neg-desc">Select meeting date and time for clinic negotiation. A professional invitation email with video link is prepared below.</p>
+                  <p class="neg-desc">Set meeting date, time, and video meeting link. A clean, professional email is generated below for staff to copy and paste.</p>
                 </div>
               </div>
               <span *ngIf="selectedAppForReview.interviewMeeting?.meetingDate" class="neg-status-pill scheduled">
                 <mat-icon>check_circle</mat-icon>
-                <span>Invitation Sent</span>
+                <span>Meeting Scheduled</span>
               </span>
               <span *ngIf="!selectedAppForReview.interviewMeeting?.meetingDate" class="neg-status-pill pending">
                 <mat-icon>schedule</mat-icon>
-                <span>Not Sent Yet</span>
+                <span>Not Scheduled</span>
               </span>
             </div>
 
-            <!-- If already scheduled banner -->
-            <div *ngIf="selectedAppForReview.interviewMeeting?.meetingDate" class="meet-info-banner">
-              <mat-icon class="text-teal-700">event_available</mat-icon>
-              <div>
-                <strong>Scheduled:</strong> {{ selectedAppForReview.interviewMeeting?.meetingDate | portalDate:'fullDate' }} at {{ selectedAppForReview.interviewMeeting?.meetingTime }} IST
-                <span class="text-neutral-500"> • Sent to {{ selectedAppForReview.email }}</span>
-                <div class="text-xs mt-1">
-                  <strong>Meeting URL:</strong> <a [href]="selectedAppForReview.interviewMeeting?.meetingLink" target="_blank" class="text-teal-700 underline">{{ selectedAppForReview.interviewMeeting?.meetingLink }}</a>
-                </div>
-              </div>
-            </div>
-
-            <!-- Date & Time Picker Form -->
+            <!-- Date & Time & Link Picker Form -->
             <div class="meet-inputs-grid">
               <div class="form-group">
                 <label class="form-label">Meeting Date *</label>
@@ -480,7 +469,7 @@ export interface ClinicDoctorApp {
               </div>
 
               <div class="form-group span-2">
-                <label class="form-label">Video Meeting URL (Google Meet / Video Link)</label>
+                <label class="form-label">Video Meeting URL (Google Meet / Video Link) *</label>
                 <input
                   type="url"
                   [(ngModel)]="meetingForm.link"
@@ -488,43 +477,25 @@ export interface ClinicDoctorApp {
                   class="meet-input"
                 />
               </div>
-
-              <div class="form-group span-2">
-                <label class="form-label">Discussion Agenda</label>
-                <input
-                  type="text"
-                  [(ngModel)]="meetingForm.agenda"
-                  placeholder="Clinic Affiliation, practice timings, and consultation fee structure"
-                  class="meet-input"
-                />
-              </div>
-
-              <div class="form-group span-2">
-                <label class="form-label">Additional Instructions / Notes (Optional)</label>
-                <textarea
-                  rows="2"
-                  [(ngModel)]="meetingForm.notes"
-                  placeholder="e.g. Please keep your Medical Council registration certificate handy..."
-                  class="meet-input textarea"
-                ></textarea>
-              </div>
             </div>
 
-            <!-- Professional Email Template Preview -->
+            <!-- Generated Professional Email Template Preview (Staff Copy & Paste) -->
             <div class="email-preview-box">
               <div class="email-preview-header">
-                <div class="email-meta-line">
-                  <span class="meta-label">To:</span>
-                  <span class="meta-val font-semibold">{{ selectedAppForReview.name }} &lt;{{ selectedAppForReview.email }}&gt;</span>
+                <div class="flex items-center justify-between">
+                  <div class="email-meta-line">
+                    <span class="meta-label">To:</span>
+                    <span class="meta-val font-semibold">{{ selectedAppForReview.name }} &lt;{{ selectedAppForReview.email }}&gt;</span>
+                  </div>
+                  <button mat-stroked-button class="btn-copy-sm" (click)="copySubject()" title="Copy Subject">
+                    <mat-icon>content_copy</mat-icon>
+                    <span>Copy Subject</span>
+                  </button>
                 </div>
-                <div class="email-meta-line">
-                  <span class="meta-label">From:</span>
-                  <span class="meta-val">{{ clinicProfile?.name || 'Clinic Administration' }} &lt;via Docyra Healthcare&gt;</span>
-                </div>
-                <div class="email-meta-line">
+                <div class="email-meta-line mt-1">
                   <span class="meta-label">Subject:</span>
                   <span class="meta-val font-bold text-teal-900">
-                    Invitation: Online Affiliation Meeting with {{ clinicProfile?.name || 'our clinic' }}
+                    {{ getEmailSubject() }}
                   </span>
                 </div>
               </div>
@@ -533,10 +504,9 @@ export interface ClinicDoctorApp {
                 <p>Dear <strong>{{ selectedAppForReview.name }}</strong>,</p>
                 <p>
                   Thank you for applying to practice at <strong>{{ clinicProfile?.name || 'our clinic' }}</strong> as a {{ selectedAppForReview.specialization }} specialist.
-                  Our clinical administration has reviewed your application and credentials.
                 </p>
                 <p>
-                  We would like to invite you to an online negotiation discussion to discuss our clinic affiliation terms, practice timings, consultation schedules, and fee arrangements.
+                  We would like to invite you to an online negotiation discussion regarding our clinic affiliation, consultation schedules, and fee arrangements.
                 </p>
 
                 <div class="email-details-card">
@@ -547,39 +517,47 @@ export interface ClinicDoctorApp {
                   </div>
                   <div class="email-detail-row">
                     <span class="ed-lbl">Time:</span>
-                    <span class="ed-val font-bold">{{ meetingForm.time || '11:00' }} (IST)</span>
+                    <span class="ed-val font-bold">{{ formatMeetingTime(meetingForm.time) }}</span>
                   </div>
                   <div class="email-detail-row">
-                    <span class="ed-lbl">Agenda:</span>
-                    <span class="ed-val">{{ meetingForm.agenda || 'Clinic Affiliation & Fee Discussion' }}</span>
+                    <span class="ed-lbl">Meeting Link:</span>
+                    <span class="ed-val font-bold text-teal-800 break-all">{{ meetingForm.link || 'https://meet.google.com/new' }}</span>
                   </div>
-                  <div class="email-cta-row">
-                    <span class="email-btn-preview">Join Online Video Meeting</span>
-                  </div>
-                  <div class="email-link-text">Meeting URL: {{ meetingForm.link || 'https://meet.google.com/new' }}</div>
                 </div>
 
                 <p class="email-closing-note">
-                  If you have any questions or require an alternate time, please reply directly to this communication.
+                  Please join the meeting using the link above at the scheduled time. If you need to propose an alternate time or have any questions, please reply directly to this email.
                 </p>
                 <p class="email-signature">
-                  Warm regards,<br />
+                  Sincerely,<br />
                   <strong>{{ clinicProfile?.name || 'Clinic Administration' }}</strong><br />
                   <span class="text-xs text-neutral-500">Docyra Healthcare Platform</span>
                 </p>
               </div>
 
+              <!-- Action Bar: Staff Copy Email + Save Schedule (No Direct Send Email Button) -->
               <div class="email-send-bar">
                 <button
                   mat-flat-button
                   color="primary"
-                  class="send-invite-btn"
-                  [disabled]="sendingEmail || !meetingForm.date || !meetingForm.time"
-                  (click)="sendMeetingEmail()"
+                  class="copy-email-btn"
+                  (click)="copyFullEmail()"
+                  title="Copy complete email to clipboard for staff"
                 >
-                  <mat-spinner *ngIf="sendingEmail" diameter="18" class="mr-2"></mat-spinner>
-                  <mat-icon *ngIf="!sendingEmail">send</mat-icon>
-                  <span>{{ sendingEmail ? 'Sending Invitation...' : (selectedAppForReview.interviewMeeting?.meetingDate ? 'Update & Re-send Invitation Email' : 'Send Meeting Invitation Email') }}</span>
+                  <mat-icon>{{ copiedEmail ? 'check_circle' : 'content_copy' }}</mat-icon>
+                  <span>{{ copiedEmail ? 'Email Copied to Clipboard!' : 'Copy Full Email (Staff Copy & Paste)' }}</span>
+                </button>
+
+                <button
+                  mat-stroked-button
+                  class="save-schedule-btn"
+                  [disabled]="savingSchedule || !meetingForm.date || !meetingForm.time"
+                  (click)="saveMeetingSchedule()"
+                  title="Save scheduled date & time to records"
+                >
+                  <mat-spinner *ngIf="savingSchedule" diameter="16" class="mr-2"></mat-spinner>
+                  <mat-icon *ngIf="!savingSchedule">save</mat-icon>
+                  <span>{{ savingSchedule ? 'Saving...' : 'Save Schedule to Records' }}</span>
                 </button>
               </div>
             </div>
@@ -1951,10 +1929,13 @@ export interface ClinicDoctorApp {
       background: #F9FAFB;
       border-top: 1px solid #E5E7EB;
       display: flex;
-      justify-content: flex-end;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
     }
 
-    .send-invite-btn {
+    .copy-email-btn {
       background-color: #0F5C5C !important;
       color: #FFFFFF !important;
       font-weight: 700 !important;
@@ -1967,32 +1948,68 @@ export interface ClinicDoctorApp {
       cursor: pointer;
     }
 
-    .send-invite-btn span,
-    .send-invite-btn mat-icon,
-    .send-invite-btn ::ng-deep .mdc-button__label {
+    .copy-email-btn span,
+    .copy-email-btn mat-icon,
+    .copy-email-btn ::ng-deep .mdc-button__label {
       color: #FFFFFF !important;
       display: inline-flex !important;
       align-items: center !important;
-      gap: 6px !important;
+      gap: 8px !important;
       font-size: 13px !important;
       font-weight: 700 !important;
     }
 
-    .send-invite-btn:disabled,
-    .send-invite-btn[disabled] {
-      background-color: #94A3B8 !important;
-      color: #FFFFFF !important;
-      opacity: 0.85 !important;
-      cursor: not-allowed !important;
+    .save-schedule-btn {
+      border: 1px solid #0F5C5C !important;
+      color: #0F5C5C !important;
+      background: #FFFFFF !important;
+      font-weight: 600 !important;
+      font-size: 12.5px !important;
+      height: 40px !important;
+      padding: 0 16px !important;
+      border-radius: 8px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      cursor: pointer;
     }
 
-    .send-invite-btn:disabled span,
-    .send-invite-btn:disabled mat-icon,
-    .send-invite-btn:disabled ::ng-deep .mdc-button__label,
-    .send-invite-btn[disabled] span,
-    .send-invite-btn[disabled] mat-icon,
-    .send-invite-btn[disabled] ::ng-deep .mdc-button__label {
-      color: #FFFFFF !important;
+    .save-schedule-btn span,
+    .save-schedule-btn mat-icon,
+    .save-schedule-btn ::ng-deep .mdc-button__label {
+      color: #0F5C5C !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      font-size: 12.5px !important;
+      font-weight: 600 !important;
+    }
+
+    .btn-copy-sm {
+      border: 1px solid #D1D5DB !important;
+      color: #4B5563 !important;
+      background: #FFFFFF !important;
+      font-size: 11.5px !important;
+      height: 28px !important;
+      line-height: 28px !important;
+      padding: 0 10px !important;
+      border-radius: 6px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+    }
+
+    .btn-copy-sm span,
+    .btn-copy-sm mat-icon,
+    .btn-copy-sm ::ng-deep .mdc-button__label {
+      font-size: 11.5px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 4px !important;
+    }
+
+    .btn-copy-sm mat-icon {
+      font-size: 14px !important;
+      width: 14px !important;
+      height: 14px !important;
     }
 
     /* Decision Panel (Post-Meeting) */
@@ -2118,6 +2135,8 @@ export class ClinicDoctorApplicationsComponent implements OnInit {
   rejectionReason = '';
   processingId: string | null = null;
   sendingEmail = false;
+  savingSchedule = false;
+  copiedEmail = false;
   clinicProfile: any = null;
   todayDate: string = new Date().toISOString().split('T')[0];
 
@@ -2336,14 +2355,14 @@ export class ClinicDoctorApplicationsComponent implements OnInit {
     }
   }
 
-  sendMeetingEmail(): void {
+  saveMeetingSchedule(): void {
     if (!this.selectedAppForReview) return;
     if (!this.meetingForm.date || !this.meetingForm.time) {
       this.notificationService.error('Please select both meeting date and time.');
       return;
     }
 
-    this.sendingEmail = true;
+    this.savingSchedule = true;
     const appId = this.selectedAppForReview._id;
     this.clinicService
       .scheduleDoctorApplicationMeeting(appId, {
@@ -2352,13 +2371,12 @@ export class ClinicDoctorApplicationsComponent implements OnInit {
         meetingLink: this.meetingForm.link,
         agenda: this.meetingForm.agenda,
         customNotes: this.meetingForm.notes,
+        sendEmail: false,
       })
       .subscribe({
         next: (res) => {
-          this.sendingEmail = false;
-          this.notificationService.success(
-            `Meeting invitation email successfully sent to ${this.selectedAppForReview?.name} (${this.selectedAppForReview?.email})!`
-          );
+          this.savingSchedule = false;
+          this.notificationService.success('Meeting schedule saved successfully to records!');
           if (res.data?.interviewMeeting) {
             this.selectedAppForReview!.interviewMeeting = res.data.interviewMeeting;
             const found = this.applications.find((a) => a._id === appId);
@@ -2368,12 +2386,99 @@ export class ClinicDoctorApplicationsComponent implements OnInit {
           }
         },
         error: (err) => {
-          this.sendingEmail = false;
+          this.savingSchedule = false;
           this.notificationService.error(
-            err.error?.message || 'Failed to send meeting invitation email.'
+            err.error?.message || 'Failed to save meeting schedule.'
           );
         },
       });
+  }
+
+  sendMeetingEmail(): void {
+    this.saveMeetingSchedule();
+  }
+
+  formatMeetingTime(timeStr?: string): string {
+    if (!timeStr) return '11:00 AM IST';
+    const trimmed = timeStr.trim();
+    if (/am|pm/i.test(trimmed)) {
+      return trimmed.includes('IST') ? trimmed : `${trimmed} IST`;
+    }
+    const parts = trimmed.split(':');
+    if (parts.length >= 2) {
+      let hours = parseInt(parts[0], 10);
+      const minutes = parts[1].padStart(2, '0');
+      if (isNaN(hours)) return `${trimmed} IST`;
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      if (hours === 0) hours = 12;
+      return `${hours}:${minutes} ${ampm} IST`;
+    }
+    return `${trimmed} IST`;
+  }
+
+  getEmailSubject(): string {
+    const clinicName = this.clinicProfile?.name || 'Clinic';
+    return `Invitation: Online Affiliation Meeting with ${clinicName}`;
+  }
+
+  getEmailBodyText(): string {
+    if (!this.selectedAppForReview) return '';
+    const docName = this.selectedAppForReview.name || 'Doctor';
+    const clinicName = this.clinicProfile?.name || 'our clinic';
+    const spec = this.selectedAppForReview.specialization || 'specialist';
+    const dateFormatted = this.formatPreviewDate(this.meetingForm.date);
+    const timeFormatted = this.formatMeetingTime(this.meetingForm.time);
+    const link = this.meetingForm.link?.trim() || 'https://meet.google.com/new';
+
+    return `Dear ${docName},
+
+Thank you for applying to practice at ${clinicName} as a ${spec} specialist.
+
+We would like to invite you to an online negotiation discussion regarding our clinic affiliation, consultation schedules, and fee arrangements.
+
+Scheduled Discussion Details:
+• Date: ${dateFormatted}
+• Time: ${timeFormatted}
+• Meeting Link: ${link}
+
+Please join the meeting using the link above at the scheduled time. If you need to propose an alternate time or have any questions, please reply directly to this email.
+
+Sincerely,
+${clinicName} Administration
+Docyra Healthcare Platform`;
+  }
+
+  getFullEmailContent(): string {
+    if (!this.selectedAppForReview) return '';
+    const recipient = `${this.selectedAppForReview.name} <${this.selectedAppForReview.email}>`;
+    const subject = this.getEmailSubject();
+    const body = this.getEmailBodyText();
+
+    return `To: ${recipient}
+Subject: ${subject}
+
+${body}`;
+  }
+
+  copyFullEmail(): void {
+    const text = this.getFullEmailContent();
+    navigator.clipboard.writeText(text).then(() => {
+      this.copiedEmail = true;
+      this.notificationService.success('Full email (Recipient, Subject & Body) copied to clipboard! Paste it into your email client.');
+      setTimeout(() => (this.copiedEmail = false), 3500);
+    }).catch(() => {
+      this.notificationService.error('Failed to copy to clipboard.');
+    });
+  }
+
+  copySubject(): void {
+    const text = this.getEmailSubject();
+    navigator.clipboard.writeText(text).then(() => {
+      this.notificationService.success('Email subject copied to clipboard!');
+    }).catch(() => {
+      this.notificationService.error('Failed to copy to clipboard.');
+    });
   }
 
   getDefaultMeetingDate(): string {

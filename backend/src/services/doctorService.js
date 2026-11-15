@@ -434,7 +434,7 @@ class DoctorService {
   /**
    * Clinic Admin: Schedule an online negotiation meeting with applying doctor & send professional invitation email
    */
-  async scheduleClinicDoctorMeeting(doctorProfileId, clinicId, { meetingDate, meetingTime, meetingLink, agenda, customNotes, scheduledBy }) {
+  async scheduleClinicDoctorMeeting(doctorProfileId, clinicId, { meetingDate, meetingTime, meetingLink, agenda, customNotes, sendEmail, scheduledBy }) {
     if (!meetingDate || !meetingTime) {
       throw new AppError(ERROR_CODES.VALIDATION_ERROR, 400, 'Meeting date and time are required');
     }
@@ -483,13 +483,13 @@ class DoctorService {
       notes: customNotes || '',
       scheduledAt: new Date(),
       scheduledBy: scheduledBy || null,
-      emailSent: true,
-      emailSentAt: new Date(),
+      emailSent: !!sendEmail,
+      emailSentAt: sendEmail ? new Date() : null,
     };
     await doctorProfile.save();
 
-    // Send professional HTML email to doctor
-    if (doctorEmail) {
+    // Send professional HTML email to doctor only if sendEmail is explicitly true
+    if (sendEmail && doctorEmail) {
       const subject = `Invitation: Online Affiliation Meeting with ${clinicName}`;
       const html = `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 620px; margin: 0 auto; background-color: #ffffff; border: 1px solid #E5E7EB; border-radius: 14px; overflow: hidden;">

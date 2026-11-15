@@ -118,6 +118,7 @@ export class ClinicService {
       meetingLink?: string;
       agenda?: string;
       customNotes?: string;
+      sendEmail?: boolean;
     }
   ): Observable<ApiResponse<any>> {
     return this.http.post<ApiResponse<any>>(
