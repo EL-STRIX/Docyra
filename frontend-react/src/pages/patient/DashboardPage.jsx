@@ -101,7 +101,8 @@ export function DashboardPage() {
   const pastList = appointments.filter(
     (a) =>
       a.status === 'completed' ||
-      (['pending', 'confirmed'].includes(a.status) && new Date(a.slotStart) < now)
+      a.status === 'cancelled' ||
+      new Date(a.slotStart) < now
   );
 
   const cancelledList = appointments.filter((a) => a.status === 'cancelled');
@@ -113,7 +114,14 @@ export function DashboardPage() {
       ? pastList
       : cancelledList;
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (apt) => {
+    const status = typeof apt === 'string' ? apt : apt?.status;
+    const isMissed =
+      typeof apt === 'object' &&
+      (apt?.cancelledBy === 'system' ||
+        apt?.cancellationReason?.toLowerCase()?.includes('missed') ||
+        (['pending', 'confirmed'].includes(status) && new Date(apt?.slotStart) < now));
+
     switch (status) {
       case 'confirmed':
         return (
@@ -140,7 +148,7 @@ export function DashboardPage() {
         return (
           <span className="badge-error">
             <XCircle className="w-3 h-3" />
-            <span>Cancelled</span>
+            <span>{isMissed ? 'Missed / Auto-Cancelled' : 'Cancelled'}</span>
           </span>
         );
       default:
@@ -300,7 +308,7 @@ export function DashboardPage() {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        {getStatusBadge(apt.status)}
+                        {getStatusBadge(apt)}
                         {(apt.isFollowUp || apt.previousAppointmentId) && (
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1">
                             <RotateCcw className="w-2.5 h-2.5" />
@@ -409,6 +417,19 @@ export function DashboardPage() {
                           </Link>
                         </>
                       )}
+
+                      {(apt.status === 'cancelled' ||
+                        (['pending', 'confirmed'].includes(apt.status) && new Date(apt.slotStart) < now)) && (
+                        <Link
+                          to={`/book?doctorId=${typeof apt.doctorId === 'object' ? apt.doctorId?._id : apt.doctorId}&previousAppointmentId=${apt._id}&rebook=true`}
+                          className="btn-accent text-xs py-1.5 px-3 flex items-center gap-1 font-bold shadow-sm"
+                          title="Rebook this appointment with all previous details"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          <span>Book Again</span>
+                        </Link>
+                      )}
+
                       <Link
                         to={`/appointments/${apt._id}`}
                         className="btn-primary text-xs py-1.5 px-3"

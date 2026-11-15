@@ -144,6 +144,14 @@ export function BookingFlowPage() {
             setSelectedDoctorId(prevDocId);
           }
 
+          // Pre-select clinic if available
+          if (prev.clinicId) {
+            const prevClinicId = typeof prev.clinicId === 'object' ? prev.clinicId?._id : prev.clinicId;
+            if (prevClinicId) {
+              setSelectedClinicFilter(prevClinicId);
+            }
+          }
+
           // Pre-select patient / dependent profile
           if (prev.bookedForType === 'dependent' && prev.bookedForId) {
             setBookedForType('dependent');
@@ -154,8 +162,13 @@ export function BookingFlowPage() {
           }
 
           // Pre-fill reason for visit for continuous diagnosis
+          const isRebook = searchParams.get('rebook') === 'true' || prev.status === 'cancelled';
           const origReason = prev.reasonForVisit || 'Medical Consultation';
-          setReasonForVisit((prevVal) => prevVal ? prevVal : `Follow-up: ${origReason}`);
+          setReasonForVisit((prevVal) => {
+            if (prevVal) return prevVal;
+            if (isRebook) return origReason;
+            return origReason.toLowerCase().startsWith('follow-up') ? origReason : `Follow-up: ${origReason}`;
+          });
 
           // Suggest doctor's recommended follow-up date if available
           if (prev.prescription?.followUpDate) {
@@ -390,7 +403,7 @@ export function BookingFlowPage() {
         </div>
       )}
 
-      {/* Follow-up Continuity Notice */}
+      {/* Follow-up / Rebooking Continuity Notice */}
       {previousAppointment && (
         <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-teal-50 via-blue-50 to-teal-50 border border-teal-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-start gap-3">
@@ -400,18 +413,24 @@ export function BookingFlowPage() {
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">
                 <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-teal-100 text-teal-800">
-                  Continuous Care Follow-up
+                  {previousAppointment.status === 'cancelled' || searchParams.get('rebook') === 'true'
+                    ? 'Rebooking Missed Appointment'
+                    : 'Continuous Care Follow-up'}
                 </span>
                 <span className="text-xs text-neutral-text-secondary">
                   Linked to Visit #{previousAppointment._id?.slice(-8)}
                 </span>
               </div>
               <h2 className="text-sm sm:text-base font-bold text-neutral-text-primary">
-                Follow-Up Consultation with Dr. {doctorName}
+                {previousAppointment.status === 'cancelled' || searchParams.get('rebook') === 'true'
+                  ? `Rebooking Consultation with Dr. ${doctorName}`
+                  : `Follow-Up Consultation with Dr. ${doctorName}`}
               </h2>
               <p className="text-xs text-neutral-text-secondary">
                 Diagnosing for: <strong className="text-neutral-text-primary">&ldquo;{previousAppointment.reasonForVisit || 'Medical Consultation'}&rdquo;</strong>.
-                Your prior prescriptions and diagnostic lab reports are linked for tracking.
+                {previousAppointment.status === 'cancelled' || searchParams.get('rebook') === 'true'
+                  ? ' All previous patient details, physician, clinic, and medical context are preserved.'
+                  : ' Your prior prescriptions and diagnostic lab reports are linked for tracking.'}
               </p>
             </div>
           </div>
@@ -420,7 +439,7 @@ export function BookingFlowPage() {
             to={`/appointments/${previousAppointment._id}`}
             className="btn-outline text-teal-800 border-teal-300 hover:bg-teal-100 text-xs py-1.5 px-3 self-start sm:self-auto shrink-0 whitespace-nowrap"
           >
-            Review Past Rx & Tests
+            Review Prior Details
           </Link>
         </div>
       )}

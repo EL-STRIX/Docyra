@@ -241,9 +241,59 @@ class AppointmentService {
   }
 
   /**
+   * Automatically transition elapsed unattended appointments to cancelled
+   * Any appointment with slotEnd < now that was never marked completed or cancelled
+   */
+  async autoCancelElapsedAppointments(filter = {}) {
+    try {
+      const now = new Date();
+      const query = {
+        ...filter,
+        $or: [
+          { slotEnd: { $lt: now } },
+          { slotEnd: null, slotStart: { $lt: now } },
+        ],
+        status: { $in: [APPOINTMENT_STATUS.PENDING, APPOINTMENT_STATUS.CONFIRMED] },
+      };
+
+      const elapsedAppointments = await Appointment.find(query).select('_id slotId');
+      if (!elapsedAppointments || elapsedAppointments.length === 0) return 0;
+
+      const ids = elapsedAppointments.map((a) => a._id);
+      const slotIds = elapsedAppointments.map((a) => a.slotId).filter(Boolean);
+
+      await Promise.all([
+        Appointment.updateMany(
+          { _id: { $in: ids } },
+          {
+            $set: {
+              status: APPOINTMENT_STATUS.CANCELLED,
+              cancelledBy: 'system',
+              cancellationReason: 'Missed appointment - Visit slot elapsed without doctor completion',
+              cancelledAt: now,
+            },
+          }
+        ),
+        AppointmentSlot.updateMany(
+          { _id: { $in: slotIds } },
+          { $set: { isBooked: false } }
+        ),
+      ]);
+
+      logger.info(`Auto-cancelled ${ids.length} past elapsed unattended appointment(s)`);
+      return ids.length;
+    } catch (err) {
+      logger.error('Error auto-cancelling elapsed appointments:', err);
+      return 0;
+    }
+  }
+
+  /**
    * Get authenticated patient's appointments
    */
   async getMyAppointments(patientId, { page = 1, limit = 10, status, upcoming } = {}) {
+    await this.autoCancelElapsedAppointments({ patientId: new mongoose.Types.ObjectId(patientId) });
+
     const query = { patientId: new mongoose.Types.ObjectId(patientId) };
 
     if (status) {
@@ -345,6 +395,23 @@ class AppointmentService {
       throw new NotFoundError('Appointment not found', ERROR_CODES.NOT_FOUND);
     }
 
+    // Auto-cancel if appointment slot elapsed without being marked completed
+    if (
+      [APPOINTMENT_STATUS.PENDING, APPOINTMENT_STATUS.CONFIRMED].includes(appointment.status) &&
+      ((appointment.slotEnd && new Date(appointment.slotEnd) < new Date()) ||
+        (!appointment.slotEnd && new Date(appointment.slotStart) < new Date()))
+    ) {
+      const now = new Date();
+      appointment.status = APPOINTMENT_STATUS.CANCELLED;
+      appointment.cancelledBy = 'system';
+      appointment.cancellationReason = 'Missed appointment - Visit slot elapsed without doctor completion';
+      appointment.cancelledAt = now;
+      await appointment.save();
+      if (appointment.slotId) {
+        await AppointmentSlot.findByIdAndUpdate(appointment.slotId, { $set: { isBooked: false } });
+      }
+    }
+
     // Access control
     const currentUserIdStr = (currentUser._id || currentUser.id || '').toString();
     const docUserIdStr = (
@@ -409,6 +476,8 @@ class AppointmentService {
    * Get appointments for a Doctor
    */
   async getDoctorAppointments(doctorId, { page = 1, limit = 10, status, date, upcoming, patientId } = {}) {
+    await this.autoCancelElapsedAppointments({ doctorId: new mongoose.Types.ObjectId(doctorId) });
+
     const query = { doctorId: new mongoose.Types.ObjectId(doctorId) };
 
     if (patientId && mongoose.Types.ObjectId.isValid(patientId)) {
@@ -484,6 +553,8 @@ class AppointmentService {
    * Get appointments for a Clinic (Strictly Scoped to Clinic Admin's clinicId)
    */
   async getClinicAppointments(clinicId, { page = 1, limit = 10, status, date, doctorId } = {}) {
+    await this.autoCancelElapsedAppointments({ clinicId: new mongoose.Types.ObjectId(clinicId) });
+
     const query = { clinicId: new mongoose.Types.ObjectId(clinicId) };
 
     if (status) {

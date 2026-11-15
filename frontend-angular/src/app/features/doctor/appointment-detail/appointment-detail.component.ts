@@ -69,6 +69,10 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
                   <mat-icon class="follow-up-ic">sync</mat-icon>
                   <span>Follow-Up Visit</span>
                 </span>
+                <span *ngIf="appointment.status === 'cancelled' && appointment.cancellationReason" class="cancelled-reason-chip" [title]="appointment.cancellationReason">
+                  <mat-icon class="cancelled-reason-ic">info</mat-icon>
+                  <span>{{ appointment.cancellationReason }}</span>
+                </span>
               </div>
 
               <!-- Subtitle Metadata Bar -->
@@ -899,6 +903,31 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
       font-size: 14px;
       width: 14px;
       height: 14px;
+    }
+
+    .cancelled-reason-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 700;
+      background: #FEF2F2;
+      color: #991B1B;
+      border: 1px solid #FECACA;
+      max-width: 340px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .cancelled-reason-ic {
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+      color: #DC2626;
+      flex-shrink: 0;
     }
 
     .linked-tests-container {

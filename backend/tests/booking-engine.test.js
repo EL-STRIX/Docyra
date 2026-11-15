@@ -450,4 +450,67 @@ describe('Phase 6: Transactional Booking Engine & Status Lifecycle', () => {
       expect(res.text).toContain('END:VCALENDAR');
     });
   });
+
+  describe('Elapsed Appointment Auto-Cancel & Rebooking', () => {
+    it('Should auto-cancel past unattended appointment when slot elapsed and allow rebooking with previousAppointmentId', async () => {
+      // 1. Create a past slot and appointment
+      const pastStart = new Date(Date.now() - 3 * 60 * 60 * 1000); // 3 hours ago
+      const pastEnd = new Date(Date.now() - 2 * 60 * 60 * 1000); // 2 hours ago
+      const pastSlot = await AppointmentSlot.create({
+        doctorId: doctor1Profile._id,
+        clinicId: clinic1._id,
+        slotStart: pastStart,
+        slotEnd: pastEnd,
+        isBooked: true,
+      });
+
+      const pastAppt = await Appointment.create({
+        patientId: patient1User._id,
+        doctorId: doctor1Profile._id,
+        clinicId: clinic1._id,
+        slotId: pastSlot._id,
+        slotStart: pastStart,
+        slotEnd: pastEnd,
+        status: APPOINTMENT_STATUS.CONFIRMED,
+        reasonForVisit: 'Persistent fever and cough',
+      });
+
+      // 2. Patient queries appointments - should auto-cancel the elapsed appointment
+      const myRes = await request(app)
+        .get('/api/v1/appointments/my')
+        .set('Authorization', `Bearer ${patient1Token}`);
+
+      expect(myRes.statusCode).toBe(200);
+      const targetAppt = myRes.body.data.find((a) => a._id.toString() === pastAppt._id.toString());
+      expect(targetAppt).toBeDefined();
+      expect(targetAppt.status).toBe(APPOINTMENT_STATUS.CANCELLED);
+      expect(targetAppt.cancelledBy).toBe('system');
+      expect(targetAppt.cancellationReason).toContain('Missed appointment');
+
+      // 3. Patient rebooks appointment linking the past cancelled appointment
+      const rebookSlot = await AppointmentSlot.create({
+        doctorId: doctor1Profile._id,
+        clinicId: clinic1._id,
+        slotStart: new Date(Date.now() + 48 * 60 * 60 * 1000),
+        slotEnd: new Date(Date.now() + 49 * 60 * 60 * 1000),
+        isBooked: false,
+      });
+
+      const rebookRes = await request(app)
+        .post('/api/v1/appointments')
+        .set('Authorization', `Bearer ${patient1Token}`)
+        .send({
+          doctorId: doctor1Profile._id.toString(),
+          slotId: rebookSlot._id.toString(),
+          reasonForVisit: 'Persistent fever and cough',
+          previousAppointmentId: pastAppt._id.toString(),
+        });
+
+      expect(rebookRes.statusCode).toBe(201);
+      expect(rebookRes.body.success).toBe(true);
+      expect(rebookRes.body.data.previousAppointmentId).toBeDefined();
+      expect(rebookRes.body.data.previousAppointmentId._id.toString()).toBe(pastAppt._id.toString());
+      expect(rebookRes.body.data.isFollowUp).toBe(true);
+    });
+  });
 });

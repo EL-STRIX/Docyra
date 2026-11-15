@@ -215,7 +215,11 @@ export function AppointmentDetailPage() {
             {appointment.status === 'cancelled' && (
               <span className="badge-error text-xs py-1 px-3">
                 <XCircle className="w-3.5 h-3.5" />
-                <span>Cancelled</span>
+                <span>
+                  {appointment.cancelledBy === 'system' || appointment.cancellationReason?.toLowerCase()?.includes('missed')
+                    ? 'Missed / Auto-Cancelled'
+                    : 'Cancelled'}
+                </span>
               </span>
             )}
           </div>
@@ -357,6 +361,34 @@ export function AppointmentDetailPage() {
           </div>
         )}
 
+        {/* Book Again Action Callout if Cancelled or Missed */}
+        {appointment.status === 'cancelled' && (
+          <div className="p-6 rounded-2xl bg-gradient-to-r from-amber-50 via-rose-50 to-amber-50 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <RotateCcw className="w-4 h-4 text-amber-700" />
+                <h3 className="text-base font-bold text-neutral-text-primary">
+                  {appointment.cancelledBy === 'system' || appointment.cancellationReason?.toLowerCase()?.includes('missed')
+                    ? 'Appointment Missed & Auto-Cancelled'
+                    : 'Appointment Cancelled'}
+                </h3>
+              </div>
+              <p className="text-xs text-neutral-text-secondary max-w-xl">
+                {appointment.cancellationReason || 'This appointment was cancelled because the visit time elapsed.'}{' '}
+                You can rebook this consultation with Dr. {doctorName} at {clinic.name || 'the clinic'} using all your previous details without starting from scratch.
+              </p>
+            </div>
+
+            <Link
+              to={`/book?doctorId=${doctorProfile._id}&previousAppointmentId=${appointment._id}&rebook=true`}
+              className="btn-accent text-xs py-2.5 px-5 flex items-center gap-2 font-bold shrink-0 shadow-sm"
+            >
+              <RotateCcw className="w-4 h-4" />
+              <span>Book This Appointment Again</span>
+            </Link>
+          </div>
+        )}
+
         {/* Doctor's Prescription (if recorded) */}
         {appointment.prescription && (appointment.prescription.medicines?.length > 0 || appointment.prescription.generalAdvice) && (
           <div className="p-6 rounded-2xl bg-white border border-neutral-border space-y-4">
@@ -485,6 +517,15 @@ export function AppointmentDetailPage() {
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 <span>Book Follow-up Visit</span>
+              </Link>
+            )}
+            {appointment.status === 'cancelled' && (
+              <Link
+                to={`/book?doctorId=${doctorProfile._id}&previousAppointmentId=${appointment._id}&rebook=true`}
+                className="btn-accent text-xs py-2 px-4 flex items-center gap-1.5 font-bold"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Book Again</span>
               </Link>
             )}
             {['pending', 'confirmed'].includes(appointment.status) && (

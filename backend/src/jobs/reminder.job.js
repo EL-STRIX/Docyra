@@ -1,19 +1,28 @@
 import cron from 'node-cron';
 import { Appointment } from '../models/index.js';
 import { notificationService } from '../services/notificationService.js';
+import { appointmentService } from '../services/appointmentService.js';
 import { APPOINTMENT_STATUS } from '../config/constants.js';
 import logger from '../utils/logger.js';
 
 let reminderCronTask = null;
 
 /**
- * Sweep appointments needing 24h or 1h reminders and dispatch them idempotently
+ * Sweep appointments needing 24h or 1h reminders and dispatch them idempotently,
+ * and auto-cancel elapsed unattended appointments.
  */
 export const runReminderSweepJob = async () => {
   try {
     const now = new Date();
     let reminders24hSent = 0;
     let reminders1hSent = 0;
+
+    // 0. Auto-cancel past unattended appointments whose slot has elapsed
+    try {
+      await appointmentService.autoCancelElapsedAppointments();
+    } catch (autoCancelErr) {
+      logger.error('Error during reminder sweep auto-cancel:', autoCancelErr);
+    }
 
     // 1. 24-Hour Reminder Window (appointments starting in 23h to 25h from now)
     const start24h = new Date(now.getTime() + 23 * 60 * 60 * 1000);
