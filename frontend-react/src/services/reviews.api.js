@@ -23,15 +23,27 @@ export const reviewsApi = {
     };
   },
   getDoctorReviews: async (doctorId, params = {}) => {
-    const response = await apiClient.get(`/doctors/${doctorId}/reviews`, { params });
-    const raw = response.data;
-    const list = Array.isArray(raw?.data) ? raw.data : (raw?.data?.reviews || []);
-    return {
-      ...raw,
-      data: {
-        reviews: list,
-      },
-    };
+    try {
+      const response = await apiClient.get(`/doctors/${doctorId}/reviews`, { params });
+      const raw = response.data;
+      const list = Array.isArray(raw?.data) ? raw.data : (raw?.data?.reviews || []);
+      return {
+        ...raw,
+        data: {
+          reviews: list,
+        },
+      };
+    } catch {
+      const response = await apiClient.get(`/reviews/doctor/${doctorId}`, { params });
+      const raw = response.data;
+      const list = Array.isArray(raw?.data) ? raw.data : (raw?.data?.reviews || []);
+      return {
+        ...raw,
+        data: {
+          reviews: list,
+        },
+      };
+    }
   },
 };
 

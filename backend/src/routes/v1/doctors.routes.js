@@ -19,6 +19,7 @@ import {
   getDoctorSlots,
 } from '../../controllers/availability.controller.js';
 import { emergencyUnavailable } from '../../controllers/appointment.controller.js';
+import { getDoctorReviews } from '../../controllers/review.controller.js';
 import { validate } from '../../middleware/validate.js';
 import { authenticate } from '../../middleware/auth.js';
 import { requireRole } from '../../middleware/rbac.js';
@@ -46,6 +47,9 @@ router.get('/:id', getDoctorProfile);
 
 // Public: Doctor available slots lookup
 router.get('/:id/slots', validate(getDoctorSlotsSchema), getDoctorSlots);
+
+// Public: Doctor published patient reviews lookup
+router.get('/:id/reviews', getDoctorReviews);
 
 // Public: Apply as independent practitioner with license document upload
 router.post('/apply', uploadMiddleware, validate(applyDoctorSchema), applyIndependentDoctor);

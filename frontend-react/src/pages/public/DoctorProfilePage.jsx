@@ -46,8 +46,9 @@ export function DoctorProfilePage() {
           setError('Doctor profile not found');
         }
 
-        if (revRes.status === 'fulfilled' && revRes.value.success) {
-          setReviews(revRes.value.data.reviews || []);
+        if (revRes.status === 'fulfilled') {
+          const list = revRes.value?.data?.reviews || revRes.value?.data || revRes.value?.reviews || [];
+          setReviews(Array.isArray(list) ? list : []);
         }
       } catch (err) {
         setError('Failed to load profile');

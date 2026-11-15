@@ -25,7 +25,7 @@ export const submitReview = asyncHandler(async (req, res) => {
  * Public: List reviews for a doctor
  */
 export const getDoctorReviews = asyncHandler(async (req, res) => {
-  const { doctorId } = req.params;
+  const doctorId = req.params.doctorId || req.params.id;
   const { page, limit } = req.query;
 
   const result = await reviewService.getDoctorReviews(doctorId, { page, limit });
