@@ -112,15 +112,35 @@ export function SocketProvider({ children }) {
       unread = true,
       skipToast = false,
     }) => {
-      // Deduplicate: avoid triggering twice if socket and optimistic action occur together
-      const hashKey = `${type}_${title}_${message}`;
       const now = Date.now();
-      const lastTriggered = recentHashesRef.current.get(hashKey);
 
-      if (lastTriggered && now - lastTriggered < 3500) {
+      // Extract semantic entity id to deduplicate across socket events & optimistic UI actions
+      let entityId =
+        data?.appointmentId ||
+        data?._id ||
+        data?.id ||
+        data?.dependentId ||
+        data?.waitlistId ||
+        data?.doctorId ||
+        data?.userId ||
+        '';
+
+      if (!entityId && link) {
+        const match = link.match(/\/(?:appointments|dependents|doctors|waitlist)\/([a-zA-Z0-9]+)/);
+        if (match) {
+          entityId = match[1];
+        }
+      }
+
+      // Deduplicate: semantic key ensures exactly 1 notification per unique event / work item
+      const dedupKey = entityId ? `${type}:${entityId}` : `${type}:${category}`;
+      const lastTriggered = recentHashesRef.current.get(dedupKey);
+
+      // Discard duplicate triggers within 8 seconds
+      if (lastTriggered && now - lastTriggered < 8000) {
         return;
       }
-      recentHashesRef.current.set(hashKey, now);
+      recentHashesRef.current.set(dedupKey, now);
 
       const newNotif = {
         id: `notif_${now}_${Math.random().toString(36).substring(2, 7)}`,
@@ -136,13 +156,51 @@ export function SocketProvider({ children }) {
       };
 
       setNotifications((prev) => {
+        // Guard against duplicate insertion in state within recent time window
+        const isDuplicate = prev.some((n) => {
+          if (n.type !== type) return false;
+          const nEntity =
+            n.data?.appointmentId ||
+            n.data?._id ||
+            n.data?.id ||
+            n.data?.dependentId ||
+            n.data?.waitlistId ||
+            '';
+          if (entityId && nEntity) {
+            return nEntity === entityId;
+          }
+          const diff = now - new Date(n.timestamp).getTime();
+          return diff < 8000;
+        });
+
+        if (isDuplicate) {
+          return prev;
+        }
+
         const updated = [newNotif, ...prev.slice(0, 49)]; // keep latest 50
         persistNotifications(updated);
         return updated;
       });
 
       if (!skipToast) {
-        setToasts((prev) => [newNotif, ...prev.slice(0, 3)]); // show max 4 toasts at a time
+        setToasts((prev) => {
+          const isToastDuplicate = prev.some((t) => {
+            if (t.type !== type) return false;
+            const tEntity =
+              t.data?.appointmentId ||
+              t.data?._id ||
+              t.data?.id ||
+              t.data?.dependentId ||
+              t.data?.waitlistId ||
+              '';
+            if (entityId && tEntity) {
+              return tEntity === entityId;
+            }
+            return true;
+          });
+          if (isToastDuplicate) return prev;
+          return [newNotif, ...prev.slice(0, 3)];
+        });
 
         // Auto-dismiss toast after 5.5s
         setTimeout(() => {

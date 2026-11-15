@@ -150,8 +150,19 @@ export class NotificationService {
     return this.socket;
   }
 
+  private recentNotificationHashes = new Map<string, number>();
+
   private handleIncomingNotification(ntf: PortalNotification): void {
-    const list = [ntf, ...this.notificationsSubject.value];
+    const aptId = ntf.data?.appointmentId || ntf.data?._id || '';
+    const key = aptId ? `${ntf.title}:${aptId}` : `${ntf.title}:${ntf.message}`;
+    const now = Date.now();
+    const last = this.recentNotificationHashes.get(key);
+    if (last && now - last < 8000) {
+      return;
+    }
+    this.recentNotificationHashes.set(key, now);
+
+    const list = [ntf, ...this.notificationsSubject.value.slice(0, 49)];
     this.notificationsSubject.next(list);
     this.unreadCountSubject.next(list.filter((n) => !n.read).length);
     this.persistNotifications(list);

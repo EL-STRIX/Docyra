@@ -296,7 +296,7 @@ export function BookingFlowPage() {
             message: `Your appointment with Dr. ${doctorName.replace(/^Dr\.\s*/i, '')} on ${formattedDate}${formattedTime ? ` at ${formattedTime}` : ''} is confirmed.`,
             link: `/appointments/${apptDoc._id}`,
             actionLabel: 'View Details',
-            data: apptDoc,
+            data: { appointmentId: apptDoc._id, ...apptDoc },
           });
         }
       }

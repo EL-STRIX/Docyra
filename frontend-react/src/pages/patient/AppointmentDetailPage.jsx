@@ -89,6 +89,7 @@ export function AppointmentDetailPage() {
             message: `Your appointment with Dr. ${docName.replace(/^Dr\.\s*/i, '')} on ${dateStr} has been cancelled.`,
             link: '/dashboard',
             actionLabel: 'View Appointments',
+            data: { appointmentId: id, ...appointment },
           });
         }
       }
