@@ -184,139 +184,80 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
           </div>
 
           <div class="modal-body">
-            <!-- Schedule Highlight Banner -->
-            <div class="schedule-banner">
-              <div class="schedule-icon-wrap">
-                <mat-icon>event</mat-icon>
+            <!-- Compact Appointment Meta Strip -->
+            <div class="summary-meta-grid">
+              <div class="summary-meta-item">
+                <span class="summary-lbl">Patient</span>
+                <span class="summary-val font-bold text-neutral-900">
+                  {{ getPatientName(selectedAppointment) }}
+                  <span *ngIf="selectedAppointment.bookedFor?.type === 'dependent'" class="dependent-pill">
+                    {{ selectedAppointment.bookedFor.relationship || 'Dependent' }}
+                  </span>
+                </span>
+                <span class="summary-sub" *ngIf="getPatientPhone(selectedAppointment)">
+                  {{ getPatientPhone(selectedAppointment) }}
+                </span>
               </div>
-              <div class="schedule-details">
-                <div class="schedule-date">
-                  {{ selectedAppointment.slotStart | portalDate:'EEEE, dd MMMM yyyy' }}
-                </div>
-                <div class="schedule-time">
+
+              <div class="summary-meta-item">
+                <span class="summary-lbl">Physician</span>
+                <span class="summary-val font-bold text-teal-800">
+                  {{ getDoctorName(selectedAppointment) }}
+                </span>
+                <span class="summary-sub">
+                  {{ getDoctorSpecialization(selectedAppointment) || 'General Practice' }}
+                </span>
+              </div>
+
+              <div class="summary-meta-item">
+                <span class="summary-lbl">Schedule</span>
+                <span class="summary-val font-bold text-neutral-900">
+                  {{ selectedAppointment.slotStart | portalDate:'dd MMM yyyy' }}
+                </span>
+                <span class="summary-sub font-semibold text-teal-700">
                   {{ selectedAppointment.slotStart | portalDate:'h:mm a' }}
                   <span *ngIf="selectedAppointment.slotEnd"> - {{ selectedAppointment.slotEnd | portalDate:'h:mm a' }}</span>
+                </span>
+              </div>
+
+              <div class="summary-meta-item">
+                <span class="summary-lbl">Fee & Payment</span>
+                <span class="summary-val font-bold text-neutral-900">
+                  ₹{{ getAppointmentPrice(selectedAppointment) }}
+                </span>
+                <div class="mt-0.5">
+                  <span class="payment-badge" [ngClass]="getPaymentStatusClass(selectedAppointment)">
+                    {{ getPaymentStatusDisplay(selectedAppointment) }}
+                  </span>
                 </div>
               </div>
             </div>
 
-            <!-- Two-Column Needed Details -->
-            <div class="details-grid">
-              <!-- Patient Details Card -->
-              <div class="detail-card">
-                <div class="detail-card-header">
-                  <mat-icon class="card-ic">person</mat-icon>
-                  <span>Patient Information</span>
-                </div>
-                <div class="detail-rows">
-                  <div class="detail-row">
-                    <span class="detail-lbl">Patient Name</span>
-                    <span class="detail-val font-bold text-neutral-900">
-                      {{ getPatientName(selectedAppointment) }}
-                      <span *ngIf="selectedAppointment.bookedFor?.type === 'dependent'" class="dependent-pill">
-                        {{ selectedAppointment.bookedFor.relationship || 'Dependent' }}
-                      </span>
-                    </span>
-                  </div>
-                  <div class="detail-row">
-                    <span class="detail-lbl">Booking Type</span>
-                    <span class="detail-val">
-                      {{ selectedAppointment.bookedFor.type === 'dependent' ? 'Family Dependent' : 'Self Booking' }}
-                    </span>
-                  </div>
-                  <div class="detail-row" *ngIf="getPatientPhone(selectedAppointment)">
-                    <span class="detail-lbl">Phone Number</span>
-                    <span class="detail-val font-medium text-neutral-800">
-                      {{ getPatientPhone(selectedAppointment) }}
-                    </span>
-                  </div>
-                  <div class="detail-row" *ngIf="getPatientEmail(selectedAppointment)">
-                    <span class="detail-lbl">Email Address</span>
-                    <span class="detail-val font-medium text-neutral-800">
-                      {{ getPatientEmail(selectedAppointment) }}
-                    </span>
-                  </div>
-                  <div class="detail-row" *ngIf="selectedAppointment.bookedFor.gender">
-                    <span class="detail-lbl">Gender</span>
-                    <span class="detail-val capitalize">
-                      {{ selectedAppointment.bookedFor.gender }}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Physician & Billing Card -->
-              <div class="detail-card">
-                <div class="detail-card-header">
-                  <mat-icon class="card-ic">medical_services</mat-icon>
-                  <span>Physician & Consultation Fee</span>
-                </div>
-                <div class="detail-rows">
-                  <div class="detail-row">
-                    <span class="detail-lbl">Attending Physician</span>
-                    <span class="detail-val font-bold text-teal-800">
-                      {{ getDoctorName(selectedAppointment) }}
-                    </span>
-                  </div>
-                  <div class="detail-row">
-                    <span class="detail-lbl">Department / Specialty</span>
-                    <span class="detail-val">
-                      {{ getDoctorSpecialization(selectedAppointment) || 'General Practice' }}
-                    </span>
-                  </div>
-                  <div class="detail-row">
-                    <span class="detail-lbl">Consultation Fee</span>
-                    <span class="detail-val font-bold text-neutral-900">
-                      ₹{{ getAppointmentPrice(selectedAppointment) }}
-                    </span>
-                  </div>
-                  <div class="detail-row">
-                    <span class="detail-lbl">Payment Status</span>
-                    <span class="detail-val">
-                      <span class="payment-badge" [ngClass]="getPaymentStatusClass(selectedAppointment)">
-                        {{ getPaymentStatusDisplay(selectedAppointment) }}
-                      </span>
-                    </span>
-                  </div>
-                </div>
-              </div>
+            <!-- Reason for Visit (compact single line, only if provided) -->
+            <div class="reason-strip" *ngIf="selectedAppointment.reasonForVisit">
+              <span class="reason-lbl">Reason:</span>
+              <span class="reason-val">{{ selectedAppointment.reasonForVisit }}</span>
             </div>
 
-            <!-- Reason for Visit -->
-            <div class="visit-info-card">
-              <div class="detail-card-header">
-                <mat-icon class="card-ic">article</mat-icon>
-                <span>Reason for Visit</span>
+            <!-- Doctor's Clinical Notes (Show ONLY if notes exist) -->
+            <div class="clinical-box" *ngIf="selectedAppointment.notes">
+              <div class="clinical-box-header">
+                <mat-icon class="box-ic text-teal-700">description</mat-icon>
+                <span>Doctor's Clinical Notes</span>
               </div>
-              <div class="visit-reason-text">
-                {{ selectedAppointment.reasonForVisit || 'General Medical Consultation' }}
-              </div>
-            </div>
-
-            <!-- Doctor's Clinical Notes (Read-Only) -->
-            <div class="clinical-section-card" *ngIf="selectedAppointment.notes">
-              <div class="detail-card-header flex justify-between items-center">
-                <div class="flex items-center gap-2">
-                  <mat-icon class="card-ic text-teal-700">description</mat-icon>
-                  <span>Doctor's Clinical Notes</span>
-                </div>
-                <span class="readonly-badge">Doctor's Record • Read-Only</span>
-              </div>
-              <div class="clinical-notes-content">
+              <div class="clinical-notes-text">
                 {{ selectedAppointment.notes }}
               </div>
             </div>
 
-            <!-- Doctor's Prescription & Medicines (Read-Only with Print) -->
-            <div class="clinical-section-card">
-              <div class="detail-card-header flex justify-between items-center flex-wrap gap-2">
-                <div class="flex items-center gap-2">
-                  <mat-icon class="card-ic text-teal-700">medication</mat-icon>
-                  <span>Doctor's Prescription & Medicines</span>
-                  <span class="readonly-badge">Read-Only</span>
+            <!-- Doctor's Prescribed Medicines (Show ONLY if medicines exist) -->
+            <div class="clinical-box" *ngIf="(selectedAppointment.prescription?.medicines?.length || 0) > 0">
+              <div class="clinical-box-header flex justify-between items-center">
+                <div class="flex items-center gap-1.5">
+                  <mat-icon class="box-ic text-teal-700">medication</mat-icon>
+                  <span>Prescribed Medicines</span>
                 </div>
                 <button
-                  *ngIf="(selectedAppointment.prescription?.medicines?.length || 0) > 0"
                   mat-stroked-button
                   color="primary"
                   class="print-action-btn"
@@ -328,13 +269,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
                 </button>
               </div>
 
-              <div *ngIf="!selectedAppointment.prescription?.medicines || selectedAppointment.prescription?.medicines?.length === 0" class="empty-sub-card">
-                <mat-icon class="empty-sub-ic">medical_information</mat-icon>
-                <p>No prescribed medicines recorded by the doctor for this visit.</p>
-              </div>
-
-              <div *ngIf="(selectedAppointment.prescription?.medicines?.length || 0) > 0" class="meds-table-wrap">
-                <table class="prescription-table">
+              <div class="meds-table-wrap">
+                <table class="compact-table">
                   <thead>
                     <tr>
                       <th>Medicine Name</th>
@@ -354,27 +290,24 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
                     </tr>
                   </tbody>
                 </table>
+              </div>
 
-                <div *ngIf="selectedAppointment.prescription?.generalAdvice" class="rx-extra-box mt-3">
-                  <strong class="text-teal-900">Doctor's General Advice: </strong>
-                  <span>{{ selectedAppointment.prescription?.generalAdvice }}</span>
-                </div>
-                <div *ngIf="selectedAppointment.prescription?.followUpDate" class="rx-extra-box mt-2">
-                  <strong class="text-teal-900">Follow-up Recommendation: </strong>
-                  <span>{{ selectedAppointment.prescription?.followUpDate }}</span>
-                </div>
+              <div *ngIf="selectedAppointment.prescription?.generalAdvice" class="rx-extra-line mt-2">
+                <strong>Advice: </strong><span>{{ selectedAppointment.prescription?.generalAdvice }}</span>
+              </div>
+              <div *ngIf="selectedAppointment.prescription?.followUpDate" class="rx-extra-line mt-1">
+                <strong>Follow-up: </strong><span>{{ selectedAppointment.prescription?.followUpDate }}</span>
               </div>
             </div>
 
-            <!-- Advised Diagnostic / Lab Tests (Manage Status & Results) -->
-            <div class="clinical-section-card">
-              <div class="detail-card-header flex justify-between items-center flex-wrap gap-2">
-                <div class="flex items-center gap-2">
-                  <mat-icon class="card-ic text-teal-700">biotech</mat-icon>
-                  <span>Advised Diagnostic & Lab Tests</span>
+            <!-- Advised Diagnostic Tests (Show ONLY if tests exist) -->
+            <div class="clinical-box" *ngIf="selectedAppointment.medicalTests && selectedAppointment.medicalTests.length > 0">
+              <div class="clinical-box-header flex justify-between items-center">
+                <div class="flex items-center gap-1.5">
+                  <mat-icon class="box-ic text-teal-700">biotech</mat-icon>
+                  <span>Advised Diagnostic Tests</span>
                 </div>
                 <button
-                  *ngIf="selectedAppointment.medicalTests && selectedAppointment.medicalTests.length > 0"
                   mat-stroked-button
                   color="primary"
                   class="print-action-btn"
@@ -382,122 +315,84 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
                   type="button"
                 >
                   <mat-icon class="btn-ic">print</mat-icon>
-                  <span>Print Lab Tests List</span>
+                  <span>Print Lab Tests</span>
                 </button>
               </div>
 
-              <div *ngIf="!selectedAppointment.medicalTests || selectedAppointment.medicalTests.length === 0" class="empty-sub-card">
-                <mat-icon class="empty-sub-ic">science</mat-icon>
-                <p>No diagnostic lab tests were prescribed for this appointment.</p>
-              </div>
-
-              <div *ngIf="selectedAppointment.medicalTests && selectedAppointment.medicalTests.length > 0" class="tests-list-wrap">
-                <div class="test-item-card" *ngFor="let test of selectedAppointment.medicalTests">
-                  <div class="test-item-top">
-                    <div class="test-name-area">
-                      <div class="test-title-line">
-                        <mat-icon class="test-ic">biotech</mat-icon>
-                        <span class="test-name-txt">{{ test.testName }}</span>
-                        <span class="test-status-pill" [ngClass]="getTestStatusBadgeClass(test.status)">
-                          {{ formatTestStatus(test.status) }}
-                        </span>
-                      </div>
-                      <div class="test-instructions-txt" *ngIf="test.instructions">
-                        <span class="font-semibold text-neutral-600">Doctor's Instructions:</span> {{ test.instructions }}
-                      </div>
+              <div class="compact-tests-list">
+                <div class="compact-test-row" *ngFor="let test of selectedAppointment.medicalTests">
+                  <!-- Test info -->
+                  <div class="compact-test-info">
+                    <div class="compact-test-name">
+                      <mat-icon class="test-ic">science</mat-icon>
+                      <span class="font-bold text-neutral-900">{{ test.testName }}</span>
                     </div>
-
-                    <!-- Status Change Selector (Clinic Admin can update each test status) -->
-                    <div class="test-status-selector-wrap">
-                      <label class="selector-lbl">Update Status</label>
-                      <mat-form-field appearance="outline" class="status-select-field" subscriptSizing="dynamic">
-                        <mat-select [value]="test.status || 'not_started'" (selectionChange)="updateTestStatus(test, $event.value)">
-                          <mat-option value="not_started">Not Started</mat-option>
-                          <mat-option value="in_progress">In Progress</mat-option>
-                          <mat-option value="completed">Completed</mat-option>
-                        </mat-select>
-                      </mat-form-field>
+                    <div class="compact-test-inst" *ngIf="test.instructions">
+                      {{ test.instructions }}
                     </div>
                   </div>
 
-                  <!-- Findings Notes & Report Upload Section -->
-                  <div class="test-actions-box">
-                    <div class="findings-input-col">
-                      <label class="action-field-lbl">Test Findings / Result Notes</label>
-                      <div class="findings-input-row">
-                        <input
-                          class="findings-input"
-                          [(ngModel)]="test.resultNotes"
-                          placeholder="Enter findings, values or diagnostic notes..."
-                        />
-                        <button
-                          mat-button
-                          color="primary"
-                          class="save-findings-btn"
-                          [disabled]="updatingTestId === test._id"
-                          (click)="saveTestFindings(test)"
-                          title="Save findings notes"
-                        >
-                          <mat-icon class="btn-ic">check</mat-icon>
-                          <span>Save</span>
-                        </button>
-                      </div>
-                    </div>
+                  <!-- Status & Upload Action Controls -->
+                  <div class="compact-test-actions">
+                    <mat-form-field appearance="outline" class="test-select-field" subscriptSizing="dynamic">
+                      <mat-select [value]="test.status || 'not_started'" (selectionChange)="updateTestStatus(test, $event.value)">
+                        <mat-option value="not_started">Not Started</mat-option>
+                        <mat-option value="in_progress">In Progress</mat-option>
+                        <mat-option value="completed">Completed</mat-option>
+                      </mat-select>
+                    </mat-form-field>
 
-                    <div class="upload-col">
-                      <label class="action-field-lbl">Lab Test Result Document</label>
-                      <div class="upload-btn-row">
-                        <input
-                          type="file"
-                          #reportFileInput
-                          (change)="onUploadTestReport($event, test)"
-                          accept=".pdf,image/*"
-                          style="display: none"
-                        />
-                        <button
-                          mat-stroked-button
-                          color="primary"
-                          class="report-upload-btn"
-                          [disabled]="uploadingTestId === test._id"
-                          (click)="reportFileInput.click()"
-                        >
-                          <mat-spinner *ngIf="uploadingTestId === test._id" diameter="16" class="inline-spinner mr-1.5"></mat-spinner>
-                          <mat-icon *ngIf="uploadingTestId !== test._id" class="btn-ic">upload_file</mat-icon>
-                          <span>{{ test.resultFileUrl ? 'Replace Report File' : 'Upload Result (PDF/Image)' }}</span>
-                        </button>
+                    <input
+                      type="file"
+                      #reportFileInput
+                      (change)="onUploadTestReport($event, test)"
+                      accept=".pdf,image/*"
+                      style="display: none"
+                    />
 
-                        <a
-                          *ngIf="test.resultFileUrl"
-                          [href]="test.resultFileUrl"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          class="view-report-pill"
-                          title="Open uploaded lab report in new tab"
-                        >
-                          <mat-icon class="pill-ic">description</mat-icon>
-                          <span>View Report</span>
-                          <mat-icon class="pill-ic-ext">open_in_new</mat-icon>
-                        </a>
-                      </div>
-                    </div>
+                    <button
+                      mat-stroked-button
+                      color="primary"
+                      class="upload-btn"
+                      [disabled]="uploadingTestId === test._id"
+                      (click)="reportFileInput.click()"
+                    >
+                      <mat-spinner *ngIf="uploadingTestId === test._id" diameter="14" class="inline-spinner mr-1"></mat-spinner>
+                      <mat-icon *ngIf="uploadingTestId !== test._id" class="btn-ic">upload_file</mat-icon>
+                      <span>{{ test.resultFileUrl ? 'Replace' : 'Upload Result' }}</span>
+                    </button>
+
+                    <a
+                      *ngIf="test.resultFileUrl"
+                      [href]="test.resultFileUrl"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="report-chip"
+                      title="View uploaded lab report"
+                    >
+                      <mat-icon class="chip-ic">description</mat-icon>
+                      <span>View</span>
+                      <mat-icon class="chip-ic-ext">open_in_new</mat-icon>
+                    </a>
                   </div>
                 </div>
               </div>
             </div>
 
+            <!-- Single clean note if doctor has not recorded prescription, notes, or tests yet -->
+            <div
+              *ngIf="!selectedAppointment.notes && (!selectedAppointment.prescription?.medicines || selectedAppointment.prescription?.medicines?.length === 0) && (!selectedAppointment.medicalTests || selectedAppointment.medicalTests?.length === 0)"
+              class="pending-clinical-notice"
+            >
+              <mat-icon class="notice-ic">pending_actions</mat-icon>
+              <span>Consultation notes, prescribed medicines, and lab tests will appear here once recorded by the doctor.</span>
+            </div>
+
             <!-- Cancellation Details (Only if cancelled) -->
-            <div class="cancel-info-card" *ngIf="selectedAppointment.status === 'cancelled'">
-              <div class="cancel-header">
-                <mat-icon class="text-rose-600">cancel</mat-icon>
-                <span class="font-bold text-rose-800">Cancellation Record</span>
-              </div>
-              <p class="cancel-text" *ngIf="selectedAppointment.cancellationReason">
-                Reason: {{ selectedAppointment.cancellationReason }}
-              </p>
-              <div class="cancel-meta" *ngIf="selectedAppointment.cancelledAt || selectedAppointment.cancelledBy">
-                <span *ngIf="selectedAppointment.cancelledBy">Cancelled by: {{ selectedAppointment.cancelledBy | titlecase }}</span>
-                <span *ngIf="selectedAppointment.cancelledAt">• {{ selectedAppointment.cancelledAt | portalDate:'dd MMM yyyy, h:mm a' }}</span>
-              </div>
+            <div class="cancel-strip" *ngIf="selectedAppointment.status === 'cancelled'">
+              <mat-icon class="text-rose-600">cancel</mat-icon>
+              <span><strong>Cancelled:</strong> {{ selectedAppointment.cancellationReason || 'No reason provided' }}</span>
+              <span class="cancel-sub" *ngIf="selectedAppointment.cancelledAt">({{ selectedAppointment.cancelledAt | portalDate:'dd MMM, h:mm a' }})</span>
             </div>
           </div>
 
@@ -741,69 +636,87 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       gap: 16px;
     }
 
-    .schedule-banner {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      padding: 14px 18px;
-      background: #F0FDFA;
-      border: 1px solid #CCFBF1;
-      border-radius: 12px;
-    }
-
-    .schedule-icon-wrap {
-      width: 44px;
-      height: 44px;
+    .summary-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      padding: 14px 16px;
+      background: #F9FAFB;
+      border: 1px solid #E5E7EB;
       border-radius: 10px;
-      background: #0F5C54;
-      color: #FFFFFF;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
     }
 
-    .schedule-details {
+    @media (max-width: 768px) {
+      .summary-meta-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .summary-meta-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .summary-meta-item {
       display: flex;
       flex-direction: column;
       gap: 2px;
     }
 
-    .schedule-date {
-      font-size: 14px;
-      font-weight: 800;
-      color: #0F5C54;
+    .summary-lbl {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #6B7280;
     }
 
-    .schedule-time {
+    .summary-val {
       font-size: 13px;
-      font-weight: 600;
-      color: #115E59;
+      line-height: 1.3;
     }
 
-    .details-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
+    .summary-sub {
+      font-size: 11px;
+      color: #6B7280;
     }
 
-    @media (max-width: 600px) {
-      .details-grid {
-        grid-template-columns: 1fr;
-      }
+    .reason-strip {
+      background: #F8FAFC;
+      border-left: 3px solid #0F5C54;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      display: flex;
+      gap: 6px;
+      align-items: baseline;
     }
 
-    .detail-card {
-      background: #FAFAF8;
-      border: 1px solid #E7E5E0;
-      border-radius: 10px;
+    .reason-lbl {
+      font-weight: 700;
+      color: #0F5C54;
+      text-transform: uppercase;
+      font-size: 10px;
+      letter-spacing: 0.5px;
+    }
+
+    .reason-val {
+      color: #374151;
+      font-weight: 500;
+    }
+
+    .clinical-box {
+      background: #FFFFFF;
+      border: 1px solid #E5E7EB;
+      border-radius: 8px;
       padding: 14px;
       display: flex;
       flex-direction: column;
       gap: 10px;
     }
 
-    .detail-card-header {
+    .clinical-box-header {
       font-size: 12px;
       font-weight: 800;
       text-transform: uppercase;
@@ -812,118 +725,31 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       display: flex;
       align-items: center;
       gap: 6px;
-      border-bottom: 1px solid #E7E5E0;
-      padding-bottom: 6px;
     }
 
-    .card-ic {
-      font-size: 16px;
-      width: 16px;
-      height: 16px;
+    .box-ic {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
     }
 
-    .detail-rows {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .detail-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 10px;
+    .clinical-notes-text {
       font-size: 12px;
-    }
-
-    .detail-lbl {
-      color: #6B7280;
-      font-weight: 500;
-    }
-
-    .detail-val {
-      color: #1F2937;
-      text-align: right;
-    }
-
-    .visit-info-card {
-      background: #FAFAF8;
-      border: 1px solid #E7E5E0;
-      border-radius: 10px;
-      padding: 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .visit-reason-text {
-      font-size: 13px;
-      font-weight: 600;
-      color: #1F2937;
-    }
-
-    .visit-notes {
-      font-size: 12px;
-      color: #4B5563;
-      background: #FFFFFF;
-      border: 1px solid #E5E7EB;
-      padding: 8px 12px;
-      border-radius: 6px;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .notes-lbl {
-      font-size: 11px;
-      font-weight: 700;
-      color: #9CA3AF;
-      text-transform: uppercase;
-    }
-
-    .notes-content {
-      line-height: 1.4;
-    }
-
-    .clinical-section-card {
-      background: #FAFAF8;
-      border: 1px solid #E7E5E0;
-      border-radius: 10px;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .readonly-badge {
-      font-size: 10px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: #6B7280;
-      background: #F3F4F6;
-      border: 1px solid #E5E7EB;
-      padding: 2px 8px;
-      border-radius: 4px;
-    }
-
-    .clinical-notes-content {
-      font-size: 13px;
-      color: #1F2937;
-      line-height: 1.6;
-      background: #FFFFFF;
-      border: 1px solid #E5E7EB;
-      border-radius: 8px;
-      padding: 12px 14px;
+      color: #374151;
+      line-height: 1.5;
       white-space: pre-line;
+      background: #F9FAFB;
+      padding: 10px 12px;
+      border-radius: 6px;
+      border: 1px solid #F1F5F9;
     }
 
     .print-action-btn {
       font-size: 11px !important;
       font-weight: 700 !important;
-      height: 32px !important;
-      line-height: 32px !important;
-      padding: 0 12px !important;
+      height: 30px !important;
+      line-height: 30px !important;
+      padding: 0 10px !important;
       border-radius: 6px !important;
       display: inline-flex !important;
       align-items: center !important;
@@ -931,65 +757,40 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     }
 
     .print-action-btn .btn-ic {
-      font-size: 16px;
-      width: 16px;
-      height: 16px;
-      line-height: 16px;
-    }
-
-    .empty-sub-card {
-      text-align: center;
-      padding: 20px;
-      color: #9CA3AF;
-      background: #FFFFFF;
-      border: 1px dashed #E5E7EB;
-      border-radius: 8px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .empty-sub-ic {
-      font-size: 28px;
-      width: 28px;
-      height: 28px;
-      color: #CBD5E1;
-    }
-
-    .empty-sub-card p {
-      margin: 0;
-      font-size: 12px;
+      font-size: 15px;
+      width: 15px;
+      height: 15px;
+      line-height: 15px;
     }
 
     .meds-table-wrap {
       overflow-x: auto;
     }
 
-    .prescription-table {
+    .compact-table {
       width: 100%;
       border-collapse: collapse;
       font-size: 12px;
       background: #FFFFFF;
-      border-radius: 8px;
+      border-radius: 6px;
       overflow: hidden;
       border: 1px solid #E5E7EB;
     }
 
-    .prescription-table th {
+    .compact-table th {
       background: #F8FAFC;
       color: #475569;
       font-weight: 700;
       font-size: 11px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      padding: 8px 12px;
+      padding: 7px 10px;
       border-bottom: 1px solid #E5E7EB;
       text-align: left;
     }
 
-    .prescription-table td {
-      padding: 10px 12px;
+    .compact-table td {
+      padding: 8px 10px;
       border-bottom: 1px solid #F1F5F9;
       color: #334155;
     }
@@ -998,205 +799,84 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       background: #E6F4F1;
       color: #0F5C54;
       font-weight: 700;
-      font-size: 11px;
+      font-size: 10px;
       padding: 2px 6px;
       border-radius: 4px;
     }
 
-    .rx-extra-box {
-      font-size: 12px;
-      color: #334155;
-      background: #FFFFFF;
-      border: 1px solid #E5E7EB;
-      border-radius: 6px;
-      padding: 8px 12px;
+    .rx-extra-line {
+      font-size: 11px;
+      color: #475569;
       line-height: 1.4;
     }
 
-    .tests-list-wrap {
+    .compact-tests-list {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 8px;
     }
 
-    .test-item-card {
-      background: #FFFFFF;
-      border: 1px solid #E5E7EB;
-      border-radius: 8px;
-      padding: 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .test-item-top {
+    .compact-test-row {
       display: flex;
       justify-content: space-between;
-      align-items: flex-start;
-      gap: 16px;
-    }
-
-    @media (max-width: 640px) {
-      .test-item-top {
-        flex-direction: column;
-      }
-    }
-
-    .test-name-area {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      flex: 1;
-    }
-
-    .test-title-line {
-      display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 12px;
+      padding: 10px 12px;
+      background: #F9FAFB;
+      border: 1px solid #E5E7EB;
+      border-radius: 6px;
       flex-wrap: wrap;
     }
 
-    .test-ic {
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
-      color: #0F5C54;
-    }
-
-    .test-name-txt {
-      font-size: 13px;
-      font-weight: 700;
-      color: #111827;
-    }
-
-    .test-status-pill {
-      font-size: 10px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      padding: 2px 8px;
-      border-radius: 9999px;
-    }
-
-    .test-notstarted {
-      background: #FEF3C7;
-      color: #B45309;
-    }
-
-    .test-inprogress {
-      background: #E0F2FE;
-      color: #0369A1;
-    }
-
-    .test-completed {
-      background: #DCFCE7;
-      color: #15803D;
-    }
-
-    .test-instructions-txt {
-      font-size: 12px;
-      color: #4B5563;
-      line-height: 1.4;
-      margin-top: 2px;
-    }
-
-    .test-status-selector-wrap {
-      min-width: 160px;
+    .compact-test-info {
       display: flex;
       flex-direction: column;
       gap: 2px;
+      flex: 1;
+      min-width: 180px;
     }
 
-    .selector-lbl {
+    .compact-test-name {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+    }
+
+    .test-ic {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      color: #0F5C54;
+    }
+
+    .compact-test-inst {
       font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
       color: #6B7280;
     }
 
-    .status-select-field {
-      width: 100%;
-    }
-
-    .status-select-field ::ng-deep .mat-mdc-text-field-wrapper {
-      padding: 0 8px;
-      height: 40px;
-    }
-
-    .test-actions-box {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-      background: #FAFAF8;
-      border: 1px solid #E5E7EB;
-      border-radius: 8px;
-      padding: 12px;
-    }
-
-    @media (max-width: 720px) {
-      .test-actions-box {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .action-field-lbl {
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: #4B5563;
-      margin-bottom: 4px;
-      display: block;
-    }
-
-    .findings-input-row {
+    .compact-test-actions {
       display: flex;
-      gap: 6px;
       align-items: center;
-    }
-
-    .findings-input {
-      flex: 1;
-      border: 1px solid #D1D5DB;
-      border-radius: 6px;
-      padding: 6px 10px;
-      font-size: 12px;
-      color: #1F2937;
-      background: #FFFFFF;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-
-    .findings-input:focus {
-      border-color: #0F5C54;
-    }
-
-    .save-findings-btn {
-      min-width: auto !important;
-      padding: 0 10px !important;
-      height: 32px !important;
-      font-size: 11px !important;
-      font-weight: 700 !important;
-      border-radius: 6px !important;
-      display: inline-flex !important;
-      align-items: center !important;
-      gap: 2px !important;
-    }
-
-    .save-findings-btn .btn-ic {
-      font-size: 14px;
-      width: 14px;
-      height: 14px;
-    }
-
-    .upload-btn-row {
-      display: flex;
       gap: 8px;
-      align-items: center;
       flex-wrap: wrap;
     }
 
-    .report-upload-btn {
+    .test-select-field {
+      width: 130px;
+    }
+
+    .test-select-field ::ng-deep .mat-mdc-text-field-wrapper {
+      padding: 0 6px;
+      height: 32px;
+    }
+
+    .test-select-field ::ng-deep .mat-mdc-form-field-flex {
+      height: 32px;
+      align-items: center;
+    }
+
+    .upload-btn {
       font-size: 11px !important;
       font-weight: 700 !important;
       height: 32px !important;
@@ -1208,13 +888,13 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       gap: 4px !important;
     }
 
-    .report-upload-btn .btn-ic {
-      font-size: 16px;
-      width: 16px;
-      height: 16px;
+    .upload-btn .btn-ic {
+      font-size: 15px;
+      width: 15px;
+      height: 15px;
     }
 
-    .view-report-pill {
+    .report-chip {
       display: inline-flex;
       align-items: center;
       gap: 4px;
@@ -1229,47 +909,54 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       transition: background 0.2s;
     }
 
-    .view-report-pill:hover {
+    .report-chip:hover {
       background: #CCE8E4;
     }
 
-    .pill-ic {
+    .chip-ic {
       font-size: 14px;
       width: 14px;
       height: 14px;
     }
 
-    .pill-ic-ext {
-      font-size: 12px;
-      width: 12px;
-      height: 12px;
+    .chip-ic-ext {
+      font-size: 11px;
+      width: 11px;
+      height: 11px;
     }
 
-    .cancel-info-card {
-      background: #FEF2F2;
-      border: 1px solid #FECACA;
-      border-radius: 10px;
-      padding: 14px;
+    .pending-clinical-notice {
       display: flex;
-      flex-direction: column;
-      gap: 6px;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 14px;
+      background: #F8FAFC;
+      border: 1px dashed #CBD5E1;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #64748B;
     }
 
-    .cancel-header {
+    .notice-ic {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      color: #94A3B8;
+    }
+
+    .cancel-strip {
       display: flex;
       align-items: center;
       gap: 6px;
-      font-size: 13px;
-    }
-
-    .cancel-text {
+      padding: 10px 14px;
+      background: #FEF2F2;
+      border: 1px solid #FECACA;
+      border-radius: 8px;
       font-size: 12px;
       color: #991B1B;
-      margin: 0;
-      font-weight: 500;
     }
 
-    .cancel-meta {
+    .cancel-sub {
       font-size: 11px;
       color: #B91C1C;
     }
