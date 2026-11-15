@@ -122,20 +122,6 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'notes';
           </div>
         </div>
 
-        <!-- View-Only Notice Banner -->
-        <div *ngIf="isReadOnly" class="readonly-banner">
-          <mat-icon class="readonly-icon">lock</mat-icon>
-          <div class="readonly-content">
-            <h4 class="readonly-title">View-Only Consultation Record</h4>
-            <p *ngIf="readOnlyReason === 'cancelled'" class="readonly-desc">
-              This appointment was cancelled. Prescriptions, lab tests, and clinical notes cannot be added or modified.
-            </p>
-            <p *ngIf="readOnlyReason === 'time_ended'" class="readonly-desc">
-              The scheduled consultation time window has ended. All fields are locked in view-only mode.
-            </p>
-          </div>
-        </div>
-
         <!-- Clean Patient Clinical Summary Card -->
         <mat-card class="patient-snapshot-card">
           <div class="snapshot-grid">
@@ -252,7 +238,6 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'notes';
               <h2 class="card-title flex items-center gap-2">
                 <mat-icon class="text-teal-700">medication</mat-icon>
                 <span>Prescription</span>
-                <span *ngIf="isReadOnly" class="readonly-pill">Read-Only</span>
               </h2>
               <button *ngIf="!isReadOnly" mat-flat-button color="primary" (click)="savePrescription()" [disabled]="saving">
                 <mat-spinner *ngIf="saving" diameter="18" class="mr-2"></mat-spinner>
@@ -401,7 +386,6 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'notes';
                   <mat-icon class="text-teal-700">science</mat-icon>
                   <h3 class="suggested-tests-title">Advise Diagnostic / Lab Tests</h3>
                   <span class="optional-tag" *ngIf="!isReadOnly">Optional</span>
-                  <span class="readonly-pill" *ngIf="isReadOnly">Read-Only</span>
                 </div>
                 <button *ngIf="!isReadOnly" mat-stroked-button color="primary" type="button" (click)="addSuggestedTestRow()">
                   <mat-icon>add</mat-icon>
@@ -791,7 +775,6 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'notes';
               <h2 class="card-title flex items-center gap-2">
                 <mat-icon class="text-teal-700">edit_note</mat-icon>
                 <span>Consultation Notes</span>
-                <span *ngIf="isReadOnly" class="readonly-pill">Read-Only</span>
               </h2>
             </div>
 
@@ -976,59 +959,6 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'notes';
       height: 14px;
       color: #DC2626;
       flex-shrink: 0;
-    }
-
-    /* View-Only Readonly Banner & Pill Styles */
-    .readonly-banner {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 18px;
-      border-radius: 12px;
-      background: #FEF3C7;
-      border: 1px solid #FCD34D;
-      color: #92400E;
-      margin-bottom: 4px;
-    }
-
-    .readonly-icon {
-      font-size: 22px;
-      width: 22px;
-      height: 22px;
-      color: #B45309;
-      flex-shrink: 0;
-    }
-
-    .readonly-content {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .readonly-title {
-      font-size: 13px;
-      font-weight: 800;
-      margin: 0;
-      color: #78350F;
-    }
-
-    .readonly-desc {
-      font-size: 12px;
-      margin: 0;
-      color: #92400E;
-      line-height: 1.4;
-    }
-
-    .readonly-pill {
-      font-size: 10px;
-      font-weight: 800;
-      text-transform: uppercase;
-      padding: 2px 8px;
-      border-radius: 9999px;
-      background: #FEF3C7;
-      color: #92400E;
-      border: 1px solid #FCD34D;
-      letter-spacing: 0.5px;
     }
 
     .empty-view-state {
