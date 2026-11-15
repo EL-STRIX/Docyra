@@ -475,7 +475,7 @@ class AppointmentService {
   /**
    * Get appointments for a Doctor
    */
-  async getDoctorAppointments(doctorId, { page = 1, limit = 10, status, date, upcoming, patientId } = {}) {
+  async getDoctorAppointments(doctorId, { page = 1, limit = 10, status, date, upcoming, patientId, sortBy = 'createdAt', sortOrder = 'desc' } = {}) {
     await this.autoCancelElapsedAppointments({ doctorId: new mongoose.Types.ObjectId(doctorId) });
 
     const query = { doctorId: new mongoose.Types.ObjectId(doctorId) };
@@ -497,9 +497,12 @@ class AppointmentService {
       query.slotStart = { $gte: new Date() };
     }
 
-    const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 10, 1), 100);
+    const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 10, 1), 1000);
     const safePage = Math.max(parseInt(page, 10) || 1, 1);
     const skip = (safePage - 1) * safeLimit;
+
+    const sortField = sortBy === 'slotStart' ? 'slotStart' : 'createdAt';
+    const sortValue = sortOrder === 'asc' ? 1 : -1;
 
     const [appointments, total] = await Promise.all([
       Appointment.find(query)
@@ -509,7 +512,7 @@ class AppointmentService {
           path: 'previousAppointmentId',
           select: 'slotStart status reasonForVisit prescription medicalTests notes doctorId clinicId createdAt',
         })
-        .sort({ slotStart: 1 })
+        .sort({ [sortField]: sortValue })
         .skip(skip)
         .limit(safeLimit)
         .lean(),

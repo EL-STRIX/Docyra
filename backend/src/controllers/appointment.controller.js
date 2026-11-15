@@ -68,7 +68,7 @@ export const getAppointmentById = asyncHandler(async (req, res) => {
  * Doctor: List doctor's appointments
  */
 export const getDoctorAppointments = asyncHandler(async (req, res) => {
-  const { page, limit, status, date, upcoming, patientId } = req.query;
+  const { page, limit, status, date, upcoming, patientId, sortBy, sortOrder } = req.query;
 
   // Find doctorProfile for logged-in doctor
   let doctorProfileId;
@@ -91,6 +91,8 @@ export const getDoctorAppointments = asyncHandler(async (req, res) => {
     date,
     upcoming,
     patientId,
+    sortBy,
+    sortOrder,
   });
 
   res.status(200).json({

@@ -114,6 +114,9 @@ import { MatButtonModule } from '@angular/material/button';
                     <div class="timeline-top">
                       <div class="date-text">
                         {{ apt.slotStart | portalDate:'dd MMMM yyyy, h:mm a' }}
+                        <span *ngIf="apt.createdAt" class="booked-time-sub">
+                          • Booked on {{ apt.createdAt | portalDate:'dd MMM yyyy, h:mm a' }}
+                        </span>
                       </div>
                       <app-status-badge [status]="apt.status"></app-status-badge>
                     </div>
@@ -385,6 +388,16 @@ import { MatButtonModule } from '@angular/material/button';
       font-size: 13px;
       font-weight: 700;
       color: #1A2E2E;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .booked-time-sub {
+      font-size: 11px;
+      font-weight: 500;
+      color: #8C9E9E;
     }
 
     .reason-box, .notes-box {
@@ -449,10 +462,15 @@ export class PatientHistoryComponent implements OnInit {
       next: (res) => {
         if (res.success && res.data) {
           this.doctorProfile = res.data;
-          this.appointmentService.getDoctorAppointments(res.data._id).subscribe({
+          this.appointmentService.getDoctorAppointments(res.data._id, { limit: 500, sortBy: 'createdAt', sortOrder: 'desc' } as any).subscribe({
             next: (aptRes) => {
               if (aptRes.success && Array.isArray(aptRes.data)) {
-                this.allAppointments = aptRes.data;
+                // Arrange appointments so the last booked is on top, and first booked is at the bottom
+                this.allAppointments = [...aptRes.data].sort((a, b) => {
+                  const timeA = a.createdAt ? new Date(a.createdAt).getTime() : new Date(a.slotStart).getTime();
+                  const timeB = b.createdAt ? new Date(b.createdAt).getTime() : new Date(b.slotStart).getTime();
+                  return timeB - timeA;
+                });
                 this.extractUniquePatients();
               }
               this.loading = false;
@@ -480,16 +498,28 @@ export class PatientHistoryComponent implements OnInit {
   }
 
   extractUniquePatients(): void {
-    const patientMap = new Map<string, number>();
+    const patientMap = new Map<string, { count: number; latestBooking: number }>();
     this.allAppointments.forEach((apt) => {
       const name = this.getPatientName(apt);
-      patientMap.set(name, (patientMap.get(name) || 0) + 1);
+      const time = apt.createdAt ? new Date(apt.createdAt).getTime() : new Date(apt.slotStart).getTime();
+      const existing = patientMap.get(name);
+      if (!existing) {
+        patientMap.set(name, { count: 1, latestBooking: time });
+      } else {
+        existing.count += 1;
+        if (time > existing.latestBooking) {
+          existing.latestBooking = time;
+        }
+      }
     });
 
-    this.uniquePatients = Array.from(patientMap.entries()).map(([name, count]) => ({
-      name,
-      visitsCount: count,
-    }));
+    this.uniquePatients = Array.from(patientMap.entries())
+      .map(([name, data]) => ({
+        name,
+        visitsCount: data.count,
+        latestBooking: data.latestBooking,
+      }))
+      .sort((a, b) => b.latestBooking - a.latestBooking);
 
     this.filteredPatients = [...this.uniquePatients];
 
@@ -529,8 +559,12 @@ export class PatientHistoryComponent implements OnInit {
 
   selectPatient(p: { name: string }): void {
     this.selectedPatientName = p.name;
-    this.selectedPatientVisits = this.allAppointments.filter(
-      (apt) => this.getPatientName(apt) === p.name
-    );
+    this.selectedPatientVisits = this.allAppointments
+      .filter((apt) => this.getPatientName(apt) === p.name)
+      .sort((a, b) => {
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : new Date(a.slotStart).getTime();
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : new Date(b.slotStart).getTime();
+        return timeB - timeA; // Last booked on top, first booked at the bottom
+      });
   }
 }
