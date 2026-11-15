@@ -86,13 +86,9 @@ export interface RevenueTransaction {
       <!-- Page Header -->
       <div class="page-header">
         <div>
-          <div class="scope-badge">
-            <mat-icon>payments</mat-icon>
-            <span>Verified Clinic Income & Financial Ledger</span>
-          </div>
-          <h1 class="page-title">Clinic Revenue Analytics</h1>
+          <h1 class="page-title">Clinic Revenue</h1>
           <p class="page-subtitle">
-            Daily, monthly, and yearly income calculated strictly from completed patient consultations. Uncompleted and scheduled visits are strictly excluded.
+            Revenue and consultation fees from completed visits.
           </p>
         </div>
 
@@ -125,7 +121,7 @@ export interface RevenueTransaction {
           <!-- Doctor Filter -->
           <div class="doc-filter-wrap" *ngIf="availableDoctorOptions.length > 0">
             <select [(ngModel)]="selectedDoctorId" (change)="loadRevenueData()" class="doc-select">
-              <option value="">All Clinic Physicians</option>
+              <option value="">All Physicians</option>
               <option *ngFor="let doc of availableDoctorOptions" [value]="doc.id">
                 {{ doc.name }}
               </option>
@@ -148,7 +144,7 @@ export interface RevenueTransaction {
           <div class="kpi-body">
             <span class="kpi-label">Today's Revenue</span>
             <span class="kpi-value text-teal-800">₹{{ (summary?.todayRevenue || 0) | number:'1.0-0' }}</span>
-            <span class="kpi-meta">{{ summary?.todayCompletedVisits || 0 }} completed visits today</span>
+            <span class="kpi-meta">{{ summary?.todayCompletedVisits || 0 }} visit{{ (summary?.todayCompletedVisits || 0) === 1 ? '' : 's' }} today</span>
           </div>
         </mat-card>
 
@@ -159,7 +155,7 @@ export interface RevenueTransaction {
           <div class="kpi-body">
             <span class="kpi-label">{{ getPeriodTitle() }} Revenue</span>
             <span class="kpi-value text-indigo-800">₹{{ (summary?.periodRevenue || 0) | number:'1.0-0' }}</span>
-            <span class="kpi-meta">{{ summary?.periodCompletedVisits || 0 }} visits in selected timeframe</span>
+            <span class="kpi-meta">{{ summary?.periodCompletedVisits || 0 }} visit{{ (summary?.periodCompletedVisits || 0) === 1 ? '' : 's' }} in period</span>
           </div>
         </mat-card>
 
@@ -168,9 +164,9 @@ export interface RevenueTransaction {
             <mat-icon>account_balance</mat-icon>
           </div>
           <div class="kpi-body">
-            <span class="kpi-label">Total Verified Revenue</span>
+            <span class="kpi-label">Total Revenue</span>
             <span class="kpi-value text-neutral-900">₹{{ (summary?.totalRevenue || 0) | number:'1.0-0' }}</span>
-            <span class="kpi-meta">{{ summary?.totalCompletedVisits || 0 }} all-time completed visits</span>
+            <span class="kpi-meta">{{ summary?.totalCompletedVisits || 0 }} total visit{{ (summary?.totalCompletedVisits || 0) === 1 ? '' : 's' }}</span>
           </div>
         </mat-card>
 
@@ -179,9 +175,9 @@ export interface RevenueTransaction {
             <mat-icon>receipt_long</mat-icon>
           </div>
           <div class="kpi-body">
-            <span class="kpi-label">Average Fee / Consultation</span>
+            <span class="kpi-label">Avg. Consultation Fee</span>
             <span class="kpi-value text-neutral-800">₹{{ (summary?.averageFeePerVisit || 0) | number:'1.0-0' }}</span>
-            <span class="kpi-meta">Standard per-visit return</span>
+            <span class="kpi-meta">Per completed visit</span>
           </div>
         </mat-card>
       </div>
@@ -191,14 +187,11 @@ export interface RevenueTransaction {
         <div class="chart-header">
           <div>
             <h2 class="chart-title">{{ getChartHeading() }}</h2>
-            <p class="chart-desc">
-              Visual income distribution across {{ selectedPeriod === 'day' ? 'recent days' : selectedPeriod === 'month' ? 'calendar months' : 'years' }}.
-            </p>
           </div>
           <div class="chart-legend">
             <div class="legend-item">
               <span class="legend-color-bar"></span>
-              <span class="legend-text">Completed Consultation Income (₹)</span>
+              <span class="legend-text">Revenue (₹)</span>
             </div>
           </div>
         </div>
@@ -251,28 +244,27 @@ export interface RevenueTransaction {
         </div>
       </mat-card>
 
-      <!-- Bottom Split: Doctor Revenue Breakdown & Full Transactions Ledger -->
+      <!-- Bottom Split: Doctor Revenue Breakdown & Transactions Ledger -->
       <div class="bottom-grid">
         <!-- Physician Revenue Share Card -->
         <mat-card class="doctor-share-card">
           <div class="card-title-bar">
             <div>
-              <h3 class="section-title">Physician Income Contribution</h3>
-              <p class="section-desc">Completed visits and revenue earned by doctor</p>
+              <h3 class="section-title">Physician Revenue</h3>
             </div>
             <a routerLink="/clinic/doctors" class="link-btn">Manage Roster →</a>
           </div>
 
           <div *ngIf="doctorBreakdown.length === 0" class="empty-sub">
             <mat-icon>medical_services</mat-icon>
-            <p>No doctor consultation records completed yet.</p>
+            <p>No completed visits recorded yet.</p>
           </div>
 
           <div class="doctor-list" *ngIf="doctorBreakdown.length > 0">
             <div *ngFor="let doc of doctorBreakdown" class="doctor-row">
               <div class="doc-info-block">
                 <span class="doc-name">{{ doc.doctorName }}</span>
-                <span class="doc-sub">{{ doc.specialization }} • Fee: ₹{{ doc.consultationFee }}</span>
+                <span class="doc-sub">{{ doc.specialization }}</span>
               </div>
 
               <div class="doc-stats-block">
@@ -280,7 +272,7 @@ export interface RevenueTransaction {
                   <span class="doc-rev-val">₹{{ doc.revenue | number:'1.0-0' }}</span>
                   <span class="doc-share-pill">{{ doc.percentage }}%</span>
                 </div>
-                <span class="doc-visits">{{ doc.completedVisits }} completed visit{{ doc.completedVisits === 1 ? '' : 's' }}</span>
+                <span class="doc-visits">{{ doc.completedVisits }} visit{{ doc.completedVisits === 1 ? '' : 's' }}</span>
                 <div class="progress-bar-wrap">
                   <div class="progress-bar-fill" [style.width.%]="doc.percentage"></div>
                 </div>
@@ -289,12 +281,11 @@ export interface RevenueTransaction {
           </div>
         </mat-card>
 
-        <!-- All Days Revenue Record (Transactions Ledger) -->
+        <!-- Revenue Transactions Ledger -->
         <mat-card class="ledger-card">
           <div class="card-title-bar">
             <div>
-              <h3 class="section-title">All-Time Revenue Records & Consultation Ledger</h3>
-              <p class="section-desc">Itemized audit of every completed appointment and calculated fee</p>
+              <h3 class="section-title">Revenue Records</h3>
             </div>
             <div class="ledger-search-box">
               <mat-icon class="search-icon">search</mat-icon>
@@ -316,7 +307,7 @@ export interface RevenueTransaction {
           <div *ngIf="!loading && filteredTransactions.length === 0" class="empty-sub">
             <mat-icon>receipt</mat-icon>
             <p *ngIf="transactions.length === 0">
-              No completed appointments recorded yet. Once a doctor marks a visit complete, the consultation fee will appear here instantly.
+              No completed appointments recorded yet.
             </p>
             <p *ngIf="transactions.length > 0">No records matching your search query.</p>
           </div>
@@ -326,12 +317,10 @@ export interface RevenueTransaction {
             <table class="ledger-table">
               <thead>
                 <tr>
-                  <th>Completed Date & Time</th>
-                  <th>Patient Name</th>
-                  <th>Consulting Physician</th>
-                  <th>Reason for Visit</th>
-                  <th>Consultation Fee</th>
-                  <th class="text-right">Status</th>
+                  <th>Date &amp; Time</th>
+                  <th>Patient</th>
+                  <th>Physician</th>
+                  <th class="text-right">Fee</th>
                 </tr>
               </thead>
               <tbody>
@@ -347,7 +336,7 @@ export interface RevenueTransaction {
 
                   <td>
                     <div class="font-bold text-neutral-900 text-sm">{{ tx.patientName }}</div>
-                    <div class="text-xs text-neutral-500" *ngIf="tx.patientEmail">{{ tx.patientEmail }}</div>
+                    <div class="text-xs text-neutral-500" *ngIf="tx.patientPhone">{{ tx.patientPhone }}</div>
                   </td>
 
                   <td>
@@ -355,21 +344,10 @@ export interface RevenueTransaction {
                     <div class="text-xs text-neutral-500">{{ tx.specialization }}</div>
                   </td>
 
-                  <td class="text-xs text-neutral-600">
-                    {{ tx.reasonForVisit || 'Medical Consultation' }}
-                  </td>
-
-                  <td>
-                    <div class="font-bold text-emerald-700 text-sm">
+                  <td class="text-right">
+                    <div class="font-bold text-emerald-700 text-base">
                       ₹{{ tx.fee | number:'1.0-0' }}
                     </div>
-                  </td>
-
-                  <td class="text-right">
-                    <span class="completed-badge">
-                      <mat-icon class="chk-icon">check_circle</mat-icon>
-                      <span>Completed</span>
-                    </span>
                   </td>
                 </tr>
               </tbody>
@@ -378,10 +356,10 @@ export interface RevenueTransaction {
 
           <!-- Table Footer Summary -->
           <div class="ledger-footer" *ngIf="!loading && filteredTransactions.length > 0">
-            <span class="footer-count">Showing {{ filteredTransactions.length }} completed record{{ filteredTransactions.length === 1 ? '' : 's' }}</span>
+            <span class="footer-count">{{ filteredTransactions.length }} record{{ filteredTransactions.length === 1 ? '' : 's' }}</span>
             <div class="footer-total">
-              <span class="text-neutral-500 text-xs">Total for displayed records:</span>
-              <span class="text-emerald-800 font-bold text-sm">₹{{ getFilteredTotal() | number:'1.0-0' }}</span>
+              <span class="text-neutral-500 text-xs">Total:</span>
+              <span class="text-emerald-800 font-bold text-base">₹{{ getFilteredTotal() | number:'1.0-0' }}</span>
             </div>
           </div>
         </mat-card>
