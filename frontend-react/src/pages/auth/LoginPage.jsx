@@ -17,9 +17,9 @@ export function LoginPage() {
 
   useEffect(() => {
     if (user) {
-      navigate('/dashboard', { replace: true });
+      navigate(from, { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, navigate, from]);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

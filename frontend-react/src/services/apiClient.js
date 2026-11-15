@@ -65,9 +65,11 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config;
 
     // Don't attempt refresh for auth endpoints themselves
-    const isAuthEndpoint = originalRequest?.url?.includes('/auth/login') ||
+    const isAuthEndpoint =
+      originalRequest?.url?.includes('/auth/login') ||
       originalRequest?.url?.includes('/auth/refresh') ||
-      originalRequest?.url?.includes('/auth/register');
+      originalRequest?.url?.includes('/auth/register') ||
+      originalRequest?.url?.includes('/auth/logout');
 
     if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       if (isRefreshing) {
@@ -82,7 +84,24 @@ apiClient.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        await axios.post(`${API_BASE_URL}/auth/refresh`, {}, { withCredentials: true });
+        let csrfToken = getCookie('csrfToken');
+        if (!csrfToken) {
+          try {
+            const csrfRes = await axios.get(`${API_BASE_URL}/auth/csrf-token`, { withCredentials: true });
+            csrfToken = csrfRes.data?.data?.csrfToken;
+          } catch {
+            // Ignore
+          }
+        }
+
+        await axios.post(
+          `${API_BASE_URL}/auth/refresh`,
+          {},
+          {
+            withCredentials: true,
+            headers: csrfToken ? { 'X-CSRF-Token': csrfToken } : {},
+          }
+        );
         processQueue(null);
         return apiClient(originalRequest);
       } catch (refreshError) {

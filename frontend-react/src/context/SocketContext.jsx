@@ -36,8 +36,10 @@ export function SocketProvider({ children }) {
   const socketRef = useRef(null);
   const recentHashesRef = useRef(new Map()); // Deduplication map: key -> timestamp
 
-  // Storage key per user
-  const storageKey = user?._id || user?.id ? `docyra_notifications_${user._id || user.id}` : null;
+  // Storage keys per user
+  const userId = user?._id || user?.id;
+  const storageKey = userId ? `docyra_notifications_${userId}` : null;
+  const seededKey = userId ? `docyra_notifications_seeded_${userId}` : null;
 
   // 1. Initialize notifications from localStorage
   useEffect(() => {
@@ -48,20 +50,32 @@ export function SocketProvider({ children }) {
 
     try {
       const stored = localStorage.getItem(storageKey);
-      if (stored) {
+      if (stored !== null) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed)) {
           setNotifications(parsed);
           return;
         }
       }
-      // If nothing stored, seed with helpful initial notifications
+
+      // If key doesn't exist, check whether this user account has already been seeded in the past
+      const alreadySeeded = seededKey ? localStorage.getItem(seededKey) === 'true' : false;
+      if (alreadySeeded) {
+        setNotifications([]);
+        localStorage.setItem(storageKey, JSON.stringify([]));
+        return;
+      }
+
+      // First-time visit: seed initial default notifications once
       setNotifications(DEFAULT_NOTIFICATIONS);
       localStorage.setItem(storageKey, JSON.stringify(DEFAULT_NOTIFICATIONS));
-    } catch (e) {
-      setNotifications(DEFAULT_NOTIFICATIONS);
+      if (seededKey) {
+        localStorage.setItem(seededKey, 'true');
+      }
+    } catch {
+      setNotifications([]);
     }
-  }, [isAuthenticated, storageKey]);
+  }, [isAuthenticated, storageKey, seededKey]);
 
   // Persist notifications whenever they change
   const persistNotifications = useCallback(
@@ -69,12 +83,15 @@ export function SocketProvider({ children }) {
       if (storageKey) {
         try {
           localStorage.setItem(storageKey, JSON.stringify(newNotifs));
+          if (seededKey) {
+            localStorage.setItem(seededKey, 'true');
+          }
         } catch {
           // Ignore quota/private mode errors
         }
       }
     },
-    [storageKey]
+    [storageKey, seededKey]
   );
 
   // Dismiss a toast
@@ -165,8 +182,15 @@ export function SocketProvider({ children }) {
         persistNotifications(updated);
         return updated;
       });
+      if (seededKey) {
+        try {
+          localStorage.setItem(seededKey, 'true');
+        } catch {
+          // Fallback
+        }
+      }
     },
-    [persistNotifications]
+    [persistNotifications, seededKey]
   );
 
   // Clear all notifications
@@ -174,12 +198,15 @@ export function SocketProvider({ children }) {
     setNotifications([]);
     if (storageKey) {
       try {
-        localStorage.removeItem(storageKey);
+        localStorage.setItem(storageKey, JSON.stringify([]));
+        if (seededKey) {
+          localStorage.setItem(seededKey, 'true');
+        }
       } catch {
         // Fallback
       }
     }
-  }, [storageKey]);
+  }, [storageKey, seededKey]);
 
   // 2. Connect to Socket.IO when authenticated
   useEffect(() => {

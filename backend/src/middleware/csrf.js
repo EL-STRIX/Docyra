@@ -37,10 +37,11 @@ export const csrfProtection = (req, res, next) => {
     return next();
   }
 
-  // Exclude public auth endpoints that create initial sessions if needed
+  // Exclude public auth endpoints that create or rotate initial sessions
   const isPublicAuth =
     req.path.includes('/login') ||
     req.path.includes('/register') ||
+    req.path.includes('/refresh') ||
     req.path.includes('/forgot-password') ||
     req.path.includes('/reset-password') ||
     req.path.includes('/2fa/login');

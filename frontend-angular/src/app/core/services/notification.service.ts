@@ -20,6 +20,8 @@ export interface PortalNotification {
 export class NotificationService {
   private snackBar = inject(MatSnackBar);
   private socket: Socket | null = null;
+  private readonly STORAGE_KEY = 'docyra_ops_notifications';
+  private readonly SEEDED_KEY = 'docyra_ops_notifications_seeded';
 
   private defaultNotifications: PortalNotification[] = [
     {
@@ -40,11 +42,51 @@ export class NotificationService {
     },
   ];
 
-  private notificationsSubject = new BehaviorSubject<PortalNotification[]>(this.defaultNotifications);
+  private notificationsSubject = new BehaviorSubject<PortalNotification[]>([]);
   public notifications$: Observable<PortalNotification[]> = this.notificationsSubject.asObservable();
 
-  private unreadCountSubject = new BehaviorSubject<number>(1);
+  private unreadCountSubject = new BehaviorSubject<number>(0);
   public unreadCount$: Observable<number> = this.unreadCountSubject.asObservable();
+
+  constructor() {
+    this.initNotifications();
+  }
+
+  private initNotifications(): void {
+    try {
+      const stored = localStorage.getItem(this.STORAGE_KEY);
+      if (stored !== null) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          this.notificationsSubject.next(parsed);
+          this.unreadCountSubject.next(parsed.filter((n) => !n.read).length);
+          return;
+        }
+      }
+      const wasSeeded = localStorage.getItem(this.SEEDED_KEY) === 'true';
+      if (wasSeeded) {
+        this.notificationsSubject.next([]);
+        this.unreadCountSubject.next(0);
+        return;
+      }
+      this.notificationsSubject.next(this.defaultNotifications);
+      this.unreadCountSubject.next(this.defaultNotifications.filter((n) => !n.read).length);
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.defaultNotifications));
+      localStorage.setItem(this.SEEDED_KEY, 'true');
+    } catch {
+      this.notificationsSubject.next(this.defaultNotifications);
+      this.unreadCountSubject.next(1);
+    }
+  }
+
+  private persistNotifications(list: PortalNotification[]): void {
+    try {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(list));
+      localStorage.setItem(this.SEEDED_KEY, 'true');
+    } catch {
+      // ignore
+    }
+  }
 
   /**
    * Connect real-time socket with cookies
@@ -112,6 +154,7 @@ export class NotificationService {
     const list = [ntf, ...this.notificationsSubject.value];
     this.notificationsSubject.next(list);
     this.unreadCountSubject.next(list.filter((n) => !n.read).length);
+    this.persistNotifications(list);
   }
 
   markAsRead(id: string): void {
@@ -120,23 +163,27 @@ export class NotificationService {
     );
     this.notificationsSubject.next(updated);
     this.unreadCountSubject.next(updated.filter((n) => !n.read).length);
+    this.persistNotifications(updated);
   }
 
   markAllAsRead(): void {
     const updated = this.notificationsSubject.value.map((n) => ({ ...n, read: true }));
     this.notificationsSubject.next(updated);
     this.unreadCountSubject.next(0);
+    this.persistNotifications(updated);
   }
 
   deleteNotification(id: string): void {
     const updated = this.notificationsSubject.value.filter((n) => n.id !== id);
     this.notificationsSubject.next(updated);
     this.unreadCountSubject.next(updated.filter((n) => !n.read).length);
+    this.persistNotifications(updated);
   }
 
   clearNotifications(): void {
     this.notificationsSubject.next([]);
     this.unreadCountSubject.next(0);
+    this.persistNotifications([]);
   }
 
   // Toast helpers
