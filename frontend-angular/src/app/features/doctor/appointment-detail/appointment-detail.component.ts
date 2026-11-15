@@ -23,7 +23,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
-export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_history' | 'notes';
+export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'notes';
 
 @Component({
   selector: 'app-doctor-appointment-detail',
@@ -233,16 +233,6 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
           >
             <mat-icon>person</mat-icon>
             <span>Patient Details</span>
-          </button>
-
-          <button
-            class="workspace-tab-btn"
-            [class.active]="activeTab === 'past_history'"
-            (click)="activeTab = 'past_history'"
-          >
-            <mat-icon>history</mat-icon>
-            <span>Past Visits</span>
-            <span class="tab-badge">{{ pastVisitsWithThisDoctor.length }}</span>
           </button>
 
           <button
@@ -720,69 +710,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
           </mat-card>
         </div>
 
-        <!-- TAB 4: Past Visits Under THIS Doctor -->
-        <div *ngIf="activeTab === 'past_history'" class="tab-content-area">
-          <mat-card class="section-card">
-            <h2 class="card-title flex items-center gap-2">
-              <mat-icon class="text-teal-700">history_edu</mat-icon>
-              <span>Consultation History (Under You)</span>
-            </h2>
-
-            <!-- First-time patient with this doctor -->
-            <div *ngIf="pastVisitsWithThisDoctor.length === 0" class="empty-history-box mt-4">
-              <mat-icon class="empty-icon">history</mat-icon>
-              <h3 class="empty-title">First Visit With You</h3>
-              <p class="empty-desc">
-                No previous consultations on record for this patient under your care.
-              </p>
-              <span class="privacy-tag">
-                Medical records from other practitioners remain confidential.
-              </span>
-            </div>
-
-            <!-- List of Past Prescriptions & Consultations under THIS Doctor -->
-            <div *ngIf="pastVisitsWithThisDoctor.length > 0" class="past-visits-list mt-4">
-              <div *ngFor="let pastApt of pastVisitsWithThisDoctor" class="past-visit-card">
-                <div class="past-visit-header">
-                  <div>
-                    <span class="past-visit-date font-bold">
-                      {{ pastApt.slotStart | portalDate:'dd MMM yyyy • h:mm a' }}
-                    </span>
-                    <span class="past-reason block text-xs text-neutral-600 mt-0.5">
-                      Reason: {{ pastApt.reasonForVisit || 'General Consultation' }}
-                    </span>
-                  </div>
-                  <app-status-badge [status]="pastApt.status"></app-status-badge>
-                </div>
-
-                <div *ngIf="pastApt.prescription?.medicines?.length" class="past-section mt-3">
-                  <span class="past-lbl">Prescribed Medications:</span>
-                  <div class="past-meds-table">
-                    <div *ngFor="let med of pastApt.prescription?.medicines" class="past-med-item">
-                      <span class="font-bold text-neutral-900">{{ med.name }}</span>
-                      <span class="text-neutral-600">{{ med.dosage }}</span>
-                      <span class="text-neutral-600">{{ med.frequency }}</span>
-                      <span class="text-neutral-600">{{ med.duration }}</span>
-                      <span class="text-neutral-500 italic text-xs">{{ med.instructions }}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div *ngIf="pastApt.prescription?.generalAdvice" class="past-section mt-2">
-                  <span class="past-lbl">Advice:</span>
-                  <p class="past-text">{{ pastApt.prescription?.generalAdvice }}</p>
-                </div>
-
-                <div *ngIf="pastApt.notes" class="past-section mt-2">
-                  <span class="past-lbl">Notes:</span>
-                  <p class="past-text">{{ pastApt.notes }}</p>
-                </div>
-              </div>
-            </div>
-          </mat-card>
-        </div>
-
-        <!-- TAB 5: Clinical Notes -->
+        <!-- TAB 4: Clinical Notes -->
         <div *ngIf="activeTab === 'notes'" class="tab-content-area">
           <mat-card class="section-card">
             <div class="card-title-bar">
@@ -1996,7 +1924,6 @@ export class DoctorAppointmentDetailComponent implements OnInit {
   appointmentId = '';
   appointment: Appointment | null = null;
   currentDoctor: Doctor | null = null;
-  pastVisitsWithThisDoctor: Appointment[] = [];
 
   activeTab: DetailTab = 'prescription';
   loading = true;
@@ -2051,7 +1978,6 @@ export class DoctorAppointmentDetailComponent implements OnInit {
         if (res.success && res.data) {
           this.appointment = res.data;
           this.initAppointmentState(res.data);
-          this.loadPatientHistoryWithDoctor();
         }
         this.loading = false;
       },
@@ -2102,26 +2028,6 @@ export class DoctorAppointmentDetailComponent implements OnInit {
 
     // Medical tests init
     this.medicalTests = apt.medicalTests ? JSON.parse(JSON.stringify(apt.medicalTests)) : [];
-  }
-
-  loadPatientHistoryWithDoctor(): void {
-    if (!this.currentDoctor?._id) return;
-    const patientId = this.getPatientId();
-    if (!patientId) return;
-
-    this.appointmentService.getDoctorAppointments(this.currentDoctor._id, { patientId } as any).subscribe({
-      next: (res) => {
-        if (res.success && Array.isArray(res.data)) {
-          // Strictly show only visits under THIS doctor that are completed, excluding the current active appointment
-          this.pastVisitsWithThisDoctor = res.data.filter(
-            (a) => a._id !== this.appointmentId && a.status === 'completed'
-          );
-        }
-      },
-      error: () => {
-        // Safe fallback
-      },
-    });
   }
 
   get validPrescriptionMedicinesCount(): number {
