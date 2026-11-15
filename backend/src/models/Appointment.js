@@ -88,10 +88,11 @@ const appointmentSchema = new mongoose.Schema(
         resultFileUrl: { type: String, default: null },
         status: {
           type: String,
-          enum: ['ordered', 'completed', 'normal', 'abnormal'],
-          default: 'ordered',
+          enum: ['not_started', 'in_progress', 'completed', 'ordered', 'normal', 'abnormal'],
+          default: 'not_started',
         },
         orderedAt: { type: Date, default: Date.now },
+        completedAt: { type: Date, default: null },
       },
     ],
     reminder24hSent: {

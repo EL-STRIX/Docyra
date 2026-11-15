@@ -230,6 +230,7 @@ export const exportAppointmentIcs = asyncHandler(async (req, res) => {
  */
 export const uploadTestResult = asyncHandler(async (req, res) => {
   const { id } = req.params;
+  const testId = req.params.testId || req.body.testId;
   const { testName, instructions, resultNotes, status } = req.body;
 
   const appointment = await Appointment.findById(id);
@@ -237,29 +238,114 @@ export const uploadTestResult = asyncHandler(async (req, res) => {
     throw new NotFoundError('Appointment not found', ERROR_CODES.NOT_FOUND);
   }
 
+  // Clinic Admin clinic ownership check
+  if (req.user.role === ROLES.CLINIC_ADMIN && req.user.clinicId) {
+    if (appointment.clinicId && appointment.clinicId.toString() !== req.user.clinicId.toString()) {
+      throw new ForbiddenError('Access denied: You cannot modify tests for another clinic', ERROR_CODES.FORBIDDEN);
+    }
+  }
+
   let fileUrl = null;
   if (req.file) {
     fileUrl = await storageService.uploadFile(req.file, 'test-results');
   }
 
-  const newTest = {
-    testName: testName || 'Diagnostic Lab Test',
-    instructions: instructions || '',
-    resultNotes: resultNotes || '',
-    resultFileUrl: fileUrl,
-    status: status || (fileUrl || resultNotes ? 'completed' : 'ordered'),
-    orderedAt: new Date(),
-  };
-
   if (!appointment.medicalTests) {
     appointment.medicalTests = [];
   }
-  appointment.medicalTests.push(newTest);
+
+  let targetTest = null;
+  if (testId) {
+    targetTest = appointment.medicalTests.id(testId) || appointment.medicalTests.find(t => t._id?.toString() === testId);
+  } else if (testName) {
+    targetTest = appointment.medicalTests.find(t => t.testName?.trim().toLowerCase() === testName.trim().toLowerCase());
+  }
+
+  if (targetTest) {
+    if (fileUrl) targetTest.resultFileUrl = fileUrl;
+    if (resultNotes !== undefined) targetTest.resultNotes = resultNotes;
+    if (instructions !== undefined) targetTest.instructions = instructions;
+    targetTest.status = status || (fileUrl || resultNotes ? 'completed' : targetTest.status || 'not_started');
+    if (targetTest.status === 'completed') {
+      targetTest.completedAt = targetTest.completedAt || new Date();
+    }
+  } else {
+    const finalStatus = status || (fileUrl || resultNotes ? 'completed' : 'not_started');
+    const newTest = {
+      testName: testName || 'Diagnostic Lab Test',
+      instructions: instructions || '',
+      resultNotes: resultNotes || '',
+      resultFileUrl: fileUrl,
+      status: finalStatus,
+      orderedAt: new Date(),
+      completedAt: finalStatus === 'completed' ? new Date() : null,
+    };
+    appointment.medicalTests.push(newTest);
+  }
+
   await appointment.save();
 
   res.status(200).json({
     success: true,
     message: 'Medical test and report recorded successfully',
+    data: appointment,
+  });
+});
+
+/**
+ * Doctor / Clinic Admin: Update a specific medical test's status and clinical result notes
+ */
+export const updateMedicalTest = asyncHandler(async (req, res) => {
+  const { id, testId } = req.params;
+  const { status, resultNotes, instructions, resultFileUrl } = req.body;
+
+  const appointment = await Appointment.findById(id);
+  if (!appointment) {
+    throw new NotFoundError('Appointment not found', ERROR_CODES.NOT_FOUND);
+  }
+
+  // Clinic Admin clinic ownership check
+  if (req.user.role === ROLES.CLINIC_ADMIN && req.user.clinicId) {
+    if (appointment.clinicId && appointment.clinicId.toString() !== req.user.clinicId.toString()) {
+      throw new ForbiddenError('Access denied: You cannot modify tests for another clinic', ERROR_CODES.FORBIDDEN);
+    }
+  }
+
+  if (!appointment.medicalTests) {
+    appointment.medicalTests = [];
+  }
+
+  const targetTest = appointment.medicalTests.id(testId) || appointment.medicalTests.find(t => t._id?.toString() === testId);
+  if (!targetTest) {
+    throw new NotFoundError('Medical test not found for this appointment', ERROR_CODES.NOT_FOUND);
+  }
+
+  if (status !== undefined) {
+    targetTest.status = status;
+    if (status === 'completed') {
+      targetTest.completedAt = targetTest.completedAt || new Date();
+    } else {
+      targetTest.completedAt = null;
+    }
+  }
+
+  if (resultNotes !== undefined) {
+    targetTest.resultNotes = resultNotes;
+  }
+
+  if (instructions !== undefined) {
+    targetTest.instructions = instructions;
+  }
+
+  if (resultFileUrl !== undefined) {
+    targetTest.resultFileUrl = resultFileUrl;
+  }
+
+  await appointment.save();
+
+  res.status(200).json({
+    success: true,
+    message: 'Medical test updated successfully',
     data: appointment,
   });
 });
@@ -276,4 +362,5 @@ export default {
   emergencyUnavailable,
   exportAppointmentIcs,
   uploadTestResult,
+  updateMedicalTest,
 };

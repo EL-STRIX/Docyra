@@ -11,6 +11,7 @@ import {
   rescheduleAppointment,
   exportAppointmentIcs,
   uploadTestResult,
+  updateMedicalTest,
 } from '../../controllers/appointment.controller.js';
 import { authenticate } from '../../middleware/auth.js';
 import { requireRole } from '../../middleware/rbac.js';
@@ -20,6 +21,7 @@ import {
   updateAppointmentStatusSchema,
   cancelAppointmentSchema,
   rescheduleAppointmentSchema,
+  updateMedicalTestSchema,
 } from '../../validators/appointment.validator.js';
 import { ROLES } from '../../config/constants.js';
 
@@ -76,6 +78,20 @@ router.patch(
 
 router.post(
   '/:id/test-result',
+  requireRole(ROLES.DOCTOR, ROLES.CLINIC_ADMIN, ROLES.ADMIN),
+  upload.single('file'),
+  uploadTestResult
+);
+
+router.patch(
+  '/:id/tests/:testId',
+  requireRole(ROLES.DOCTOR, ROLES.CLINIC_ADMIN, ROLES.ADMIN),
+  validate(updateMedicalTestSchema),
+  updateMedicalTest
+);
+
+router.post(
+  '/:id/tests/:testId/result',
   requireRole(ROLES.DOCTOR, ROLES.CLINIC_ADMIN, ROLES.ADMIN),
   upload.single('file'),
   uploadTestResult

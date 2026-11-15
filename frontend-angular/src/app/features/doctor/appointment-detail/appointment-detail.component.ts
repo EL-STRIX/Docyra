@@ -509,7 +509,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'notes';
                         <mat-icon class="test-badge-icon">biotech</mat-icon>
                         <span class="test-name">{{ test.testName }}</span>
                         <span class="test-status-pill" [ngClass]="getTestStatusClass(test.status)">
-                          {{ test.status | uppercase }}
+                          {{ getTestStatusDisplay(test.status) }}
                         </span>
                       </div>
                       <div class="test-instructions" *ngIf="test.instructions">
@@ -573,7 +573,7 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'notes';
                         <mat-icon class="test-badge-icon">biotech</mat-icon>
                         <span class="test-name">{{ test.testName }}</span>
                         <span class="test-status-pill" [ngClass]="getTestStatusClass(test.status)">
-                          {{ test.status | uppercase }}
+                          {{ getTestStatusDisplay(test.status) }}
                         </span>
                         <span class="prior-visit-tag">Prior Visit</span>
                       </div>
@@ -1732,7 +1732,8 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'notes';
       letter-spacing: 0.3px;
     }
 
-    .status-ordered { background: #FEF3C7; color: #B45309; }
+    .status-ordered, .status-not-started { background: #FEF3C7; color: #B45309; }
+    .status-in-progress { background: #E0F2FE; color: #0369A1; }
     .status-completed { background: #DCFCE7; color: #15803D; }
     .status-abnormal { background: #FEE2E2; color: #DC2626; }
     .status-normal { background: #E0F2FE; color: #0284C7; }
@@ -2506,10 +2507,26 @@ export class DoctorAppointmentDetailComponent implements OnInit {
   getTestStatusClass(status?: string): string {
     switch (status) {
       case 'completed': return 'status-completed';
+      case 'in_progress':
+      case 'process': return 'status-in-progress';
+      case 'not_started': return 'status-not-started';
       case 'normal': return 'status-normal';
       case 'abnormal': return 'status-abnormal';
       case 'ordered':
       default: return 'status-ordered';
+    }
+  }
+
+  getTestStatusDisplay(status?: string): string {
+    switch (status) {
+      case 'completed': return 'COMPLETED';
+      case 'in_progress':
+      case 'process': return 'IN PROGRESS';
+      case 'not_started': return 'NOT STARTED';
+      case 'ordered': return 'ORDERED';
+      case 'normal': return 'NORMAL';
+      case 'abnormal': return 'ABNORMAL';
+      default: return (status || 'NOT STARTED').replace(/_/g, ' ').toUpperCase();
     }
   }
 

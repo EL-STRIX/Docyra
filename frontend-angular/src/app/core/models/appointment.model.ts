@@ -26,8 +26,9 @@ export interface MedicalTest {
   instructions?: string;
   resultNotes?: string;
   resultFileUrl?: string | null;
-  status?: 'ordered' | 'completed' | 'normal' | 'abnormal';
+  status?: 'not_started' | 'in_progress' | 'completed' | 'ordered' | 'normal' | 'abnormal' | string;
   orderedAt?: string;
+  completedAt?: string | null;
 }
 
 export interface BookedFor {

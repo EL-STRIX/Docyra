@@ -126,6 +126,60 @@ export class AppointmentService {
     );
   }
 
+  updateMedicalTest(
+    appointmentId: string,
+    testId: string,
+    payload: {
+      status?: string;
+      resultNotes?: string;
+      instructions?: string;
+      resultFileUrl?: string;
+    }
+  ): Observable<ApiResponse<Appointment>> {
+    return this.http.patch<ApiResponse<Appointment>>(
+      `${this.API_URL}/${appointmentId}/tests/${testId}`,
+      payload,
+      { withCredentials: true }
+    ).pipe(
+      tap((res) => {
+        if (res.success && res.data) {
+          const current = this.appointmentsSubject.value;
+          this.appointmentsSubject.next(
+            current.map((apt) => (apt._id === appointmentId ? res.data : apt))
+          );
+        }
+      })
+    );
+  }
+
+  uploadTestResultFile(
+    appointmentId: string,
+    testId: string,
+    file: File,
+    resultNotes?: string,
+    status?: string
+  ): Observable<ApiResponse<Appointment>> {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (resultNotes) formData.append('resultNotes', resultNotes);
+    if (status) formData.append('status', status);
+
+    return this.http.post<ApiResponse<Appointment>>(
+      `${this.API_URL}/${appointmentId}/tests/${testId}/result`,
+      formData,
+      { withCredentials: true }
+    ).pipe(
+      tap((res) => {
+        if (res.success && res.data) {
+          const current = this.appointmentsSubject.value;
+          this.appointmentsSubject.next(
+            current.map((apt) => (apt._id === appointmentId ? res.data : apt))
+          );
+        }
+      })
+    );
+  }
+
   cancelAppointment(id: string, reason: string): Observable<ApiResponse<Appointment>> {
     return this.http.post<ApiResponse<Appointment>>(
       `${this.API_URL}/${id}/cancel`,

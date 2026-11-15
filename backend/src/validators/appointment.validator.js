@@ -43,3 +43,12 @@ export const rescheduleAppointmentSchema = z.object({
     slotId: z.string().min(1, 'New Slot ID is required'),
   }),
 });
+
+export const updateMedicalTestSchema = z.object({
+  body: z.object({
+    status: z.enum(['not_started', 'in_progress', 'completed', 'ordered', 'normal', 'abnormal']).optional(),
+    resultNotes: z.string().optional(),
+    instructions: z.string().optional(),
+    resultFileUrl: z.string().optional().nullable(),
+  }),
+});
