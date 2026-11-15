@@ -38,6 +38,17 @@ export const appointmentsApi = {
     const response = await apiClient.patch(`/appointments/${id}/cancel`, payload);
     return response.data;
   },
+  rescheduleAppointment: async (id, payload) => {
+    const response = await apiClient.patch(`/appointments/${id}/reschedule`, payload);
+    const raw = response.data;
+    const appointment = raw?.data?.appointment || raw?.data;
+    return {
+      ...raw,
+      data: {
+        appointment,
+      },
+    };
+  },
   getIcsCalendarUrl: (id) => {
     const baseURL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
     return `${baseURL}/appointments/${id}/ics`;

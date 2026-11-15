@@ -165,6 +165,26 @@ export const cancelAppointment = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Patient: Reschedule appointment slot in place (without creating duplicate appointments)
+ */
+export const rescheduleAppointment = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { slotId } = req.body;
+
+  const rescheduled = await appointmentService.rescheduleAppointment(
+    id,
+    { slotId },
+    req.user
+  );
+
+  res.status(200).json({
+    success: true,
+    message: 'Appointment rescheduled successfully',
+    data: rescheduled,
+  });
+});
+
+/**
  * Doctor / Clinic Admin / Platform Admin: Emergency Unavailability
  */
 export const emergencyUnavailable = asyncHandler(async (req, res) => {
@@ -246,6 +266,7 @@ export default {
   getClinicAppointments,
   updateAppointmentStatus,
   cancelAppointment,
+  rescheduleAppointment,
   emergencyUnavailable,
   exportAppointmentIcs,
   uploadTestResult,

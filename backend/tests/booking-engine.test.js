@@ -513,4 +513,70 @@ describe('Phase 6: Transactional Booking Engine & Status Lifecycle', () => {
       expect(rebookRes.body.data.isFollowUp).toBe(true);
     });
   });
+
+  describe('In-Place Reschedule (Zero Duplicate Appointments)', () => {
+    it('Should reschedule existing appointment in place without creating a duplicate record', async () => {
+      // 1. Initial booking
+      const initialSlot = await AppointmentSlot.create({
+        doctorId: doctor1Profile._id,
+        clinicId: clinic1._id,
+        slotStart: new Date(Date.now() + 72 * 60 * 60 * 1000),
+        slotEnd: new Date(Date.now() + 73 * 60 * 60 * 1000),
+        isBooked: false,
+      });
+
+      const bookRes = await request(app)
+        .post('/api/v1/appointments')
+        .set('Authorization', `Bearer ${patient1Token}`)
+        .send({
+          doctorId: doctor1Profile._id.toString(),
+          slotId: initialSlot._id.toString(),
+          bookedForType: 'self',
+          reasonForVisit: 'General Wellness Checkup',
+        });
+
+      expect(bookRes.statusCode).toBe(201);
+      const originalAppointmentId = bookRes.body.data._id;
+      const countBefore = await Appointment.countDocuments({ patientId: patient1User._id });
+
+      // 2. Prepare new slot to reschedule into
+      const newSlot = await AppointmentSlot.create({
+        doctorId: doctor1Profile._id,
+        clinicId: clinic1._id,
+        slotStart: new Date(Date.now() + 96 * 60 * 60 * 1000),
+        slotEnd: new Date(Date.now() + 97 * 60 * 60 * 1000),
+        isBooked: false,
+      });
+
+      // 3. Reschedule appointment
+      const rescheduleRes = await request(app)
+        .patch(`/api/v1/appointments/${originalAppointmentId}/reschedule`)
+        .set('Authorization', `Bearer ${patient1Token}`)
+        .send({
+          slotId: newSlot._id.toString(),
+        });
+
+      expect(rescheduleRes.statusCode).toBe(200);
+      expect(rescheduleRes.body.success).toBe(true);
+      expect(rescheduleRes.body.data._id.toString()).toBe(originalAppointmentId.toString());
+      expect(rescheduleRes.body.data.rescheduleCount).toBe(1);
+      expect(rescheduleRes.body.data.rescheduledAt).toBeDefined();
+
+      // 4. Verify ZERO duplicate appointments created
+      const countAfter = await Appointment.countDocuments({ patientId: patient1User._id });
+      expect(countAfter).toBe(countBefore);
+
+      // 5. Verify old slot freed, new slot occupied
+      const updatedOldSlot = await AppointmentSlot.findById(initialSlot._id);
+      expect(updatedOldSlot.isBooked).toBe(false);
+
+      const updatedNewSlot = await AppointmentSlot.findById(newSlot._id);
+      expect(updatedNewSlot.isBooked).toBe(true);
+
+      // 6. Verify patient details locked (same bookedForType & patientId)
+      const updatedAppt = await Appointment.findById(originalAppointmentId);
+      expect(updatedAppt.bookedForType).toBe('self');
+      expect(updatedAppt.slotId.toString()).toBe(newSlot._id.toString());
+    });
+  });
 });

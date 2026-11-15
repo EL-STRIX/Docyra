@@ -532,7 +532,7 @@ export function AppointmentDetailPage() {
             {['pending', 'confirmed'].includes(appointment.status) && (
               <>
                 <Link
-                  to={`/doctors/${doctorProfile._id}`}
+                  to={`/book?rescheduleId=${appointment._id}&doctorId=${doctorProfile._id}`}
                   className="btn-outline text-xs py-2 px-4 flex items-center gap-1.5 font-bold"
                 >
                   <Clock className="w-3.5 h-3.5 text-brand-primary" />

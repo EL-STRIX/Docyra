@@ -8,6 +8,7 @@ import {
   getClinicAppointments,
   updateAppointmentStatus,
   cancelAppointment,
+  rescheduleAppointment,
   exportAppointmentIcs,
   uploadTestResult,
 } from '../../controllers/appointment.controller.js';
@@ -18,6 +19,7 @@ import {
   bookAppointmentSchema,
   updateAppointmentStatusSchema,
   cancelAppointmentSchema,
+  rescheduleAppointmentSchema,
 } from '../../validators/appointment.validator.js';
 import { ROLES } from '../../config/constants.js';
 
@@ -83,6 +85,13 @@ router.patch(
   '/:id/cancel',
   validate(cancelAppointmentSchema),
   cancelAppointment
+);
+
+router.patch(
+  '/:id/reschedule',
+  requireRole(ROLES.PATIENT, ROLES.ADMIN),
+  validate(rescheduleAppointmentSchema),
+  rescheduleAppointment
 );
 
 export default router;

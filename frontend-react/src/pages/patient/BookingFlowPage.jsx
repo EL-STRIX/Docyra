@@ -33,6 +33,7 @@ export function BookingFlowPage() {
   const querySlotId = searchParams.get('slotId');
   const queryDate = searchParams.get('date');
   const queryPreviousAppointmentId = searchParams.get('previousAppointmentId') || searchParams.get('followUpId');
+  const queryRescheduleId = searchParams.get('rescheduleId');
 
   // Master lists
   const [allDoctors, setAllDoctors] = useState([]);
@@ -43,6 +44,10 @@ export function BookingFlowPage() {
   // Follow-up context state
   const [previousAppointment, setPreviousAppointment] = useState(null);
   const [loadingPreviousAppointment, setLoadingPreviousAppointment] = useState(!!queryPreviousAppointmentId);
+
+  // Reschedule context state
+  const [rescheduleAppointment, setRescheduleAppointment] = useState(null);
+  const [loadingReschedule, setLoadingReschedule] = useState(!!queryRescheduleId);
 
   // Current booking selections
   const [selectedDoctorId, setSelectedDoctorId] = useState(queryDoctorId || '');
@@ -187,6 +192,55 @@ export function BookingFlowPage() {
     loadPriorAppointment();
   }, [queryPreviousAppointmentId]);
 
+  // Load appointment if this is a reschedule flow
+  useEffect(() => {
+    if (!queryRescheduleId) return;
+    async function loadRescheduleAppointment() {
+      setLoadingReschedule(true);
+      try {
+        const res = await appointmentsApi.getAppointmentById(queryRescheduleId);
+        if (res.success && res.data.appointment) {
+          const appt = res.data.appointment;
+          setRescheduleAppointment(appt);
+
+          // Pre-select and lock doctor
+          const docId = typeof appt.doctorId === 'object' ? appt.doctorId?._id : appt.doctorId;
+          if (docId) {
+            setSelectedDoctorId(docId);
+          }
+
+          // Pre-select clinic if available
+          if (appt.clinicId) {
+            const cId = typeof appt.clinicId === 'object' ? appt.clinicId?._id : appt.clinicId;
+            if (cId) {
+              setSelectedClinicFilter(cId);
+            }
+          }
+
+          // Strictly lock patient profile (Self vs Dependent)
+          if (appt.bookedForType === 'dependent' && appt.bookedForId) {
+            setBookedForType('dependent');
+            const depId = typeof appt.bookedForId === 'object' ? appt.bookedForId?._id : appt.bookedForId;
+            setSelectedDependentId(depId || '');
+          } else {
+            setBookedForType('self');
+          }
+
+          // Lock consultation reason to original
+          if (appt.reasonForVisit) {
+            setReasonForVisit(appt.reasonForVisit);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load appointment for rescheduling:', err);
+        setError('Failed to load original appointment for rescheduling.');
+      } finally {
+        setLoadingReschedule(false);
+      }
+    }
+    loadRescheduleAppointment();
+  }, [queryRescheduleId]);
+
   // 3. Load Slots when selectedDoctorId or selectedDate changes
   const fetchSlots = useCallback(async () => {
     if (!selectedDoctorId || !selectedDate) {
@@ -250,7 +304,7 @@ export function BookingFlowPage() {
     });
   };
 
-  // Submit appointment booking
+  // Submit appointment booking or reschedule
   const handleBookingSubmit = async () => {
     if (!selectedDoctorId || !selectedSlotId) {
       setError('Please select both a doctor and an appointment time slot.');
@@ -268,6 +322,37 @@ export function BookingFlowPage() {
     setBookingInProgress(true);
 
     try {
+      if (queryRescheduleId) {
+        // Reschedule existing appointment in place without creating a new appointment
+        const res = await appointmentsApi.rescheduleAppointment(queryRescheduleId, {
+          slotId: selectedSlotId,
+        });
+
+        if (res.success) {
+          setConfirmedAppointment(res.data.appointment);
+          setCurrentStep(4);
+          if (addNotification) {
+            const apptDoc = res.data.appointment;
+            const formattedDate = selectedSlot?.slotStart
+              ? format(new Date(selectedSlot.slotStart), 'EEE, dd MMM yyyy')
+              : 'scheduled date';
+            const formattedTime = selectedSlot?.slotStart
+              ? format(new Date(selectedSlot.slotStart), 'hh:mm a')
+              : '';
+            addNotification({
+              type: 'appointment:rescheduled',
+              category: 'appointment',
+              title: 'Appointment Rescheduled',
+              message: `Your appointment with Dr. ${doctorName.replace(/^Dr\.\s*/i, '')} has been rescheduled to ${formattedDate}${formattedTime ? ` at ${formattedTime}` : ''}.`,
+              link: `/appointments/${apptDoc._id}`,
+              actionLabel: 'View Details',
+              data: { appointmentId: apptDoc._id, ...apptDoc },
+            });
+          }
+        }
+        return;
+      }
+
       const payload = {
         doctorId: selectedDoctorId,
         slotId: selectedSlotId,
@@ -306,7 +391,7 @@ export function BookingFlowPage() {
         setCurrentStep(1);
         fetchSlots();
       } else {
-        setError(err.response?.data?.error?.message || 'Appointment reservation failed. Please try again.');
+        setError(err.response?.data?.error?.message || (queryRescheduleId ? 'Failed to reschedule appointment. Please try again.' : 'Appointment reservation failed. Please try again.'));
       }
     } finally {
       setBookingInProgress(false);
@@ -400,6 +485,38 @@ export function BookingFlowPage() {
         <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2.5">
           <AlertCircle className="w-5 h-5 shrink-0" />
           <span className="font-medium">{error}</span>
+        </div>
+      )}
+
+      {/* Reschedule In-Place Notice */}
+      {rescheduleAppointment && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border border-amber-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-600 text-white flex items-center justify-center shrink-0">
+              <Calendar className="w-5 h-5" />
+            </div>
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                  Rescheduling Appointment #{rescheduleAppointment._id?.slice(-8)}
+                </span>
+                <span className="text-xs text-neutral-text-secondary">In-Place Update</span>
+              </div>
+              <h2 className="text-sm sm:text-base font-bold text-neutral-text-primary">
+                Reschedule Consultation with Dr. {doctorName}
+              </h2>
+              <p className="text-xs text-neutral-text-secondary">
+                Patient profile (<strong>{rescheduleAppointment.bookedForType === 'dependent' ? 'Family Dependent' : 'Myself'}</strong>), doctor, and clinic are locked to your original booking. Only your consultation date and time slot will be updated. No duplicate appointment will be created.
+              </p>
+            </div>
+          </div>
+
+          <Link
+            to={`/appointments/${rescheduleAppointment._id}`}
+            className="btn-outline text-amber-800 border-amber-300 hover:bg-amber-100 text-xs py-1.5 px-3 self-start sm:self-auto shrink-0 whitespace-nowrap"
+          >
+            Cancel & Return
+          </Link>
         </div>
       )}
 
@@ -573,7 +690,12 @@ export function BookingFlowPage() {
                   </div>
                 </div>
 
-                {!queryPreviousAppointmentId ? (
+                {queryRescheduleId ? (
+                  <span className="badge-primary text-[10px] py-1.5 px-3 self-start sm:self-center bg-amber-50 text-amber-800 border border-amber-200 font-bold flex items-center gap-1">
+                    <Calendar className="w-3 h-3 text-amber-600" />
+                    <span>Locked Physician (Reschedule)</span>
+                  </span>
+                ) : !queryPreviousAppointmentId ? (
                   <button
                     type="button"
                     onClick={() => {
@@ -776,18 +898,29 @@ export function BookingFlowPage() {
 
           {/* Book For Selection (Self vs Dependent) */}
           <div className="space-y-3">
-            <label className="text-xs font-bold uppercase tracking-wider text-neutral-text-secondary">
-              Who is this appointment for?
+            {queryRescheduleId && (
+              <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-amber-600" />
+                <span>
+                  <strong>Patient Profile Locked:</strong> When rescheduling, the attendee is locked to <strong>{bookedForType === 'self' ? 'Myself' : selectedDependent?.name || 'Family Dependent'}</strong> from the original appointment. To switch attendees, please cancel and book a new consultation.
+                </span>
+              </div>
+            )}
+
+            <label className="text-xs font-bold uppercase tracking-wider text-neutral-text-secondary flex items-center justify-between">
+              <span>Who is this appointment for?</span>
+              {queryRescheduleId && <span className="text-[10px] text-amber-700 font-semibold">(Locked for Reschedule)</span>}
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <button
                 type="button"
+                disabled={!!queryRescheduleId}
                 onClick={() => setBookedForType('self')}
                 className={`p-4 rounded-2xl border text-left transition-all flex items-center gap-3 ${
                   bookedForType === 'self'
                     ? 'border-brand-primary bg-brand-primary-light text-brand-primary font-bold shadow-sm'
                     : 'border-neutral-border bg-white text-neutral-text-primary hover:border-brand-primary'
-                }`}
+                } ${queryRescheduleId ? 'cursor-not-allowed opacity-80' : ''}`}
               >
                 <div className="w-10 h-10 rounded-xl bg-white border border-brand-primary/30 flex items-center justify-center shrink-0">
                   <User className="w-5 h-5 text-brand-primary" />
@@ -802,12 +935,13 @@ export function BookingFlowPage() {
 
               <button
                 type="button"
+                disabled={!!queryRescheduleId}
                 onClick={() => setBookedForType('dependent')}
                 className={`p-4 rounded-2xl border text-left transition-all flex items-center gap-3 ${
                   bookedForType === 'dependent'
                     ? 'border-brand-primary bg-brand-primary-light text-brand-primary font-bold shadow-sm'
                     : 'border-neutral-border bg-white text-neutral-text-primary hover:border-brand-primary'
-                }`}
+                } ${queryRescheduleId ? 'cursor-not-allowed opacity-80' : ''}`}
               >
                 <div className="w-10 h-10 rounded-xl bg-white border border-brand-primary/30 flex items-center justify-center shrink-0">
                   <Users className="w-5 h-5 text-brand-primary" />
@@ -824,8 +958,9 @@ export function BookingFlowPage() {
             {/* Dependent selection dropdown */}
             {bookedForType === 'dependent' && (
               <div className="pt-2 space-y-2">
-                <label className="text-xs font-bold text-neutral-text-primary">
-                  Select Family Member Profile
+                <label className="text-xs font-bold text-neutral-text-primary flex items-center justify-between">
+                  <span>Select Family Member Profile</span>
+                  {queryRescheduleId && <span className="text-[10px] text-amber-700 font-semibold">(Locked)</span>}
                 </label>
                 {dependents.length === 0 ? (
                   <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs space-y-2">
@@ -837,9 +972,12 @@ export function BookingFlowPage() {
                 ) : (
                   <select
                     required
+                    disabled={!!queryRescheduleId}
                     value={selectedDependentId}
                     onChange={(e) => setSelectedDependentId(e.target.value)}
-                    className="w-full p-3.5 rounded-xl border border-neutral-border text-sm text-neutral-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary bg-white"
+                    className={`w-full p-3.5 rounded-xl border border-neutral-border text-sm text-neutral-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary ${
+                      queryRescheduleId ? 'cursor-not-allowed bg-neutral-100 opacity-90' : 'bg-white'
+                    }`}
                   >
                     <option value="">Choose dependent...</option>
                     {dependents.map((dep) => (
@@ -855,15 +993,19 @@ export function BookingFlowPage() {
 
           {/* Reason for Visit */}
           <div className="space-y-2">
-            <label className="text-xs font-bold text-neutral-text-primary">
-              Reason for Consultation (Symptoms or Purpose)
+            <label className="text-xs font-bold text-neutral-text-primary flex items-center justify-between">
+              <span>Reason for Consultation (Symptoms or Purpose)</span>
+              {queryRescheduleId && <span className="text-[10px] text-neutral-text-secondary font-medium">(Locked from Original Appointment)</span>}
             </label>
             <textarea
               rows={3}
+              disabled={!!queryRescheduleId}
               value={reasonForVisit}
               onChange={(e) => setReasonForVisit(e.target.value)}
               placeholder="e.g. Routine checkup, ongoing headache, prescription refill, lab review..."
-              className="w-full p-3.5 rounded-xl border border-neutral-border text-sm text-neutral-text-primary placeholder:text-neutral-text-secondary focus:outline-none focus:ring-2 focus:ring-brand-primary"
+              className={`w-full p-3.5 rounded-xl border border-neutral-border text-sm text-neutral-text-primary placeholder:text-neutral-text-secondary focus:outline-none focus:ring-2 focus:ring-brand-primary ${
+                queryRescheduleId ? 'cursor-not-allowed bg-neutral-100 text-neutral-700' : ''
+              }`}
             />
           </div>
 
@@ -896,10 +1038,12 @@ export function BookingFlowPage() {
           <div className="space-y-1 border-b border-neutral-border pb-3">
             <span className="badge-primary text-[10px] uppercase font-bold">Step 3 of 3</span>
             <h2 className="text-xl sm:text-2xl font-bold text-neutral-text-primary">
-              Review & Confirm Appointment
+              {queryRescheduleId ? 'Review & Confirm Reschedule' : 'Review & Confirm Appointment'}
             </h2>
             <p className="text-xs sm:text-sm text-neutral-text-secondary">
-              Please verify your appointment details before final confirmation.
+              {queryRescheduleId
+                ? 'Please verify your new consultation date and time slot before updating your appointment.'
+                : 'Please verify your appointment details before final confirmation.'}
             </p>
           </div>
 
@@ -952,6 +1096,15 @@ export function BookingFlowPage() {
                 <div className="flex justify-between items-start">
                   <span className="text-neutral-text-secondary">Consultation Reason:</span>
                   <span className="text-right text-neutral-text-primary max-w-xs">{reasonForVisit}</span>
+                </div>
+              )}
+              {queryRescheduleId && (
+                <div className="flex justify-between items-center p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900">
+                  <span className="font-bold flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-amber-600" />
+                    Reschedule Mode:
+                  </span>
+                  <span className="font-semibold text-xs">Updating Visit #{queryRescheduleId.slice(-8)} In-Place</span>
                 </div>
               )}
               {queryPreviousAppointmentId && (
@@ -1011,12 +1164,12 @@ export function BookingFlowPage() {
               {bookingInProgress ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Reserving Slot Atomically...</span>
+                  <span>{queryRescheduleId ? 'Rescheduling Slot Atomically...' : 'Reserving Slot Atomically...'}</span>
                 </>
               ) : (
                 <>
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>Confirm & Book Appointment</span>
+                  <span>{queryRescheduleId ? 'Confirm Reschedule' : 'Confirm & Book Appointment'}</span>
                 </>
               )}
             </button>
@@ -1032,12 +1185,18 @@ export function BookingFlowPage() {
           </div>
 
           <div className="space-y-2">
-            <span className="badge-success text-xs font-bold">Booking Confirmed</span>
+            <span className="badge-success text-xs font-bold">
+              {queryRescheduleId || confirmedAppointment.rescheduledAt ? 'Appointment Rescheduled' : 'Booking Confirmed'}
+            </span>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-neutral-text-primary tracking-tight">
-              Your Appointment is Reserved!
+              {queryRescheduleId || confirmedAppointment.rescheduledAt
+                ? 'Appointment Rescheduled Successfully!'
+                : 'Your Appointment is Reserved!'}
             </h2>
             <p className="text-xs sm:text-sm text-neutral-text-secondary max-w-md mx-auto leading-relaxed">
-              We have scheduled your visit with {doctorName || 'your doctor'}. Confirmation notifications and automated reminders have been generated.
+              {queryRescheduleId || confirmedAppointment.rescheduledAt
+                ? `Your consultation with ${doctorName || 'your doctor'} has been rescheduled. Your existing appointment record was updated in-place without creating a duplicate booking.`
+                : `We have scheduled your visit with ${doctorName || 'your doctor'}. Confirmation notifications and automated reminders have been generated.`}
             </p>
           </div>
 
@@ -1068,6 +1227,15 @@ export function BookingFlowPage() {
                 {confirmedAppointment._id}
               </span>
             </div>
+            {(confirmedAppointment.rescheduledAt || queryRescheduleId) && (
+              <div className="flex justify-between items-center text-amber-800 font-semibold pt-1 border-t border-neutral-border/70">
+                <span>Reschedule Status:</span>
+                <span className="flex items-center gap-1 text-[11px] bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full">
+                  <Calendar className="w-3 h-3" />
+                  In-Place Update (No Duplicates)
+                </span>
+              </div>
+            )}
             {(confirmedAppointment.isFollowUp || queryPreviousAppointmentId) && (
               <div className="flex justify-between items-center text-teal-800 font-semibold pt-1 border-t border-neutral-border/70">
                 <span>Continuity Status:</span>

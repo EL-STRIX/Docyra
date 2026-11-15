@@ -36,3 +36,9 @@ export const cancelAppointmentSchema = z.object({
     emergency: z.boolean().optional(),
   }),
 });
+
+export const rescheduleAppointmentSchema = z.object({
+  body: z.object({
+    slotId: z.string().min(1, 'New Slot ID is required'),
+  }),
+});

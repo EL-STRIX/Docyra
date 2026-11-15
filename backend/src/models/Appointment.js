@@ -124,6 +124,14 @@ const appointmentSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    rescheduledAt: {
+      type: Date,
+      default: null,
+    },
+    rescheduleCount: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true,

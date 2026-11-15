@@ -838,6 +838,193 @@ class AppointmentService {
   }
 
   /**
+   * Reschedule an existing appointment (Updates existing appointment in place without creating a new record)
+   */
+  async rescheduleAppointment(appointmentId, { slotId }, currentUser) {
+    const appointment = await Appointment.findById(appointmentId);
+    if (!appointment) {
+      throw new NotFoundError('Appointment not found', ERROR_CODES.NOT_FOUND);
+    }
+
+    if (appointment.status === APPOINTMENT_STATUS.CANCELLED) {
+      throw new BadRequestError('Cannot reschedule a cancelled appointment', ERROR_CODES.VALIDATION_ERROR);
+    }
+
+    if (appointment.status === APPOINTMENT_STATUS.COMPLETED) {
+      throw new BadRequestError('Cannot reschedule a completed appointment', ERROR_CODES.VALIDATION_ERROR);
+    }
+
+    const isPatientOwner =
+      currentUser.role === ROLES.PATIENT && appointment.patientId.toString() === currentUser.id;
+    const isPlatformAdmin = currentUser.role === ROLES.ADMIN;
+
+    if (!isPatientOwner && !isPlatformAdmin) {
+      throw new ForbiddenError(
+        'You do not have permission to reschedule this appointment',
+        ERROR_CODES.FORBIDDEN
+      );
+    }
+
+    if (appointment.slotId && appointment.slotId.toString() === slotId.toString()) {
+      throw new BadRequestError('Please select a different appointment slot to reschedule', ERROR_CODES.VALIDATION_ERROR);
+    }
+
+    const doctor = await DoctorProfile.findById(appointment.doctorId);
+    if (!doctor || !doctor.isApproved) {
+      throw new NotFoundError('Doctor not found or no longer active', ERROR_CODES.DOCTOR_NOT_FOUND);
+    }
+
+    const now = new Date();
+
+    // Execute atomic booking/rescheduling
+    let session = null;
+    let inTransaction = false;
+
+    const topologyType = mongoose.connection.client?.topology?.description?.type;
+    const isReplicaSetOrSharded =
+      topologyType &&
+      (topologyType.includes('ReplicaSet') || topologyType === 'Sharded');
+
+    if (isReplicaSetOrSharded) {
+      try {
+        session = await mongoose.startSession();
+        session.startTransaction();
+        inTransaction = true;
+      } catch (err) {
+        logger.warn(`Could not start MongoDB transaction: ${err.message}`);
+        if (session) session.endSession();
+        session = null;
+        inTransaction = false;
+      }
+    }
+
+    try {
+      const sessionOptions = inTransaction && session ? { session } : {};
+
+      // Atomically find and lock new slot (must belong to the SAME doctor)
+      const newSlot = await AppointmentSlot.findOneAndUpdate(
+        {
+          _id: slotId,
+          doctorId: doctor._id,
+          isBooked: false,
+          slotStart: { $gt: now },
+        },
+        { $set: { isBooked: true } },
+        { new: true, ...sessionOptions }
+      );
+
+      if (!newSlot) {
+        throw new ConflictError(
+          'Selected slot is already booked or no longer available',
+          ERROR_CODES.SLOT_ALREADY_BOOKED
+        );
+      }
+
+      // Check if slot already has an active appointment (defense in depth)
+      const existingAppt = await Appointment.findOne(
+        { slotId: newSlot._id, status: { $ne: APPOINTMENT_STATUS.CANCELLED } },
+        null,
+        sessionOptions
+      );
+
+      if (existingAppt) {
+        throw new ConflictError(
+          'Selected slot is already booked or no longer available',
+          ERROR_CODES.SLOT_ALREADY_BOOKED
+        );
+      }
+
+      const oldSlotId = appointment.slotId;
+      const oldSlotStart = appointment.slotStart;
+
+      // Update existing appointment IN PLACE - do not create a new appointment document
+      // All other details (bookedForType, bookedForId, doctor, fee, patient, reason) remain identical
+      appointment.slotId = newSlot._id;
+      appointment.slotStart = newSlot.slotStart;
+      appointment.slotEnd = newSlot.slotEnd;
+      appointment.reminder24hSent = false;
+      appointment.reminder1hSent = false;
+      appointment.rescheduledAt = new Date();
+      appointment.rescheduleCount = (appointment.rescheduleCount || 0) + 1;
+
+      await appointment.save(sessionOptions);
+
+      // Free the old slot
+      if (oldSlotId) {
+        await AppointmentSlot.findByIdAndUpdate(
+          oldSlotId,
+          { $set: { isBooked: false } },
+          sessionOptions
+        );
+      }
+
+      if (inTransaction && session) {
+        await session.commitTransaction();
+      }
+
+      logger.info(
+        `Appointment ${appointment._id} rescheduled from ${oldSlotStart} to ${newSlot.slotStart}`
+      );
+
+      // Process waitlist for the freed old slot
+      if (oldSlotStart) {
+        import('./waitlistService.js').then(({ waitlistService }) => {
+          waitlistService.processCancellation(appointment.doctorId, oldSlotStart).catch((e) => {
+            logger.warn(`Waitlist processing failed for rescheduled slot: ${e.message}`);
+          });
+        }).catch(() => {});
+      }
+
+      // Populate response
+      const populated = await Appointment.findById(appointment._id)
+        .populate('patientId', 'name email phone')
+        .populate({
+          path: 'doctorId',
+          populate: [
+            { path: 'userId', select: 'name email phone profilePhotoUrl' },
+            { path: 'specializationId', select: 'name iconName' },
+          ],
+        })
+        .populate('clinicId', 'name address city contactPhone')
+        .populate('bookedForId');
+
+      try {
+        const docName = populated.doctorId?.userId?.name || doctor.name || 'Doctor';
+        notificationService.dispatch('appointment:rescheduled', {
+          appointmentId: populated._id,
+          patientId: populated.patientId?._id?.toString() || currentUser.id,
+          patientEmail: populated.patientId?.email,
+          patientPhone: populated.patientId?.phone,
+          doctorId: populated.doctorId?._id?.toString() || appointment.doctorId.toString(),
+          doctorName: docName,
+          slotStart: populated.slotStart,
+          clinicId: populated.clinicId?._id?.toString(),
+          clinicName: populated.clinicId?.name,
+          date: new Date(populated.slotStart).toDateString(),
+          message: `Your appointment with Dr. ${docName} has been rescheduled to ${new Date(populated.slotStart).toDateString()} at ${new Date(populated.slotStart).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.`,
+        }).catch((e) => logger.warn(`Reschedule notification dispatch failed: ${e.message}`));
+      } catch (err) {
+        logger.warn(`Failed to dispatch reschedule notification: ${err.message}`);
+      }
+
+      return populated;
+    } catch (err) {
+      if (inTransaction && session) {
+        try {
+          await session.abortTransaction();
+        } catch {
+          // Transaction already aborted
+        }
+      }
+      throw err;
+    } finally {
+      if (inTransaction && session) {
+        session.endSession();
+      }
+    }
+  }
+
+  /**
    * Emergency unavailability: bulk cancels all today's confirmed/pending appointments
    */
   async emergencyUnavailable(doctorId, currentUser, data = {}) {

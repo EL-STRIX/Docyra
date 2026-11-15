@@ -378,7 +378,7 @@ export function DashboardPage() {
                       {['pending', 'confirmed'].includes(apt.status) && (
                         <>
                           <Link
-                            to={`/doctors/${typeof apt.doctorId === 'object' ? apt.doctorId?._id : apt.doctorId}`}
+                            to={`/book?rescheduleId=${apt._id}&doctorId=${typeof apt.doctorId === 'object' ? apt.doctorId?._id : apt.doctorId}`}
                             className="btn-outline text-xs py-1.5 px-3 flex items-center gap-1 font-bold"
                           >
                             <Clock className="w-3.5 h-3.5 text-brand-primary" />

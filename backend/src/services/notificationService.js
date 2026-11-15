@@ -143,6 +143,9 @@ class NotificationService {
       } else if (event === 'appointment:cancelled') {
         subject = 'Appointment Cancelled - Docyra';
         html = `<h3>Your appointment was cancelled</h3><p>Reason: ${payload.reason || 'Not specified'}</p>`;
+      } else if (event === 'appointment:rescheduled') {
+        subject = 'Appointment Rescheduled - Docyra';
+        html = `<h3>Your appointment has been rescheduled!</h3><p>Doctor: ${doctorDisplay}</p><p>New Time: ${new Date(payload.slotStart).toLocaleString()}</p>`;
       } else if (event === 'appointment:reminder') {
         subject = `Reminder: Upcoming Appointment (${payload.type || 'reminder'})`;
         html = `<h3>Appointment Reminder</h3><p>Your appointment with ${doctorDisplay} starts at ${new Date(payload.slotStart).toLocaleString()}.</p>`;
@@ -160,14 +163,16 @@ class NotificationService {
       );
     }
 
-    // 3. SMS Channel (Selected critical events: created, cancelled, reminder, waitlist)
-    if (payload.patientPhone && ['appointment:created', 'appointment:cancelled', 'appointment:reminder', 'waitlist:slotAvailable'].includes(event)) {
+    // 3. SMS Channel (Selected critical events: created, cancelled, rescheduled, reminder, waitlist)
+    if (payload.patientPhone && ['appointment:created', 'appointment:cancelled', 'appointment:rescheduled', 'appointment:reminder', 'waitlist:slotAvailable'].includes(event)) {
       let smsText = `Docyra: ${payload.message || 'You have an update on your appointment.'}`;
 
       if (event === 'appointment:created') {
         smsText = `Docyra: Your appointment with ${doctorDisplay} on ${new Date(payload.slotStart).toDateString()} is confirmed.`;
       } else if (event === 'appointment:cancelled') {
         smsText = `Docyra: Your appointment with ${doctorDisplay} on ${new Date(payload.slotStart).toDateString()} has been cancelled.`;
+      } else if (event === 'appointment:rescheduled') {
+        smsText = `Docyra: Your appointment with ${doctorDisplay} has been rescheduled to ${new Date(payload.slotStart).toDateString()} at ${new Date(payload.slotStart).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.`;
       } else if (event === 'appointment:reminder') {
         smsText = `Docyra Reminder: Your appointment with ${doctorDisplay} is at ${new Date(payload.slotStart).toLocaleTimeString()}.`;
       } else if (event === 'waitlist:slotAvailable') {
