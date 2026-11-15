@@ -106,6 +106,7 @@ export const routes: Routes = [
           { path: 'applications', component: ClinicDoctorApplicationsComponent },
           { path: 'doctors', component: ManageDoctorsComponent },
           { path: 'appointments', component: ClinicAppointmentsComponent },
+          { path: 'appointments/:id', component: ClinicAppointmentsComponent },
           { path: 'profile', component: ClinicProfileComponent },
         ],
       },
