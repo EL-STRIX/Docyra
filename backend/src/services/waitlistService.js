@@ -12,7 +12,7 @@ import notificationService from './notificationService.js';
 
 class WaitlistService {
   /**
-   * Patient: Join waitlist for a doctor across a desired date range
+   * Patient: Join waitlist for a doctor (optional date range)
    */
   async joinWaitlist({ patientId, doctorId, desiredDateRangeStart, desiredDateRangeEnd }) {
     const doctor = await DoctorProfile.findById(doctorId);
@@ -20,25 +20,37 @@ class WaitlistService {
       throw new NotFoundError('Doctor not found or not approved', ERROR_CODES.DOCTOR_NOT_FOUND);
     }
 
-    const startDate = new Date(desiredDateRangeStart);
-    const endDate = new Date(desiredDateRangeEnd);
+    let startDate = null;
+    let endDate = null;
 
-    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-      throw new BadRequestError('Invalid date format for desired date range', ERROR_CODES.VALIDATION_ERROR);
+    if (desiredDateRangeStart) {
+      startDate = new Date(desiredDateRangeStart);
+      if (isNaN(startDate.getTime())) {
+        throw new BadRequestError('Invalid date format for desired date range', ERROR_CODES.VALIDATION_ERROR);
+      }
     }
 
-    if (startDate > endDate) {
+    if (desiredDateRangeEnd) {
+      endDate = new Date(desiredDateRangeEnd);
+      if (isNaN(endDate.getTime())) {
+        throw new BadRequestError('Invalid date format for desired date range', ERROR_CODES.VALIDATION_ERROR);
+      }
+    }
+
+    if (startDate && endDate && startDate > endDate) {
       throw new BadRequestError('desiredDateRangeEnd must be after desiredDateRangeStart', ERROR_CODES.VALIDATION_ERROR);
     }
 
     // Check for duplicate active waitlist
-    const existing = await Waitlist.findOne({
+    const query = {
       patientId: new mongoose.Types.ObjectId(patientId),
       doctorId: doctor._id,
       status: 'waiting',
-      desiredDateRangeStart: startDate,
-      desiredDateRangeEnd: endDate,
-    });
+    };
+    if (startDate) query.desiredDateRangeStart = startDate;
+    if (endDate) query.desiredDateRangeEnd = endDate;
+
+    const existing = await Waitlist.findOne(query);
 
     if (existing) {
       return existing;
@@ -66,8 +78,22 @@ class WaitlistService {
     const candidate = await Waitlist.findOne({
       doctorId: new mongoose.Types.ObjectId(doctorId),
       status: 'waiting',
-      desiredDateRangeStart: { $lte: slotTime },
-      desiredDateRangeEnd: { $gte: slotTime },
+      $and: [
+        {
+          $or: [
+            { desiredDateRangeStart: null },
+            { desiredDateRangeStart: { $exists: false } },
+            { desiredDateRangeStart: { $lte: slotTime } },
+          ],
+        },
+        {
+          $or: [
+            { desiredDateRangeEnd: null },
+            { desiredDateRangeEnd: { $exists: false } },
+            { desiredDateRangeEnd: { $gte: slotTime } },
+          ],
+        },
+      ],
     }).sort({ createdAt: 1 });
 
     if (!candidate) {

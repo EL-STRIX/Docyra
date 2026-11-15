@@ -14,11 +14,13 @@ const waitlistSchema = new mongoose.Schema(
     },
     desiredDateRangeStart: {
       type: Date,
-      required: true,
+      required: false,
+      default: null,
     },
     desiredDateRangeEnd: {
       type: Date,
-      required: true,
+      required: false,
+      default: null,
     },
     status: {
       type: String,

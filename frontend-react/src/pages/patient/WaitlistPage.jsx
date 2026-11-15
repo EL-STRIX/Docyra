@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { format } from 'date-fns';
-import { Clock, Calendar, AlertCircle, Plus, ArrowRight, Trash2 } from 'lucide-react';
+import { Clock, AlertCircle, Plus, ArrowRight, Trash2 } from 'lucide-react';
 import waitlistApi from '../../services/waitlist.api.js';
 import doctorsApi from '../../services/doctors.api.js';
 import useSocket from '../../context/useSocket.js';
@@ -18,8 +18,6 @@ export function WaitlistPage() {
   // Form state
   const [showJoinModal, setShowJoinModal] = useState(!!preselectedDoctorId);
   const [doctorId, setDoctorId] = useState(preselectedDoctorId);
-  const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [endDate, setEndDate] = useState(format(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'));
   const [submitting, setSubmitting] = useState(false);
   const [removingId, setRemovingId] = useState(null);
   const [error, setError] = useState(null);
@@ -56,8 +54,6 @@ export function WaitlistPage() {
     try {
       const res = await waitlistApi.joinWaitlist({
         doctorId,
-        desiredDateRangeStart: startDate,
-        desiredDateRangeEnd: endDate,
       });
 
       if (res.success) {
@@ -192,19 +188,6 @@ export function WaitlistPage() {
                       </p>
                     </div>
                   </div>
-
-                  <div className="p-3 rounded-xl bg-neutral-bg border border-neutral-border text-xs space-y-1">
-                    <span className="text-[10px] font-bold text-neutral-text-secondary uppercase">
-                      Desired Date Range
-                    </span>
-                    <div className="flex items-center gap-2 font-semibold text-neutral-text-primary">
-                      <Calendar className="w-3.5 h-3.5 text-brand-primary" />
-                      <span>
-                        {format(new Date(w.desiredDateRangeStart), 'MMM dd, yyyy')} &rarr;{' '}
-                        {format(new Date(w.desiredDateRangeEnd), 'MMM dd, yyyy')}
-                      </span>
-                    </div>
-                  </div>
                 </div>
 
                 <div className="pt-3 border-t border-neutral-border flex items-center justify-between gap-3">
@@ -269,30 +252,6 @@ export function WaitlistPage() {
                     );
                   })}
                 </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-neutral-text-primary">Start Date</label>
-                  <input
-                    type="date"
-                    required
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-neutral-border text-xs text-neutral-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-neutral-text-primary">End Date</label>
-                  <input
-                    type="date"
-                    required
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-neutral-border text-xs text-neutral-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary"
-                  />
-                </div>
               </div>
 
               <div className="pt-3 flex items-center justify-end gap-3">

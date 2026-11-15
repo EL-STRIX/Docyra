@@ -3,8 +3,8 @@ import { z } from 'zod';
 export const joinWaitlistSchema = z.object({
   body: z.object({
     doctorId: z.string().min(1, 'Doctor ID is required'),
-    desiredDateRangeStart: z.string().min(1, 'Desired date range start is required'),
-    desiredDateRangeEnd: z.string().min(1, 'Desired date range end is required'),
+    desiredDateRangeStart: z.string().optional().nullable(),
+    desiredDateRangeEnd: z.string().optional().nullable(),
   }),
 });
 
