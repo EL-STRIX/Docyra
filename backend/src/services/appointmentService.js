@@ -5,6 +5,7 @@ import {
   DoctorProfile,
   Dependent,
   SystemSettings,
+  Review,
 } from '../models/index.js';
 import { captchaService } from './captchaService.js';
 import {
@@ -464,11 +465,14 @@ class AppointmentService {
     const consultationFee = aptObj.consultationFee || aptObj.doctorId?.consultationFee || 500;
     const feeCurrency = aptObj.feeCurrency || aptObj.doctorId?.feeCurrency || 'INR';
 
+    const existingReview = await Review.findOne({ appointmentId: appointment._id }).lean();
+
     return {
       ...aptObj,
       bookedFor,
       consultationFee,
       feeCurrency,
+      review: existingReview || null,
     };
   }
 

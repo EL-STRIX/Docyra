@@ -44,7 +44,7 @@ export function AppointmentDetailPage() {
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
-  const [reviewSubmitted, setReviewSubmitted] = useState(false);
+  const [submittedReview, setSubmittedReview] = useState(null);
 
   const fetchAppointment = useCallback(async () => {
     try {
@@ -115,7 +115,9 @@ export function AppointmentDetailPage() {
         comment,
       });
       if (res.success) {
-        setReviewSubmitted(true);
+        const created = res.data?.review || res.data || { rating, comment, createdAt: new Date().toISOString() };
+        setSubmittedReview(created);
+        fetchAppointment();
         if (addNotification) {
           const docUser = appointment?.doctorId?.userId || {};
           const docName = docUser.name || appointment?.doctorId?.name || 'the specialist';
@@ -130,7 +132,11 @@ export function AppointmentDetailPage() {
         }
       }
     } catch (err) {
-      alert(err.response?.data?.error?.message || 'Failed to submit review');
+      const msg = err.response?.data?.error?.message || err.response?.data?.message || 'Failed to submit review';
+      if (msg.toLowerCase().includes('already been submitted')) {
+        fetchAppointment();
+      }
+      alert(msg);
     } finally {
       setSubmittingReview(false);
     }
@@ -187,6 +193,7 @@ export function AppointmentDetailPage() {
   };
   const patientAge = patientDob ? `${calculateAge(patientDob)} yrs` : '';
   const consultationFee = appointment.consultationFee ?? doctorProfile.consultationFee ?? 500;
+  const existingReview = appointment.review || submittedReview;
 
   const hoursUntilAppointment = differenceInHours(new Date(appointment.slotStart), new Date());
 
@@ -883,14 +890,51 @@ export function AppointmentDetailPage() {
         {/* Review Section if Completed */}
         {appointment.status === 'completed' && (
           <div id="review" className="pt-6 border-t border-neutral-border space-y-4">
-            <h3 className="text-lg font-bold text-neutral-text-primary">
-              Leave a Patient Review
-            </h3>
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <h3 className="text-lg font-bold text-neutral-text-primary">
+                {existingReview ? 'Your Verified Review' : 'Leave a Patient Review'}
+              </h3>
+              {existingReview && (
+                <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  Review Submitted &bull; 1 Review Allowed
+                </span>
+              )}
+            </div>
 
-            {reviewSubmitted ? (
-              <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-                <span>Thank you! Your verified review has been submitted for automated publication.</span>
+            {existingReview ? (
+              <div className="p-5 rounded-2xl bg-neutral-bg/60 border border-neutral-border space-y-3 max-w-xl">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1.5">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star
+                        key={s}
+                        className={`w-4 h-4 ${
+                          s <= (existingReview.rating || 5)
+                            ? 'fill-amber-400 text-amber-400'
+                            : 'text-neutral-300'
+                        }`}
+                      />
+                    ))}
+                    <span className="font-bold text-neutral-text-primary ml-1">
+                      {existingReview.rating}/5 Stars
+                    </span>
+                  </div>
+
+                  <span className="text-neutral-text-secondary text-[11px]">
+                    {existingReview.createdAt
+                      ? format(new Date(existingReview.createdAt), 'dd MMM yyyy')
+                      : 'Verified Review'}
+                  </span>
+                </div>
+
+                <p className="text-xs text-neutral-text-primary leading-relaxed bg-white p-3.5 rounded-xl border border-neutral-border/70 italic">
+                  &ldquo;{existingReview.comment}&rdquo;
+                </p>
+
+                <div className="flex items-center gap-1.5 text-[11px] text-neutral-text-secondary">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>Your verified feedback has been recorded. Reviews can only be submitted once per appointment.</span>
+                </div>
               </div>
             ) : (
               <form onSubmit={handleReviewSubmit} className="space-y-4 max-w-xl">
@@ -902,7 +946,7 @@ export function AppointmentDetailPage() {
                         key={s}
                         type="button"
                         onClick={() => setRating(s)}
-                        className="p-1"
+                        className="p-1 cursor-pointer"
                       >
                         <Star
                           className={`w-6 h-6 ${
@@ -930,7 +974,7 @@ export function AppointmentDetailPage() {
                 <button
                   type="submit"
                   disabled={submittingReview}
-                  className="btn-accent text-xs py-2 px-5"
+                  className="btn-accent text-xs py-2 px-5 cursor-pointer"
                 >
                   {submittingReview ? 'Submitting Review...' : 'Submit Review'}
                 </button>
