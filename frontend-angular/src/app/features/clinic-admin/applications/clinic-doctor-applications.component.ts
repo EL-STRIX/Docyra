@@ -769,8 +769,24 @@ export interface ClinicDoctorApp {
 
     .manage-docs-btn {
       color: #0F5C5C !important;
-      border-color: #0F5C5C !important;
+      border: 1px solid #0F5C5C !important;
+      background-color: #FFFFFF !important;
       font-weight: 700 !important;
+      font-size: 13px !important;
+      height: 38px !important;
+      padding: 0 16px !important;
+      border-radius: 8px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+    }
+
+    .manage-docs-btn span,
+    .manage-docs-btn mat-icon,
+    .manage-docs-btn ::ng-deep .mdc-button__label {
+      color: #0F5C5C !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 6px !important;
     }
 
     .spin {
@@ -1146,21 +1162,41 @@ export interface ClinicDoctorApp {
       color: #0F5C5C;
     }
 
+    .actions-cell {
+      white-space: nowrap !important;
+      min-width: 220px !important;
+    }
+
     .doc-btn {
-      font-size: 11px !important;
-      height: 32px !important;
-      line-height: 32px !important;
-      padding: 0 10px !important;
+      font-size: 12px !important;
+      font-weight: 700 !important;
+      height: 34px !important;
+      line-height: 34px !important;
+      padding: 0 12px !important;
       border-radius: 8px !important;
+      background-color: #F0FDFA !important;
+      color: #0F5C5C !important;
+      border: 1px solid #0F5C5C !important;
       display: inline-flex !important;
       align-items: center !important;
-      gap: 4px !important;
+      cursor: pointer;
+    }
+
+    .doc-btn span,
+    .doc-btn mat-icon,
+    .doc-btn ::ng-deep .mdc-button__label {
+      color: #0F5C5C !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 5px !important;
+      font-size: 12px !important;
+      font-weight: 700 !important;
     }
 
     .doc-btn mat-icon {
-      font-size: 14px !important;
-      width: 14px !important;
-      height: 14px !important;
+      font-size: 16px !important;
+      width: 16px !important;
+      height: 16px !important;
     }
 
     .date-cell {
@@ -1172,46 +1208,71 @@ export interface ClinicDoctorApp {
       display: flex;
       gap: 8px;
       justify-content: flex-end;
+      align-items: center;
+      white-space: nowrap;
     }
 
     .approve-btn {
       background-color: #059669 !important;
       color: #FFFFFF !important;
-      font-size: 11.5px !important;
+      font-size: 12px !important;
       font-weight: 700 !important;
-      height: 32px !important;
-      line-height: 32px !important;
+      height: 34px !important;
+      line-height: 34px !important;
+      padding: 0 14px !important;
+      border-radius: 8px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      cursor: pointer;
+    }
+
+    .approve-btn span,
+    .approve-btn mat-icon,
+    .approve-btn ::ng-deep .mdc-button__label {
+      color: #FFFFFF !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 5px !important;
+      font-size: 12px !important;
+      font-weight: 700 !important;
+    }
+
+    .approve-btn mat-icon {
+      font-size: 16px !important;
+      width: 16px !important;
+      height: 16px !important;
+    }
+
+    .reject-btn {
+      background-color: #FEF2F2 !important;
+      color: #DC2626 !important;
+      border: 1px solid #FCA5A5 !important;
+      font-size: 12px !important;
+      font-weight: 700 !important;
+      height: 34px !important;
+      line-height: 34px !important;
       padding: 0 12px !important;
       border-radius: 8px !important;
       display: inline-flex !important;
       align-items: center !important;
-      gap: 4px !important;
+      cursor: pointer;
     }
 
-    .approve-btn mat-icon {
-      font-size: 14px !important;
-      width: 14px !important;
-      height: 14px !important;
-    }
-
-    .reject-btn {
+    .reject-btn span,
+    .reject-btn mat-icon,
+    .reject-btn ::ng-deep .mdc-button__label {
       color: #DC2626 !important;
-      border-color: #FCA5A5 !important;
-      font-size: 11.5px !important;
-      font-weight: 700 !important;
-      height: 32px !important;
-      line-height: 32px !important;
-      padding: 0 10px !important;
-      border-radius: 8px !important;
       display: inline-flex !important;
       align-items: center !important;
-      gap: 4px !important;
+      gap: 5px !important;
+      font-size: 12px !important;
+      font-weight: 700 !important;
     }
 
     .reject-btn mat-icon {
-      font-size: 14px !important;
-      width: 14px !important;
-      height: 14px !important;
+      font-size: 16px !important;
+      width: 16px !important;
+      height: 16px !important;
     }
 
     .status-ic {
@@ -1373,23 +1434,35 @@ export interface ClinicDoctorApp {
     }
 
     .review-action-btn {
-      background-color: #0F5C54 !important;
+      background-color: #0F5C5C !important;
       color: #FFFFFF !important;
-      font-size: 11.5px !important;
+      font-size: 12px !important;
       font-weight: 700 !important;
-      height: 32px !important;
-      line-height: 32px !important;
-      padding: 0 10px !important;
+      height: 34px !important;
+      line-height: 34px !important;
+      padding: 0 12px !important;
       border-radius: 8px !important;
       display: inline-flex !important;
       align-items: center !important;
-      gap: 4px !important;
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(15, 92, 92, 0.25) !important;
+    }
+
+    .review-action-btn span,
+    .review-action-btn mat-icon,
+    .review-action-btn ::ng-deep .mdc-button__label {
+      color: #FFFFFF !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 5px !important;
+      font-size: 12px !important;
+      font-weight: 700 !important;
     }
 
     .review-action-btn mat-icon {
-      font-size: 15px !important;
-      width: 15px !important;
-      height: 15px !important;
+      font-size: 16px !important;
+      width: 16px !important;
+      height: 16px !important;
     }
 
     /* Comprehensive Review & Negotiation Modal Card */
@@ -1525,16 +1598,35 @@ export interface ClinicDoctorApp {
     }
 
     .btn-xs {
-      font-size: 11px !important;
-      height: 26px !important;
-      line-height: 26px !important;
-      padding: 0 8px !important;
+      background-color: #F0FDFA !important;
+      color: #0F5C5C !important;
+      border: 1px solid #0F5C5C !important;
+      font-size: 11.5px !important;
+      font-weight: 700 !important;
+      height: 28px !important;
+      line-height: 28px !important;
+      padding: 0 10px !important;
+      border-radius: 6px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      cursor: pointer;
+    }
+
+    .btn-xs span,
+    .btn-xs mat-icon,
+    .btn-xs ::ng-deep .mdc-button__label {
+      color: #0F5C5C !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 4px !important;
+      font-size: 11.5px !important;
+      font-weight: 700 !important;
     }
 
     .btn-xs mat-icon {
-      font-size: 12px !important;
-      width: 12px !important;
-      height: 12px !important;
+      font-size: 14px !important;
+      width: 14px !important;
+      height: 14px !important;
     }
 
     .bio-box {
@@ -1801,15 +1893,44 @@ export interface ClinicDoctorApp {
     }
 
     .send-invite-btn {
-      background-color: #0F5C54 !important;
+      background-color: #0F5C5C !important;
       color: #FFFFFF !important;
       font-weight: 700 !important;
-      height: 38px !important;
-      padding: 0 18px !important;
+      font-size: 13px !important;
+      height: 40px !important;
+      padding: 0 20px !important;
       border-radius: 8px !important;
       display: inline-flex !important;
       align-items: center !important;
+      cursor: pointer;
+    }
+
+    .send-invite-btn span,
+    .send-invite-btn mat-icon,
+    .send-invite-btn ::ng-deep .mdc-button__label {
+      color: #FFFFFF !important;
+      display: inline-flex !important;
+      align-items: center !important;
       gap: 6px !important;
+      font-size: 13px !important;
+      font-weight: 700 !important;
+    }
+
+    .send-invite-btn:disabled,
+    .send-invite-btn[disabled] {
+      background-color: #94A3B8 !important;
+      color: #FFFFFF !important;
+      opacity: 0.85 !important;
+      cursor: not-allowed !important;
+    }
+
+    .send-invite-btn:disabled span,
+    .send-invite-btn:disabled mat-icon,
+    .send-invite-btn:disabled ::ng-deep .mdc-button__label,
+    .send-invite-btn[disabled] span,
+    .send-invite-btn[disabled] mat-icon,
+    .send-invite-btn[disabled] ::ng-deep .mdc-button__label {
+      color: #FFFFFF !important;
     }
 
     /* Decision Panel (Post-Meeting) */
@@ -1842,22 +1963,76 @@ export interface ClinicDoctorApp {
       background-color: #059669 !important;
       color: #FFFFFF !important;
       font-weight: 700 !important;
-      height: 38px !important;
+      font-size: 13px !important;
+      height: 40px !important;
+      padding: 0 18px !important;
+      border-radius: 8px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      cursor: pointer;
+    }
+
+    .approve-decision-btn span,
+    .approve-decision-btn mat-icon,
+    .approve-decision-btn ::ng-deep .mdc-button__label {
+      color: #FFFFFF !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      font-size: 13px !important;
+      font-weight: 700 !important;
+    }
+
+    .reject-decision-btn {
+      background-color: #FEF2F2 !important;
+      color: #DC2626 !important;
+      border: 1px solid #FCA5A5 !important;
+      font-weight: 700 !important;
+      font-size: 13px !important;
+      height: 40px !important;
       padding: 0 16px !important;
       border-radius: 8px !important;
       display: inline-flex !important;
       align-items: center !important;
-      gap: 6px !important;
+      cursor: pointer;
     }
 
-    .reject-decision-btn {
-      font-weight: 700 !important;
-      height: 38px !important;
-      padding: 0 14px !important;
-      border-radius: 8px !important;
+    .reject-decision-btn span,
+    .reject-decision-btn mat-icon,
+    .reject-decision-btn ::ng-deep .mdc-button__label {
+      color: #DC2626 !important;
       display: inline-flex !important;
       align-items: center !important;
       gap: 6px !important;
+      font-size: 13px !important;
+      font-weight: 700 !important;
+    }
+
+    .open-tab-btn {
+      background-color: #FFFFFF !important;
+      color: #0F5C5C !important;
+      border: 1px solid #0F5C5C !important;
+      font-size: 12px !important;
+      font-weight: 700 !important;
+      height: 34px !important;
+      line-height: 34px !important;
+      padding: 0 12px !important;
+      border-radius: 8px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      cursor: pointer;
+      text-decoration: none !important;
+    }
+
+    .open-tab-btn span,
+    .open-tab-btn mat-icon,
+    .open-tab-btn ::ng-deep .mdc-button__label {
+      color: #0F5C5C !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 4px !important;
+      font-size: 12px !important;
+      font-weight: 700 !important;
     }
   `],
 })
