@@ -285,10 +285,12 @@ export const uploadTestResult = asyncHandler(async (req, res) => {
 
   await appointment.save();
 
+  const populated = await appointmentService.getAppointmentById(appointment._id, req.user);
+
   res.status(200).json({
     success: true,
     message: 'Medical test and report recorded successfully',
-    data: appointment,
+    data: populated,
   });
 });
 
@@ -343,10 +345,12 @@ export const updateMedicalTest = asyncHandler(async (req, res) => {
 
   await appointment.save();
 
+  const populated = await appointmentService.getAppointmentById(appointment._id, req.user);
+
   res.status(200).json({
     success: true,
     message: 'Medical test updated successfully',
-    data: appointment,
+    data: populated,
   });
 });
 

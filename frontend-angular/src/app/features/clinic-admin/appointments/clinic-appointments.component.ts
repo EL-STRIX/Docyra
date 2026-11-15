@@ -356,7 +356,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
             </div>
 
             <div class="compact-tests-list">
-              <div class="compact-test-row" *ngFor="let test of selectedAppointment.medicalTests">
+              <div class="compact-test-row" *ngFor="let test of selectedAppointment.medicalTests; trackBy: trackByTestId">
                 <!-- Test info -->
                 <div class="compact-test-info">
                   <div class="compact-test-name">
@@ -1213,8 +1213,14 @@ export class ClinicAppointmentsComponent implements OnInit {
     });
   }
 
+  trackByTestId(_index: number, test: MedicalTest): string {
+    return test._id || `${_index}`;
+  }
+
   updateTestStatus(test: MedicalTest, newStatus: string): void {
     if (!this.selectedAppointment || !test._id) return;
+    const previousStatus = test.status;
+    test.status = newStatus;
     this.updatingTestId = test._id;
     this.appointmentService.updateMedicalTest(this.selectedAppointment._id, test._id, {
       status: newStatus,
@@ -1223,13 +1229,18 @@ export class ClinicAppointmentsComponent implements OnInit {
       next: (res) => {
         this.updatingTestId = null;
         if (res.success && res.data) {
-          this.selectedAppointment = res.data;
-          test.status = newStatus;
+          if (Array.isArray(res.data.medicalTests)) {
+            const updated = res.data.medicalTests.find((t: any) => t._id === test._id);
+            if (updated) {
+              Object.assign(test, updated);
+            }
+          }
           this.notificationService.success(`Test "${test.testName}" marked as ${this.formatTestStatus(newStatus)}`);
         }
       },
       error: (err) => {
         this.updatingTestId = null;
+        test.status = previousStatus;
         this.notificationService.error(err.error?.error?.message || 'Failed to update test status');
       },
     });
@@ -1245,7 +1256,12 @@ export class ClinicAppointmentsComponent implements OnInit {
       next: (res) => {
         this.updatingTestId = null;
         if (res.success && res.data) {
-          this.selectedAppointment = res.data;
+          if (Array.isArray(res.data.medicalTests)) {
+            const updated = res.data.medicalTests.find((t: any) => t._id === test._id);
+            if (updated) {
+              Object.assign(test, updated);
+            }
+          }
           this.notificationService.success(`Findings saved for "${test.testName}"`);
         }
       },
@@ -1279,7 +1295,14 @@ export class ClinicAppointmentsComponent implements OnInit {
         this.uploadingTestId = null;
         input.value = '';
         if (res.success && res.data) {
-          this.selectedAppointment = res.data;
+          if (Array.isArray(res.data.medicalTests)) {
+            const updated = res.data.medicalTests.find((t: any) => t._id === test._id);
+            if (updated) {
+              Object.assign(test, updated);
+            }
+          } else {
+            test.status = 'completed';
+          }
           this.notificationService.success(`Test report uploaded for "${test.testName}" and marked Completed.`);
         }
       },

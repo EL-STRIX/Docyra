@@ -83,3 +83,17 @@ html, body {
   --mdc-snackbar-container-color: #92400E !important;
   --mdc-snackbar-supporting-text-color: #FFFFFF !important;
 }
+
+.toast-success,
+.toast-error,
+.toast-info,
+.toast-warning {
+  .mat-mdc-snack-bar-action,
+  .mat-mdc-button,
+  button {
+    color: #FFFFFF !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+    pointer-events: auto !important;
+  }
+}

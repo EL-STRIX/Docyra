@@ -198,39 +198,43 @@ export class NotificationService {
   }
 
   // Toast helpers
-  success(message: string, duration = 4000): void {
-    this.snackBar.open(message, 'Close', {
+  success(message: string, duration = 3000): void {
+    const ref = this.snackBar.open(message, 'Close', {
       duration,
       panelClass: ['toast-success'],
       horizontalPosition: 'end',
       verticalPosition: 'bottom',
     });
+    ref.onAction().subscribe(() => ref.dismiss());
   }
 
   error(message: string, duration = 5000): void {
-    this.snackBar.open(message, 'Close', {
+    const ref = this.snackBar.open(message, 'Close', {
       duration,
       panelClass: ['toast-error'],
       horizontalPosition: 'end',
       verticalPosition: 'bottom',
     });
+    ref.onAction().subscribe(() => ref.dismiss());
   }
 
-  info(message: string, duration = 4000): void {
-    this.snackBar.open(message, 'Close', {
+  info(message: string, duration = 3500): void {
+    const ref = this.snackBar.open(message, 'Close', {
       duration,
       panelClass: ['toast-info'],
       horizontalPosition: 'end',
       verticalPosition: 'bottom',
     });
+    ref.onAction().subscribe(() => ref.dismiss());
   }
 
-  warning(message: string, duration = 4500): void {
-    this.snackBar.open(message, 'Close', {
+  warning(message: string, duration = 4000): void {
+    const ref = this.snackBar.open(message, 'Close', {
       duration,
       panelClass: ['toast-warning'],
       horizontalPosition: 'end',
       verticalPosition: 'bottom',
     });
+    ref.onAction().subscribe(() => ref.dismiss());
   }
 }
