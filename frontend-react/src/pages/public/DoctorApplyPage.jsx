@@ -16,6 +16,7 @@ export function DoctorApplyPage() {
     clinicId: '',
     specializationId: '',
     qualifications: '',
+    licenseNumber: '',
     yearsExperience: '',
     consultationFee: '500',
     clinicAddress: '',
@@ -75,6 +76,11 @@ export function DoctorApplyPage() {
 
     if (!formData.clinicId) {
       setError('Please select a healthcare clinic facility.');
+      return;
+    }
+
+    if (!formData.licenseNumber?.trim()) {
+      setError('Please enter your doctor medical license / registration number.');
       return;
     }
 
@@ -253,6 +259,20 @@ export function DoctorApplyPage() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Doctor Medical License Number */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-neutral-text-primary">Doctor License / Registration Number *</label>
+                  <input
+                    type="text"
+                    name="licenseNumber"
+                    required
+                    value={formData.licenseNumber}
+                    onChange={handleChange}
+                    placeholder="e.g. MCI-2018-84729 or State Council Reg No."
+                    className="w-full p-3 rounded-xl border border-neutral-border text-sm text-neutral-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary font-mono"
+                  />
+                </div>
+
                 {/* Years Experience */}
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-neutral-text-primary">Years of Experience</label>
@@ -266,7 +286,9 @@ export function DoctorApplyPage() {
                     className="w-full p-3 rounded-xl border border-neutral-border text-sm text-neutral-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary"
                   />
                 </div>
+              </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Consultation Fee */}
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-neutral-text-primary">Consultation Fee (₹ INR) *</label>
@@ -280,31 +302,28 @@ export function DoctorApplyPage() {
                     className="w-full p-3 rounded-xl border border-neutral-border text-sm text-neutral-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary"
                   />
                 </div>
-              </div>
 
-              {/* Target Clinic Facility Dropdown */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-neutral-text-primary flex items-center gap-1.5">
-                  <Building2 className="w-3.5 h-3.5 text-brand-primary" />
-                  <span>Target Clinic / Hospital Facility *</span>
-                </label>
-                <select
-                  name="clinicId"
-                  required
-                  value={formData.clinicId}
-                  onChange={handleChange}
-                  className="w-full p-3 rounded-xl border border-neutral-border text-sm text-neutral-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary bg-white"
-                >
-                  <option value="">Select Clinic to Join</option>
-                  {clinics.map((c) => (
-                    <option key={c._id} value={c._id}>
-                      {c.name} {c.city ? `(${c.city})` : (c.address?.city ? `(${c.address.city})` : '')}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-[11px] text-neutral-text-secondary leading-relaxed">
-                  Select the healthcare clinic where you want to practice. Your application will be sent directly to that clinic&apos;s administrator for review and approval.
-                </p>
+                {/* Target Clinic Facility Dropdown */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-neutral-text-primary flex items-center gap-1.5">
+                    <Building2 className="w-3.5 h-3.5 text-brand-primary" />
+                    <span>Target Clinic / Hospital Facility *</span>
+                  </label>
+                  <select
+                    name="clinicId"
+                    required
+                    value={formData.clinicId}
+                    onChange={handleChange}
+                    className="w-full p-3 rounded-xl border border-neutral-border text-sm text-neutral-text-primary focus:outline-none focus:ring-2 focus:ring-brand-primary bg-white"
+                  >
+                    <option value="">Select Clinic to Join</option>
+                    {clinics.map((c) => (
+                      <option key={c._id} value={c._id}>
+                        {c.name} {c.city ? `(${c.city})` : (c.address?.city ? `(${c.address.city})` : '')}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {/* Bio */}

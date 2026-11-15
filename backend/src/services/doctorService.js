@@ -267,7 +267,7 @@ class DoctorService {
   /**
    * Public / Doctor: Apply to join a Clinic facility with mandatory license upload
    */
-  async applyIndependentDoctor({ name, email, password, phone, clinicId, specializationId, qualifications = [], bio, consultationFee = 500, clinicAddress, yearsExperience = 0, slotDurationMinutes = 30 }, licenseFile) {
+  async applyIndependentDoctor({ name, email, password, phone, clinicId, specializationId, qualifications = [], licenseNumber, bio, consultationFee = 500, clinicAddress, yearsExperience = 0, slotDurationMinutes = 30 }, licenseFile) {
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
       throw new ConflictError('An account with this email already exists', ERROR_CODES.EMAIL_ALREADY_EXISTS);
@@ -321,6 +321,7 @@ class DoctorService {
       clinicId: clinic ? clinic._id : null,
       specializationId: spec._id,
       qualifications: parsedQualifications,
+      licenseNumber: licenseNumber ? licenseNumber.trim() : '',
       bio: bio || '',
       licenseDocumentUrl,
       consultationFee: parseFloat(consultationFee) || 500,
