@@ -98,14 +98,15 @@ export function DashboardPage() {
       new Date(a.slotStart) >= now
   );
 
-  const pastList = appointments.filter(
-    (a) =>
-      a.status === 'completed' ||
-      a.status === 'cancelled' ||
-      new Date(a.slotStart) < now
-  );
+  // Past Visits must ONLY show completed appointments
+  const pastList = appointments.filter((a) => a.status === 'completed');
 
-  const cancelledList = appointments.filter((a) => a.status === 'cancelled');
+  // Cancelled list shows explicitly cancelled and unattended elapsed appointments
+  const cancelledList = appointments.filter(
+    (a) =>
+      a.status === 'cancelled' ||
+      (['pending', 'confirmed'].includes(a.status) && new Date(a.slotStart) < now)
+  );
 
   const displayedList =
     filterTab === 'upcoming'

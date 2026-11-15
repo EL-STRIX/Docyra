@@ -1975,8 +1975,10 @@ export class DoctorAppointmentDetailComponent implements OnInit {
     this.appointmentService.getDoctorAppointments(this.currentDoctor._id, { patientId } as any).subscribe({
       next: (res) => {
         if (res.success && Array.isArray(res.data)) {
-          // Strictly show only visits under THIS doctor, excluding the current active appointment
-          this.pastVisitsWithThisDoctor = res.data.filter((a) => a._id !== this.appointmentId);
+          // Strictly show only visits under THIS doctor that are completed, excluding the current active appointment
+          this.pastVisitsWithThisDoctor = res.data.filter(
+            (a) => a._id !== this.appointmentId && a.status === 'completed'
+          );
         }
       },
       error: () => {
