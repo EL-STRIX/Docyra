@@ -18,10 +18,11 @@ export const setDoctorAvailability = asyncHandler(async (req, res) => {
   }
 
   let { rules, weeklySchedule, slotDurationMinutes } = req.body;
+  const duration = slotDurationMinutes ? parseInt(slotDurationMinutes, 10) : undefined;
 
   if ((!rules || rules.length === 0) && Array.isArray(weeklySchedule)) {
     rules = [];
-    const duration = slotDurationMinutes || 30;
+    const dur = duration || 30;
     for (const day of weeklySchedule) {
       if (day.isActive && Array.isArray(day.slots)) {
         for (const s of day.slots) {
@@ -30,16 +31,21 @@ export const setDoctorAvailability = asyncHandler(async (req, res) => {
               dayOfWeek: day.dayOfWeek,
               startTime: s.start,
               endTime: s.end,
-              slotDurationMinutes: duration,
+              slotDurationMinutes: dur,
               isActive: true,
             });
           }
         }
       }
     }
+  } else if (Array.isArray(rules) && duration) {
+    rules = rules.map((r) => ({
+      ...r,
+      slotDurationMinutes: r.slotDurationMinutes || duration,
+    }));
   }
 
-  const result = await slotService.setDoctorAvailability(id, rules, req.user);
+  const result = await slotService.setDoctorAvailability(id, rules, req.user, duration);
 
   res.status(200).json({
     success: true,

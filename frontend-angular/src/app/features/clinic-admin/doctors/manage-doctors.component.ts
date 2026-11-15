@@ -368,7 +368,7 @@ import { environment } from '../../../../environments/environment';
                   {{ selectedDoctor.slotDurationMinutes }} Mins
                 </span>
                 <span class="metric-val text-neutral-400" *ngIf="!selectedDoctor.slotDurationMinutes">
-                  Not specified
+                  30 Mins (Default)
                 </span>
                 <span class="metric-sub">Consultation time slot</span>
               </div>
@@ -525,10 +525,15 @@ import { environment } from '../../../../environments/environment';
 
             <!-- Weekly Consultation Schedule (if available) -->
             <div class="details-section mt-4">
-              <h4 class="section-title">
-                <mat-icon class="sec-ic">event_available</mat-icon>
-                <span>Weekly Consultation Schedule</span>
-              </h4>
+              <div class="flex items-center justify-between mb-3 border-b border-neutral-200 pb-2">
+                <h4 class="section-title m-0 p-0 border-0">
+                  <mat-icon class="sec-ic">event_available</mat-icon>
+                  <span>Weekly Consultation Schedule</span>
+                </h4>
+                <span class="schedule-duration-pill" *ngIf="selectedDoctor.slotDurationMinutes">
+                  {{ selectedDoctor.slotDurationMinutes }} min / slot
+                </span>
+              </div>
               <div class="schedule-grid" *ngIf="hasActiveSchedule(selectedDoctor)">
                 <div *ngFor="let day of selectedDoctor.weeklySchedule" class="day-slot-card" [class.day-inactive]="!day.isActive">
                   <span class="day-name">{{ getDayName(day.dayOfWeek) }}</span>
@@ -1234,6 +1239,18 @@ import { environment } from '../../../../environments/environment';
       padding: 2px 6px;
       border-radius: 4px;
       display: inline-block;
+    }
+
+    .schedule-duration-pill {
+      font-size: 11px;
+      font-weight: 700;
+      color: #0F5C54;
+      background: #E6F4F1;
+      border: 1px solid #BCE3DC;
+      padding: 3px 8px;
+      border-radius: 9999px;
+      display: inline-flex;
+      align-items: center;
     }
 
     .day-off {

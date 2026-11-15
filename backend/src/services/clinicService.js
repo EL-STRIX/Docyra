@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { Clinic, DoctorProfile, Appointment } from '../models/index.js';
+import { Clinic, DoctorProfile, Appointment, AvailabilityRule } from '../models/index.js';
 import { CLINIC_SUBSCRIPTION_STATUS, ERROR_CODES, APPOINTMENT_STATUS } from '../config/constants.js';
 import { NotFoundError, ConflictError } from '../utils/AppError.js';
 import logger from '../utils/logger.js';
@@ -124,15 +124,49 @@ class ClinicService {
       .populate('specializationId', 'name iconName')
       .lean();
 
-    const doctors = rawDoctors.map((doc) => ({
-      ...doc,
-      name: doc.userId?.name || doc.name || 'Practitioner',
-      email: doc.userId?.email || doc.email || '',
-      phone: doc.userId?.phone || doc.phone || '',
-      status: doc.status || (doc.userId?.status === 'active' || doc.isApproved ? 'active' : 'suspended'),
-      experienceYears: doc.yearsExperience ?? doc.experienceYears ?? 0,
-      yearsExperience: doc.yearsExperience ?? doc.experienceYears ?? 0,
-    }));
+    const doctorIds = rawDoctors.map((d) => d._id);
+    const allRules = await AvailabilityRule.find({
+      doctorId: { $in: doctorIds },
+      isActive: true,
+    })
+      .sort({ dayOfWeek: 1, startTime: 1 })
+      .lean();
+
+    const rulesByDoctor = {};
+    for (const rule of allRules) {
+      const dId = rule.doctorId.toString();
+      if (!rulesByDoctor[dId]) rulesByDoctor[dId] = [];
+      rulesByDoctor[dId].push(rule);
+    }
+
+    const doctors = rawDoctors.map((doc) => {
+      const docRules = rulesByDoctor[doc._id.toString()] || [];
+      const dayMap = {};
+      for (let i = 0; i <= 6; i++) {
+        dayMap[i] = { dayOfWeek: i, isActive: false, slots: [] };
+      }
+      let duration = doc.slotDurationMinutes || null;
+      for (const r of docRules) {
+        if (r.slotDurationMinutes) duration = r.slotDurationMinutes;
+        dayMap[r.dayOfWeek].isActive = true;
+        dayMap[r.dayOfWeek].slots.push({ start: r.startTime, end: r.endTime });
+      }
+      const weeklySchedule = Object.values(dayMap);
+      const hasActiveSchedule = weeklySchedule.some((day) => day.isActive && day.slots.length > 0);
+
+      return {
+        ...doc,
+        name: doc.userId?.name || doc.name || 'Practitioner',
+        email: doc.userId?.email || doc.email || '',
+        phone: doc.userId?.phone || doc.phone || '',
+        status: doc.status || (doc.userId?.status === 'active' || doc.isApproved ? 'active' : 'suspended'),
+        experienceYears: doc.yearsExperience ?? doc.experienceYears ?? 0,
+        yearsExperience: doc.yearsExperience ?? doc.experienceYears ?? 0,
+        slotDurationMinutes: duration || doc.slotDurationMinutes || 30,
+        weeklySchedule,
+        hasActiveSchedule,
+      };
+    });
 
     return {
       clinic: formatClinicForOutput(clinic, doctors.length),

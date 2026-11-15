@@ -825,8 +825,11 @@ export function BookingFlowPage() {
                               : 'bg-white text-neutral-text-primary border-neutral-border hover:border-brand-primary hover:bg-brand-primary-light'
                           }`}
                         >
-                          <Clock className={`w-3.5 h-3.5 ${isSelected ? 'text-white' : 'text-brand-primary'}`} />
-                          <span>{format(new Date(slot.slotStart), 'hh:mm a')}</span>
+                          <Clock className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-white' : 'text-brand-primary'}`} />
+                          <span>
+                            {format(new Date(slot.slotStart), 'hh:mm a')}
+                            {slot.slotEnd ? ` - ${format(new Date(slot.slotEnd), 'hh:mm a')}` : ''}
+                          </span>
                         </button>
                       );
                     })}
@@ -890,7 +893,9 @@ export function BookingFlowPage() {
               </span>
               <span className="font-bold text-brand-primary block">
                 {selectedSlot?.slotStart
-                  ? format(new Date(selectedSlot.slotStart), 'hh:mm a')
+                  ? (selectedSlot?.slotEnd
+                      ? `${format(new Date(selectedSlot.slotStart), 'hh:mm a')} - ${format(new Date(selectedSlot.slotEnd), 'hh:mm a')}`
+                      : format(new Date(selectedSlot.slotStart), 'hh:mm a'))
                   : 'Time Slot Selected'}
               </span>
             </div>
@@ -1082,7 +1087,9 @@ export function BookingFlowPage() {
                 <span className="text-neutral-text-secondary">Time Slot:</span>
                 <span className="font-extrabold text-sm text-brand-primary">
                   {selectedSlot?.slotStart
-                    ? format(new Date(selectedSlot.slotStart), 'hh:mm a')
+                    ? (selectedSlot?.slotEnd
+                        ? `${format(new Date(selectedSlot.slotStart), 'hh:mm a')} - ${format(new Date(selectedSlot.slotEnd), 'hh:mm a')}`
+                        : format(new Date(selectedSlot.slotStart), 'hh:mm a'))
                     : 'Selected Slot'}
                 </span>
               </div>

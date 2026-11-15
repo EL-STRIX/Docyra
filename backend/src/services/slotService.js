@@ -11,7 +11,7 @@ class SlotService {
    * @param {Array} rules - Array of availability rule objects
    * @param {Object} currentUser - Authenticated user object (req.user)
    */
-  async setDoctorAvailability(doctorId, rules, currentUser) {
+  async setDoctorAvailability(doctorId, rules, currentUser, topLevelDuration) {
     const doctor = await DoctorProfile.findById(doctorId);
     if (!doctor) {
       throw new NotFoundError('Doctor profile not found', ERROR_CODES.DOCTOR_NOT_FOUND);
@@ -33,6 +33,10 @@ class SlotService {
       );
     }
 
+    // Determine effective slotDurationMinutes
+    const durationFromRules = rules.find((r) => r.slotDurationMinutes)?.slotDurationMinutes;
+    const effectiveDuration = topLevelDuration || durationFromRules || doctor.slotDurationMinutes || 30;
+
     // Deactivate previous rules
     await AvailabilityRule.deleteMany({ doctorId: doctor._id });
 
@@ -42,19 +46,32 @@ class SlotService {
       dayOfWeek: r.dayOfWeek,
       startTime: r.startTime,
       endTime: r.endTime,
-      slotDurationMinutes: r.slotDurationMinutes || 30,
+      slotDurationMinutes: r.slotDurationMinutes || effectiveDuration,
       isActive: r.isActive !== undefined ? r.isActive : true,
     }));
 
     const createdRules = await AvailabilityRule.insertMany(rulesToInsert);
 
-    logger.info(`Updated availability rules for doctor ${doctor._id} (${createdRules.length} rules)`);
+    // Persist updated slotDurationMinutes on DoctorProfile
+    await DoctorProfile.findByIdAndUpdate(doctor._id, {
+      slotDurationMinutes: effectiveDuration,
+    });
+
+    logger.info(`Updated availability rules for doctor ${doctor._id} (${createdRules.length} rules, duration: ${effectiveDuration}m)`);
+
+    // Clean up future unbooked slots so they re-divide cleanly according to new slot duration and hours
+    await AppointmentSlot.deleteMany({
+      doctorId: doctor._id,
+      isBooked: false,
+      slotStart: { $gte: new Date() },
+    });
 
     // Trigger slot generation for the rolling window
     const generationResult = await this.generateSlotsForDoctor(doctor._id);
 
     return {
       rules: createdRules,
+      slotDurationMinutes: effectiveDuration,
       slotGeneration: generationResult,
     };
   }
@@ -118,6 +135,16 @@ class SlotService {
     });
 
     const now = new Date();
+
+    // Fetch existing booked slots in the rolling window so regenerated slots never collide with booked appointments
+    const bookedSlots = await AppointmentSlot.find({
+      doctorId: doctor._id,
+      isBooked: true,
+      slotEnd: { $gt: now },
+    })
+      .select('slotStart slotEnd')
+      .lean();
+
     const bulkOps = [];
 
     // Loop through each day from startDate up to windowDays
@@ -156,25 +183,32 @@ class SlotService {
 
           // Only generate slots in the future
           if (slotStart > now) {
-            bulkOps.push({
-              updateOne: {
-                filter: {
-                  doctorId: doctor._id,
-                  slotStart,
-                  slotEnd,
-                },
-                update: {
-                  $setOnInsert: {
+            // Check if this potential slot conflicts with an existing booked appointment
+            const hasConflict = bookedSlots.some(
+              (b) => slotStart < b.slotEnd && slotEnd > b.slotStart
+            );
+
+            if (!hasConflict) {
+              bulkOps.push({
+                updateOne: {
+                  filter: {
                     doctorId: doctor._id,
-                    availabilityRuleId: rule._id,
                     slotStart,
                     slotEnd,
-                    isBooked: false,
                   },
+                  update: {
+                    $setOnInsert: {
+                      doctorId: doctor._id,
+                      availabilityRuleId: rule._id,
+                      slotStart,
+                      slotEnd,
+                      isBooked: false,
+                    },
+                  },
+                  upsert: true,
                 },
-                upsert: true,
-              },
-            });
+              });
+            }
           }
 
           currentSlotMinutes += slotDuration;
@@ -269,6 +303,53 @@ class SlotService {
     const endOfDay = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
 
     const now = new Date();
+
+    // Check doctor's active availability rule for this day of week
+    const dayOfWeek = startOfDay.getUTCDay();
+    const rules = await AvailabilityRule.find({
+      doctorId: doctor._id,
+      dayOfWeek,
+      isActive: true,
+    }).lean();
+
+    // Find all unbooked slots currently in DB for this date
+    const existingUnbookedSlots = await AppointmentSlot.find({
+      doctorId: new mongoose.Types.ObjectId(doctorId),
+      isBooked: false,
+      slotStart: {
+        $gte: startOfDay,
+        $lte: endOfDay,
+        $gt: now,
+      },
+    }).lean();
+
+    // Verify slots match the active rule's slot duration (e.g., if doctor changed from 30min to 15min)
+    if (rules.length > 0) {
+      const expectedDuration = rules[0].slotDurationMinutes || doctor.slotDurationMinutes || 30;
+      const isStale = existingUnbookedSlots.some((s) => {
+        const durationMin = Math.round((new Date(s.slotEnd).getTime() - new Date(s.slotStart).getTime()) / (60 * 1000));
+        return durationMin !== expectedDuration;
+      });
+
+      // If stale or if no slots were generated for this date yet, regenerate cleanly for this date
+      if (isStale || existingUnbookedSlots.length === 0) {
+        if (isStale) {
+          await AppointmentSlot.deleteMany({
+            doctorId: doctor._id,
+            isBooked: false,
+            slotStart: { $gte: startOfDay, $lte: endOfDay },
+          });
+        }
+        await this.generateSlotsForDoctor(doctor._id, { daysAhead: 1, startDate: startOfDay });
+      }
+    } else if (existingUnbookedSlots.length > 0) {
+      // Doctor has no active schedule for this day; remove stale orphan unbooked slots
+      await AppointmentSlot.deleteMany({
+        doctorId: doctor._id,
+        isBooked: false,
+        slotStart: { $gte: startOfDay, $lte: endOfDay },
+      });
+    }
 
     const slots = await AppointmentSlot.find({
       doctorId: new mongoose.Types.ObjectId(doctorId),

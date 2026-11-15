@@ -44,6 +44,12 @@ const doctorProfileSchema = new mongoose.Schema(
       min: [0, 'Fee cannot be negative'],
       default: 500,
     },
+    slotDurationMinutes: {
+      type: Number,
+      default: 30,
+      min: 10,
+      max: 120,
+    },
     feeCurrency: {
       type: String,
       default: 'INR',

@@ -253,7 +253,7 @@ class DoctorService {
       yearsExperience: doctor.yearsExperience ?? doctor.experienceYears ?? null,
       weeklySchedule,
       hasActiveSchedule,
-      slotDurationMinutes: slotDurationMinutes || doctor.slotDurationMinutes || null,
+      slotDurationMinutes: slotDurationMinutes || doctor.slotDurationMinutes || 30,
       autoAcceptAppointments: !doctor.manualApprovalMode,
       realtimeStats: {
         totalAppointments,
@@ -267,7 +267,7 @@ class DoctorService {
   /**
    * Public / Doctor: Apply to join a Clinic facility with mandatory license upload
    */
-  async applyIndependentDoctor({ name, email, password, phone, clinicId, specializationId, qualifications = [], bio, consultationFee = 500, clinicAddress, yearsExperience = 0 }, licenseFile) {
+  async applyIndependentDoctor({ name, email, password, phone, clinicId, specializationId, qualifications = [], bio, consultationFee = 500, clinicAddress, yearsExperience = 0, slotDurationMinutes = 30 }, licenseFile) {
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
       throw new ConflictError('An account with this email already exists', ERROR_CODES.EMAIL_ALREADY_EXISTS);
@@ -324,6 +324,7 @@ class DoctorService {
       bio: bio || '',
       licenseDocumentUrl,
       consultationFee: parseFloat(consultationFee) || 500,
+      slotDurationMinutes: parseInt(slotDurationMinutes, 10) || 30,
       feeCurrency: 'INR',
       clinicAddress: computedClinicAddress || clinicAddress || (clinic ? clinic.name : 'Independent Practice'),
       yearsExperience: parseInt(yearsExperience, 10) || 0,
@@ -674,7 +675,7 @@ class DoctorService {
   /**
    * Clinic Admin: Add doctor to own clinic (Auto-Approved per PRD/Architecture 7.8)
    */
-  async clinicAdminAddDoctor({ clinicId, name, email, password, phone, specializationId, qualifications = [], bio, consultationFee = 500, yearsExperience = 0, experienceYears }) {
+  async clinicAdminAddDoctor({ clinicId, name, email, password, phone, specializationId, qualifications = [], bio, consultationFee = 500, yearsExperience = 0, experienceYears, slotDurationMinutes = 30 }) {
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
       throw new ConflictError('An account with this email already exists', ERROR_CODES.EMAIL_ALREADY_EXISTS);
@@ -728,6 +729,7 @@ class DoctorService {
       qualifications: parsedQualifications.length > 0 ? parsedQualifications : ['MBBS'],
       bio: bio || '',
       consultationFee: parseFloat(consultationFee) || 500,
+      slotDurationMinutes: parseInt(slotDurationMinutes, 10) || 30,
       feeCurrency: 'INR',
       yearsExperience: effectiveYears,
       isApproved: true, // Auto-approved under vetted clinic
@@ -810,6 +812,9 @@ class DoctorService {
       }
     }
 
+    if (updateData.slotDurationMinutes !== undefined) {
+      doctorProfile.slotDurationMinutes = parseInt(updateData.slotDurationMinutes, 10) || doctorProfile.slotDurationMinutes || 30;
+    }
     if (updateData.title !== undefined) doctorProfile.title = updateData.title;
     if (updateData.consultationFee !== undefined) doctorProfile.consultationFee = updateData.consultationFee;
     if (updateData.bio !== undefined) doctorProfile.bio = updateData.bio;
