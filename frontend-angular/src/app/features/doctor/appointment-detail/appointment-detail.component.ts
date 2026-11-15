@@ -73,16 +73,6 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
 
               <!-- Subtitle Metadata Bar -->
               <div class="header-meta-bar">
-                <div class="meta-patient">
-                  <mat-icon class="meta-icon">person</mat-icon>
-                  <span class="meta-patient-name">{{ getPatientName() }}</span>
-                  <span *ngIf="appointment.bookedFor.type === 'dependent'" class="meta-dep-badge">
-                    {{ appointment.bookedFor.relationship || 'Dependent' }}
-                  </span>
-                </div>
-
-                <span class="meta-divider">•</span>
-
                 <div class="meta-item">
                   <mat-icon class="meta-icon">calendar_today</mat-icon>
                   <span>{{ appointment.slotStart | portalDate:'EEEE, dd MMM yyyy' }}</span>
@@ -127,6 +117,70 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
             </div>
           </div>
         </div>
+
+        <!-- Clean Patient Clinical Summary Card -->
+        <mat-card class="patient-snapshot-card">
+          <div class="snapshot-grid">
+            <!-- Patient Info Left -->
+            <div class="snapshot-patient">
+              <div class="patient-avatar-box">
+                <mat-icon class="patient-avatar-ic">account_circle</mat-icon>
+              </div>
+              <div class="patient-info-text">
+                <div class="patient-name-row">
+                  <span class="patient-name">{{ getPatientName() }}</span>
+                  <span *ngIf="appointment.bookedFor.type === 'dependent'" class="patient-dep-badge">
+                    {{ appointment.bookedFor.relationship || 'Dependent' }}
+                  </span>
+                </div>
+                <div class="patient-sub">
+                  <span class="sub-pill">{{ appointment.bookedFor.type === 'dependent' ? 'Family Dependent' : 'Self' }}</span>
+                  <span *ngIf="appointment.bookedFor.gender" class="sub-dot">•</span>
+                  <span *ngIf="appointment.bookedFor.gender">{{ appointment.bookedFor.gender | titlecase }}</span>
+                  <span *ngIf="appointment.bookedFor.dateOfBirth" class="sub-dot">•</span>
+                  <span *ngIf="appointment.bookedFor.dateOfBirth">
+                    DOB: {{ appointment.bookedFor.dateOfBirth | portalDate:'dd MMM yyyy' }}
+                    <span *ngIf="calculateAge(appointment.bookedFor.dateOfBirth)" class="text-xs text-gray-500">({{ calculateAge(appointment.bookedFor.dateOfBirth) }})</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Health Snapshot Tags Right -->
+            <div class="vitals-tags-wrap">
+              <div class="health-tag">
+                <span class="tag-label">Blood Group</span>
+                <span class="tag-val" [class.highlight]="!!appointment.bookedFor.bloodGroup">
+                  {{ appointment.bookedFor.bloodGroup || 'Unspecified' }}
+                </span>
+              </div>
+
+              <div class="health-tag" [class.alert-tag]="hasReportedAllergies()">
+                <span class="tag-label">Allergies</span>
+                <span class="tag-val" [title]="appointment.bookedFor.allergies || 'None reported'">
+                  {{ appointment.bookedFor.allergies || 'None reported' }}
+                </span>
+              </div>
+
+              <div class="health-tag" [class.condition-tag]="hasReportedConditions()">
+                <span class="tag-label">Conditions</span>
+                <span class="tag-val" [title]="appointment.bookedFor.chronicConditions || 'None reported'">
+                  {{ appointment.bookedFor.chronicConditions || 'None reported' }}
+                </span>
+              </div>
+
+              <div class="health-tag fee-tag">
+                <span class="tag-label">Fee</span>
+                <span class="fee-val">
+                  ₹{{ appointment.consultationFee }}
+                  <span class="payment-indicator" [class.paid]="appointment.paymentStatus === 'completed'">
+                    {{ appointment.paymentStatus === 'completed' ? 'Paid' : 'Unpaid' }}
+                  </span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </mat-card>
 
         <!-- Clean Workspace Navigation Tabs -->
         <div class="workspace-tabs-bar">
@@ -939,6 +993,174 @@ export type DetailTab = 'prescription' | 'tests' | 'diagnosis_info' | 'past_hist
     .payment-indicator.paid {
       color: #15803D;
       background: #DCFCE7;
+    }
+
+    /* Clean Patient Clinical Summary Card */
+    .patient-snapshot-card {
+      padding: 14px 20px !important;
+      border-radius: 12px !important;
+      background: #FFFFFF;
+      border: 1px solid #E5E7EB;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    .snapshot-grid {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .snapshot-patient {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .patient-avatar-box {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: #E6F2F1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .patient-avatar-ic {
+      font-size: 28px;
+      width: 28px;
+      height: 28px;
+      color: #0F5C5C;
+    }
+
+    .patient-info-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .patient-name-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .patient-name {
+      font-size: 16px;
+      font-weight: 800;
+      color: #111827;
+      letter-spacing: -0.01em;
+    }
+
+    .patient-dep-badge {
+      font-size: 10px;
+      font-weight: 700;
+      color: #0369A1;
+      background: #E0F2FE;
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+
+    .patient-sub {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #6B7280;
+    }
+
+    .sub-pill {
+      font-weight: 600;
+      color: #4B5563;
+    }
+
+    .sub-dot {
+      color: #D1D5DB;
+    }
+
+    .vitals-tags-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .health-tag {
+      display: flex;
+      flex-direction: column;
+      padding: 6px 12px;
+      border-radius: 8px;
+      background: #F9FAFB;
+      border: 1px solid #E5E7EB;
+      min-width: 95px;
+    }
+
+    .health-tag.alert-tag {
+      background: #FEF2F2;
+      border-color: #FECACA;
+    }
+
+    .health-tag.alert-tag .tag-label {
+      color: #991B1B;
+    }
+
+    .health-tag.alert-tag .tag-val {
+      color: #DC2626;
+      font-weight: 700;
+    }
+
+    .health-tag.condition-tag {
+      background: #FFFBEB;
+      border-color: #FDE68A;
+    }
+
+    .health-tag.condition-tag .tag-label {
+      color: #92400E;
+    }
+
+    .health-tag.condition-tag .tag-val {
+      color: #B45309;
+    }
+
+    .health-tag.fee-tag {
+      background: #F0FDF4;
+      border-color: #BBF7D0;
+    }
+
+    .tag-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: #6B7280;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .tag-val {
+      font-size: 13px;
+      font-weight: 700;
+      color: #111827;
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 140px;
+    }
+
+    .tag-val.highlight {
+      color: #0F5C5C;
+    }
+
+    .fee-val {
+      font-size: 13px;
+      font-weight: 800;
+      color: #0F5C5C;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 2px;
     }
 
     /* Workspace Tabs Bar */
@@ -1781,6 +2003,20 @@ export class DoctorAppointmentDetailComponent implements OnInit {
     const heightM = heightCm / 100;
     const bmi = weightKg / (heightM * heightM);
     return bmi.toFixed(1);
+  }
+
+  hasReportedAllergies(): boolean {
+    const a = this.appointment?.bookedFor?.allergies;
+    if (!a) return false;
+    const lower = a.trim().toLowerCase();
+    return lower !== 'none' && lower !== 'none reported' && lower !== 'no known allergies reported.' && lower !== 'no known allergies';
+  }
+
+  hasReportedConditions(): boolean {
+    const c = this.appointment?.bookedFor?.chronicConditions;
+    if (!c) return false;
+    const lower = c.trim().toLowerCase();
+    return lower !== 'none' && lower !== 'none reported' && lower !== 'no chronic medical conditions reported.' && lower !== 'no chronic conditions';
   }
 
   getPatientId(): string | null {
