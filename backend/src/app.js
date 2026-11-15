@@ -41,6 +41,7 @@ app.use(
         imgSrc: ["'self'", 'data:', 'https:', 'blob:'],
         connectSrc: ["'self'", ...env.ALLOWED_ORIGINS, 'https://www.google.com/recaptcha/'],
         frameSrc: ["'self'", 'https://www.google.com/recaptcha/'],
+        frameAncestors: ["'self'", ...env.ALLOWED_ORIGINS],
       },
     },
     crossOriginResourcePolicy: { policy: 'cross-origin' },
@@ -63,8 +64,16 @@ app.use(
   })
 );
 
-// Static uploads directory
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+// Static uploads directory with permissive headers for previewing documents in iframes/objects
+app.use(
+  '/uploads',
+  (req, res, next) => {
+    res.removeHeader('X-Frame-Options');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    next();
+  },
+  express.static(path.join(process.cwd(), 'uploads'))
+);
 
 // Request parsing
 app.use(express.json({ limit: '10mb' }));

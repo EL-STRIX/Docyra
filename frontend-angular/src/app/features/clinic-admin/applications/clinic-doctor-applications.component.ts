@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ClinicService } from '../../../core/services/clinic.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { StatusBadgeComponent } from '../../../shared/components/status-badge/status-badge.component';
@@ -205,7 +206,7 @@ export interface ClinicDoctorApp {
                 <th>Applicant Doctor</th>
                 <th>Specialization & Qualifications</th>
                 <th>Experience & Fee</th>
-                <th>Medical License</th>
+                <th class="license-cell">Medical License</th>
                 <th>Negotiation Meet</th>
                 <th>Applied Date</th>
                 <th>Status</th>
@@ -256,13 +257,14 @@ export interface ClinicDoctorApp {
                 </td>
 
                 <!-- Medical License Document -->
-                <td (click)="$event.stopPropagation()">
+                <td class="license-cell" (click)="$event.stopPropagation()">
                   <div *ngIf="app.licenseDocumentUrl" class="doc-link-wrap">
                     <button
                       mat-stroked-button
                       color="primary"
                       class="doc-btn"
                       (click)="openDocument(app)"
+                      title="Preview Medical License Document"
                     >
                       <mat-icon>description</mat-icon>
                       <span>View License</span>
@@ -622,7 +624,7 @@ export interface ClinicDoctorApp {
     </div>
 
     <!-- License Document Viewer Modal -->
-    <div *ngIf="selectedAppDoc" class="modal-backdrop" (click)="selectedAppDoc = null">
+    <div *ngIf="selectedAppDoc" class="modal-backdrop" (click)="closeDocModal()">
       <div class="doc-modal-content" (click)="$event.stopPropagation()">
         <div class="modal-header">
           <div class="modal-title-wrap">
@@ -633,11 +635,11 @@ export interface ClinicDoctorApp {
             </div>
           </div>
           <div class="modal-actions-top">
-            <a [href]="getDocumentFullUrl(selectedAppDoc.licenseDocumentUrl)" target="_blank" rel="noopener noreferrer" mat-stroked-button class="open-tab-btn">
+            <a *ngIf="selectedDocFullUrl" [href]="selectedDocFullUrl" target="_blank" rel="noopener noreferrer" mat-stroked-button class="open-tab-btn" title="Open document in a new window/tab">
               <mat-icon>open_in_new</mat-icon>
               <span>Open in New Tab</span>
             </a>
-            <button mat-icon-button (click)="selectedAppDoc = null">
+            <button mat-icon-button (click)="closeDocModal()">
               <mat-icon>close</mat-icon>
             </button>
           </div>
@@ -645,20 +647,44 @@ export interface ClinicDoctorApp {
 
         <div class="modal-body-doc">
           <ng-container *ngIf="isImageDocument(selectedAppDoc.licenseDocumentUrl); else pdfViewer">
-            <img [src]="getDocumentFullUrl(selectedAppDoc.licenseDocumentUrl)" alt="License Certificate" class="doc-image-preview" />
+            <img *ngIf="selectedDocFullUrl" [src]="selectedDocFullUrl" alt="License Certificate" class="doc-image-preview" />
           </ng-container>
           <ng-template #pdfViewer>
-            <iframe [src]="getDocumentFullUrl(selectedAppDoc.licenseDocumentUrl)" class="doc-iframe" title="Medical Registration Certificate"></iframe>
+            <object
+              *ngIf="selectedDocSafeUrl"
+              [data]="selectedDocSafeUrl"
+              type="application/pdf"
+              class="doc-iframe"
+            >
+              <iframe
+                [src]="selectedDocSafeUrl"
+                class="doc-iframe"
+                title="Medical Registration Certificate"
+              >
+                <div class="pdf-fallback-box">
+                  <mat-icon class="text-3xl text-neutral-400">picture_as_pdf</mat-icon>
+                  <p class="text-xs text-neutral-600">Document preview ready.</p>
+                  <a [href]="selectedDocFullUrl" target="_blank" mat-flat-button color="primary">
+                    <mat-icon>open_in_new</mat-icon>
+                    <span>View in New Window</span>
+                  </a>
+                </div>
+              </iframe>
+            </object>
+            <div *ngIf="!selectedDocSafeUrl" class="no-doc-fallback">
+              <mat-icon class="text-3xl text-neutral-400">error_outline</mat-icon>
+              <p class="text-xs text-neutral-500">No document URL available for this applicant.</p>
+            </div>
           </ng-template>
         </div>
 
         <div class="modal-footer">
-          <button mat-button (click)="selectedAppDoc = null">Close Preview</button>
+          <button mat-button (click)="closeDocModal()">Close Preview</button>
           <div *ngIf="selectedAppDoc.status === 'pending'" class="flex gap-2">
-            <button mat-stroked-button color="warn" (click)="openRejectModal(selectedAppDoc); selectedAppDoc = null">
+            <button mat-stroked-button color="warn" (click)="openRejectModal(selectedAppDoc); closeDocModal()">
               Reject
             </button>
-            <button mat-flat-button class="approve-btn" (click)="approve(selectedAppDoc); selectedAppDoc = null">
+            <button mat-flat-button class="approve-btn" (click)="approve(selectedAppDoc); closeDocModal()">
               Approve Doctor
             </button>
           </div>
@@ -1167,19 +1193,36 @@ export interface ClinicDoctorApp {
       min-width: 220px !important;
     }
 
+    .license-cell {
+      white-space: nowrap !important;
+      min-width: 140px !important;
+    }
+
+    .doc-link-wrap {
+      display: inline-flex !important;
+      align-items: center !important;
+      white-space: nowrap !important;
+    }
+
     .doc-btn {
       font-size: 12px !important;
       font-weight: 700 !important;
       height: 34px !important;
-      line-height: 34px !important;
-      padding: 0 12px !important;
+      line-height: normal !important;
+      padding: 0 14px !important;
       border-radius: 8px !important;
       background-color: #F0FDFA !important;
       color: #0F5C5C !important;
       border: 1px solid #0F5C5C !important;
       display: inline-flex !important;
       align-items: center !important;
+      justify-content: center !important;
+      gap: 6px !important;
       cursor: pointer;
+      white-space: nowrap !important;
+      width: max-content !important;
+      min-width: 126px !important;
+      box-sizing: border-box !important;
     }
 
     .doc-btn span,
@@ -1188,15 +1231,19 @@ export interface ClinicDoctorApp {
       color: #0F5C5C !important;
       display: inline-flex !important;
       align-items: center !important;
-      gap: 5px !important;
+      justify-content: center !important;
+      gap: 6px !important;
       font-size: 12px !important;
       font-weight: 700 !important;
+      white-space: nowrap !important;
+      line-height: normal !important;
     }
 
     .doc-btn mat-icon {
       font-size: 16px !important;
       width: 16px !important;
       height: 16px !important;
+      flex-shrink: 0 !important;
     }
 
     .date-cell {
@@ -1377,6 +1424,21 @@ export interface ClinicDoctorApp {
       border: none;
       border-radius: 8px;
       background: #FFFFFF;
+    }
+
+    .pdf-fallback-box,
+    .no-doc-fallback {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 40px;
+      text-align: center;
+      background: #FFFFFF;
+      border-radius: 8px;
+      width: 100%;
+      height: 100%;
     }
 
     .reject-body {
@@ -2040,6 +2102,7 @@ export class ClinicDoctorApplicationsComponent implements OnInit {
   private clinicService = inject(ClinicService);
   private notificationService = inject(NotificationService);
   private router = inject(Router);
+  private sanitizer = inject(DomSanitizer);
 
   loading = true;
   applications: ClinicDoctorApp[] = [];
@@ -2048,6 +2111,8 @@ export class ClinicDoctorApplicationsComponent implements OnInit {
   searchQuery = '';
 
   selectedAppDoc: ClinicDoctorApp | null = null;
+  selectedDocSafeUrl: SafeResourceUrl | null = null;
+  selectedDocFullUrl = '';
   selectedAppForReview: ClinicDoctorApp | null = null;
   appToReject: ClinicDoctorApp | null = null;
   rejectionReason = '';
@@ -2166,6 +2231,16 @@ export class ClinicDoctorApplicationsComponent implements OnInit {
 
   openDocument(app: ClinicDoctorApp): void {
     this.selectedAppDoc = app;
+    this.selectedDocFullUrl = this.getDocumentFullUrl(app.licenseDocumentUrl);
+    this.selectedDocSafeUrl = this.selectedDocFullUrl
+      ? this.sanitizer.bypassSecurityTrustResourceUrl(this.selectedDocFullUrl)
+      : null;
+  }
+
+  closeDocModal(): void {
+    this.selectedAppDoc = null;
+    this.selectedDocSafeUrl = null;
+    this.selectedDocFullUrl = '';
   }
 
   isImageDocument(url?: string): boolean {
