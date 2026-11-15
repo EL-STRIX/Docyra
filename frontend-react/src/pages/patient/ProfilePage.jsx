@@ -20,8 +20,18 @@ import usersApi from '../../services/users.api.js';
 import authApi from '../../services/auth.api.js';
 
 export function ProfilePage() {
-  const { user, refreshProfile } = useAuth();
+  const { user, refreshProfile, updateUser } = useAuth();
   const { addNotification } = useSocket() || {};
+
+  const parseDob = (dob) => {
+    if (!dob) return '';
+    try {
+      const d = new Date(dob);
+      return !isNaN(d.getTime()) ? format(d, 'yyyy-MM-dd') : '';
+    } catch {
+      return '';
+    }
+  };
 
   // Personal Information
   const [name, setName] = useState(user?.name || '');
@@ -29,9 +39,7 @@ export function ProfilePage() {
 
   // Medical & Diagnosis Information (Vital for Doctor Consultations)
   const [bloodGroup, setBloodGroup] = useState(user?.bloodGroup || '');
-  const [dateOfBirth, setDateOfBirth] = useState(
-    user?.dateOfBirth ? format(new Date(user.dateOfBirth), 'yyyy-MM-dd') : ''
-  );
+  const [dateOfBirth, setDateOfBirth] = useState(parseDob(user?.dateOfBirth));
   const [gender, setGender] = useState(user?.gender || 'prefer_not_to_say');
   const [allergies, setAllergies] = useState(user?.allergies || '');
   const [chronicConditions, setChronicConditions] = useState(user?.chronicConditions || '');
@@ -57,9 +65,7 @@ export function ProfilePage() {
       setName(user.name || '');
       setPhone(user.phone || '');
       setBloodGroup(user.bloodGroup || '');
-      setDateOfBirth(
-        user.dateOfBirth ? format(new Date(user.dateOfBirth), 'yyyy-MM-dd') : ''
-      );
+      setDateOfBirth(parseDob(user.dateOfBirth));
       setGender(user.gender || 'prefer_not_to_say');
       setAllergies(user.allergies || '');
       setChronicConditions(user.chronicConditions || '');
@@ -78,16 +84,16 @@ export function ProfilePage() {
 
     try {
       const payload = {
-        name,
-        phone,
+        name: (name || '').trim(),
+        phone: phone ? phone.trim() : null,
         timezone: 'Asia/Kolkata',
         bloodGroup: bloodGroup || null,
         dateOfBirth: dateOfBirth || null,
         gender: gender || null,
-        allergies: allergies.trim(),
-        chronicConditions: chronicConditions.trim(),
-        emergencyContactName: emergencyContactName.trim(),
-        emergencyContactPhone: emergencyContactPhone.trim(),
+        allergies: (allergies || '').trim(),
+        chronicConditions: (chronicConditions || '').trim(),
+        emergencyContactName: (emergencyContactName || '').trim(),
+        emergencyContactPhone: (emergencyContactPhone || '').trim(),
         heightCm: heightCm ? parseFloat(heightCm) : null,
         weightKg: weightKg ? parseFloat(weightKg) : null,
       };
@@ -95,7 +101,10 @@ export function ProfilePage() {
       const res = await usersApi.updateProfile(payload);
       if (res.success) {
         setProfileSuccess(true);
-        refreshProfile();
+        if (res.data?.user && updateUser) {
+          updateUser(res.data.user);
+        }
+        await refreshProfile();
         if (addNotification) {
           addNotification({
             type: 'profile:updated',

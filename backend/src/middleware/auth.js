@@ -42,15 +42,17 @@ export const authenticate = async (req, res, next) => {
       return next(new ForbiddenError('Account is not active', ERROR_CODES.FORBIDDEN));
     }
 
-    // Attach user to request
+    // Attach sanitized user to request
+    const userObj = user.toObject ? user.toObject() : { ...user };
+    delete userObj.passwordHash;
+    delete userObj.twoFactorSecret;
+    delete userObj.__v;
+
     req.user = {
+      ...userObj,
       id: user._id.toString(),
       _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
       clinicId: user.clinicId ? user.clinicId.toString() : null,
-      status: user.status,
     };
 
     next();

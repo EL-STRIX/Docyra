@@ -104,21 +104,62 @@ class UserService {
       throw new NotFoundError('User not found', ERROR_CODES.NOT_FOUND);
     }
 
-    if (updateData.name) user.name = updateData.name;
-    if (updateData.phone !== undefined) user.phone = updateData.phone;
-    if (updateData.timezone) user.timezone = updateData.timezone;
-    if (updateData.profilePhotoUrl !== undefined) user.profilePhotoUrl = updateData.profilePhotoUrl;
-    if (updateData.bloodGroup !== undefined) user.bloodGroup = updateData.bloodGroup || null;
-    if (updateData.dateOfBirth !== undefined) {
-      user.dateOfBirth = updateData.dateOfBirth ? new Date(updateData.dateOfBirth) : null;
+    if (updateData.name !== undefined && updateData.name) {
+      user.name = updateData.name.trim();
     }
-    if (updateData.gender !== undefined) user.gender = updateData.gender || null;
-    if (updateData.allergies !== undefined) user.allergies = updateData.allergies || '';
-    if (updateData.chronicConditions !== undefined) user.chronicConditions = updateData.chronicConditions || '';
-    if (updateData.emergencyContactName !== undefined) user.emergencyContactName = updateData.emergencyContactName || '';
-    if (updateData.emergencyContactPhone !== undefined) user.emergencyContactPhone = updateData.emergencyContactPhone || '';
-    if (updateData.heightCm !== undefined) user.heightCm = updateData.heightCm ? parseFloat(updateData.heightCm) : null;
-    if (updateData.weightKg !== undefined) user.weightKg = updateData.weightKg ? parseFloat(updateData.weightKg) : null;
+    if (updateData.phone !== undefined) {
+      user.phone = updateData.phone ? updateData.phone.trim() : null;
+    }
+    if (updateData.timezone !== undefined && updateData.timezone) {
+      user.timezone = updateData.timezone;
+    }
+    if (updateData.profilePhotoUrl !== undefined) {
+      user.profilePhotoUrl = updateData.profilePhotoUrl || null;
+    }
+    if (updateData.bloodGroup !== undefined) {
+      const validBloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'unknown'];
+      user.bloodGroup = validBloodGroups.includes(updateData.bloodGroup) ? updateData.bloodGroup : null;
+    }
+    if (updateData.dateOfBirth !== undefined) {
+      if (!updateData.dateOfBirth) {
+        user.dateOfBirth = null;
+      } else {
+        const d = new Date(updateData.dateOfBirth);
+        user.dateOfBirth = isNaN(d.getTime()) ? null : d;
+      }
+    }
+    if (updateData.gender !== undefined) {
+      const validGenders = ['male', 'female', 'other', 'prefer_not_to_say'];
+      user.gender = validGenders.includes(updateData.gender) ? updateData.gender : null;
+    }
+    if (updateData.allergies !== undefined) {
+      user.allergies = (updateData.allergies || '').trim();
+    }
+    if (updateData.chronicConditions !== undefined) {
+      user.chronicConditions = (updateData.chronicConditions || '').trim();
+    }
+    if (updateData.emergencyContactName !== undefined) {
+      user.emergencyContactName = (updateData.emergencyContactName || '').trim();
+    }
+    if (updateData.emergencyContactPhone !== undefined) {
+      user.emergencyContactPhone = (updateData.emergencyContactPhone || '').trim();
+    }
+    if (updateData.heightCm !== undefined) {
+      if (updateData.heightCm === null || updateData.heightCm === '') {
+        user.heightCm = null;
+      } else {
+        const h = parseFloat(updateData.heightCm);
+        user.heightCm = !isNaN(h) && h > 0 ? h : null;
+      }
+    }
+    if (updateData.weightKg !== undefined) {
+      if (updateData.weightKg === null || updateData.weightKg === '') {
+        user.weightKg = null;
+      } else {
+        const w = parseFloat(updateData.weightKg);
+        user.weightKg = !isNaN(w) && w > 0 ? w : null;
+      }
+    }
 
     await user.save();
 

@@ -8,6 +8,11 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Directly update user state in memory
+  const updateUser = useCallback((updatedUserData) => {
+    setUser((prev) => (prev ? { ...prev, ...updatedUserData } : updatedUserData));
+  }, []);
+
   // Load current user profile on app start (from cookie session)
   const refreshProfile = useCallback(async () => {
     try {
@@ -16,14 +21,17 @@ export function AuthProvider({ children }) {
         // Patient Portal only allows patients
         if (res.data.user.role !== 'patient') {
           setUser(null);
-          return;
+          return null;
         }
         setUser(res.data.user);
+        return res.data.user;
       } else {
         setUser(null);
+        return null;
       }
     } catch (err) {
       setUser(null);
+      return null;
     } finally {
       setLoading(false);
     }
@@ -104,6 +112,7 @@ export function AuthProvider({ children }) {
     register,
     logout,
     refreshProfile,
+    updateUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -440,6 +440,91 @@ describe('Phase 9: 2FA, GDPR & Security Hardening Suite', () => {
     });
   });
 
+  describe('Patient Profile Updates & Retrieval (PATCH /api/v1/users/me/profile & GET /api/v1/auth/me)', () => {
+    it('should save patient medical and contact details and return them on /auth/me', async () => {
+      const { token: csrfToken, cookie: csrfCookie } = await getCsrfTokenAndCookie();
+
+      const regRes = await request(app)
+        .post('/api/v1/auth/register')
+        .set('Cookie', [csrfCookie])
+        .set('X-CSRF-Token', csrfToken)
+        .send({
+          name: 'Priya Sharma',
+          email: 'priya.sharma@example.com',
+          password: 'Password123!',
+          phone: '+91 9876543210',
+          role: ROLES.PATIENT,
+          acceptedTerms: true,
+          termsVersion: '1.0',
+        });
+
+      await request(app).get(`/api/v1/auth/verify-email?token=${regRes.body.data.verificationToken}`);
+
+      const loginRes = await request(app)
+        .post('/api/v1/auth/login')
+        .set('Cookie', [csrfCookie])
+        .set('X-CSRF-Token', csrfToken)
+        .send({
+          email: 'priya.sharma@example.com',
+          password: 'Password123!',
+        });
+
+      const authCookie = loginRes.headers['set-cookie']?.find((c) => c.startsWith('accessToken='));
+      const token = loginRes.body.data.accessToken;
+
+      const profilePayload = {
+        name: 'Priya S. Sharma',
+        phone: '+91 9876543211',
+        timezone: 'Asia/Kolkata',
+        bloodGroup: 'B+',
+        dateOfBirth: '1992-08-14',
+        gender: 'female',
+        allergies: 'Penicillin, Dust',
+        chronicConditions: 'Asthma',
+        emergencyContactName: 'Raj Sharma',
+        emergencyContactPhone: '+91 9876500000',
+        heightCm: 165.5,
+        weightKg: 58.2,
+      };
+
+      const updateRes = await request(app)
+        .patch('/api/v1/users/me/profile')
+        .set('Cookie', [csrfCookie, authCookie])
+        .set('X-CSRF-Token', csrfToken)
+        .set('Authorization', `Bearer ${token}`)
+        .send(profilePayload);
+
+      expect(updateRes.status).toBe(200);
+      expect(updateRes.body.success).toBe(true);
+      expect(updateRes.body.data.user.name).toBe('Priya S. Sharma');
+      expect(updateRes.body.data.user.phone).toBe('+91 9876543211');
+      expect(updateRes.body.data.user.bloodGroup).toBe('B+');
+      expect(updateRes.body.data.user.gender).toBe('female');
+      expect(updateRes.body.data.user.allergies).toBe('Penicillin, Dust');
+      expect(updateRes.body.data.user.chronicConditions).toBe('Asthma');
+      expect(updateRes.body.data.user.emergencyContactName).toBe('Raj Sharma');
+      expect(updateRes.body.data.user.heightCm).toBe(165.5);
+      expect(updateRes.body.data.user.weightKg).toBe(58.2);
+
+      // Verify that GET /auth/me returns the saved profile data
+      const meRes = await request(app)
+        .get('/api/v1/auth/me')
+        .set('Cookie', [csrfCookie, authCookie])
+        .set('X-CSRF-Token', csrfToken)
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(meRes.status).toBe(200);
+      expect(meRes.body.success).toBe(true);
+      expect(meRes.body.data.user.bloodGroup).toBe('B+');
+      expect(meRes.body.data.user.gender).toBe('female');
+      expect(meRes.body.data.user.allergies).toBe('Penicillin, Dust');
+      expect(meRes.body.data.user.chronicConditions).toBe('Asthma');
+      expect(meRes.body.data.user.emergencyContactName).toBe('Raj Sharma');
+      expect(meRes.body.data.user.heightCm).toBe(165.5);
+      expect(meRes.body.data.user.weightKg).toBe(58.2);
+    });
+  });
+
   describe('Security Headers & CSP Verification', () => {
     it('should return strict CSP and security headers on responses', async () => {
       const res = await request(app).get('/api/v1/health');
