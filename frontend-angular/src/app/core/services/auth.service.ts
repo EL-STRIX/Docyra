@@ -98,6 +98,15 @@ export class AuthService {
    * Bootstraps user session from /api/v1/auth/me
    */
   checkSession(): Observable<User | null> {
+    const hasAnyToken = !!this.getAccessToken() || !!this.getRefreshToken();
+    const hasAuthCookie = typeof document !== 'undefined' &&
+      (document.cookie.includes('accessToken') || document.cookie.includes('refreshToken') || document.cookie.includes('token'));
+
+    if (!hasAnyToken && !hasAuthCookie) {
+      this.isAuthLoadingSubject.next(false);
+      return of(null);
+    }
+
     this.isAuthLoadingSubject.next(true);
     return this.http.get<ApiResponse<{ user: User }>>(`${this.API_URL}/me`, { withCredentials: true }).pipe(
       map((res) => {
