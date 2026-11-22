@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { Review, Appointment, DoctorProfile } from '../models/index.js';
+import { Review, Appointment, DoctorProfile, SystemSettings } from '../models/index.js';
 import {
   NotFoundError,
   ConflictError,
@@ -71,10 +71,19 @@ class ReviewService {
       );
     }
 
-    // Check profanity moderation
+    // Check profanity moderation and system settings
+    const settings = await SystemSettings.getSettings();
     const hasProfanity = checkProfanity(comment);
-    const status = hasProfanity ? REVIEW_STATUS.FLAGGED : REVIEW_STATUS.PUBLISHED;
-    const moderationNote = hasProfanity ? 'Flagged for moderation by automated profanity filter' : null;
+    let status = REVIEW_STATUS.PUBLISHED;
+    let moderationNote = null;
+
+    if (hasProfanity) {
+      status = REVIEW_STATUS.FLAGGED;
+      moderationNote = 'Flagged for moderation by automated profanity filter';
+    } else if (settings.autoApproveReviews === false) {
+      status = REVIEW_STATUS.FLAGGED;
+      moderationNote = 'Held for manual moderation as auto-approve reviews is disabled';
+    }
 
     const review = await Review.create({
       appointmentId: appointment._id,
@@ -227,9 +236,18 @@ class ReviewService {
     if (rating !== undefined) review.rating = rating;
     if (comment !== undefined) {
       review.comment = comment;
+      const settings = await SystemSettings.getSettings();
       const hasProfanity = checkProfanity(comment);
-      review.status = hasProfanity ? REVIEW_STATUS.FLAGGED : REVIEW_STATUS.PUBLISHED;
-      review.moderationNote = hasProfanity ? 'Flagged for moderation by automated profanity filter' : null;
+      if (hasProfanity) {
+        review.status = REVIEW_STATUS.FLAGGED;
+        review.moderationNote = 'Flagged for moderation by automated profanity filter';
+      } else if (settings.autoApproveReviews === false) {
+        review.status = REVIEW_STATUS.FLAGGED;
+        review.moderationNote = 'Held for manual moderation as auto-approve reviews is disabled';
+      } else {
+        review.status = REVIEW_STATUS.PUBLISHED;
+        review.moderationNote = null;
+      }
     }
 
     await review.save();

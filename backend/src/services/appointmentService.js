@@ -38,6 +38,15 @@ class AppointmentService {
     captchaToken,
     previousAppointmentId = null,
   }) {
+    // 0. Check system settings & platform maintenance mode
+    const settings = await SystemSettings.getSettings();
+    if (settings.maintenanceMode) {
+      throw new BadRequestError(
+        'Platform is currently in maintenance mode. New appointment bookings are temporarily frozen.',
+        ERROR_CODES.BAD_REQUEST
+      );
+    }
+
     // 1. Verify captcha if provided
     const isCaptchaValid = await captchaService.verify(captchaToken);
     if (!isCaptchaValid) {
@@ -129,6 +138,15 @@ class AppointmentService {
         throw new ConflictError(
           'Slot is already booked or no longer available',
           ERROR_CODES.SLOT_ALREADY_BOOKED
+        );
+      }
+
+      // Check advance booking horizon against system settings
+      const maxHorizonMs = (settings.maxAdvanceBookingDays || 60) * 24 * 60 * 60 * 1000;
+      if (new Date(slot.slotStart).getTime() - now.getTime() > maxHorizonMs) {
+        throw new BadRequestError(
+          `Cannot book appointments more than ${settings.maxAdvanceBookingDays || 60} days in advance`,
+          ERROR_CODES.VALIDATION_ERROR
         );
       }
 
@@ -896,6 +914,26 @@ class AppointmentService {
         'You do not have permission to reschedule this appointment',
         ERROR_CODES.FORBIDDEN
       );
+    }
+
+    // Check system maintenance mode & cancellation window
+    const settings = await SystemSettings.getSettings();
+    if (settings.maintenanceMode) {
+      throw new BadRequestError(
+        'Platform is currently in maintenance mode. Appointment rescheduling is temporarily frozen.',
+        ERROR_CODES.BAD_REQUEST
+      );
+    }
+
+    if (isPatientOwner) {
+      const cancellationWindowMs = (settings.cancellationWindowHours || 24) * 60 * 60 * 1000;
+      const appointmentTime = new Date(appointment.slotStart).getTime();
+      if (appointmentTime - Date.now() < cancellationWindowMs) {
+        throw new BadRequestError(
+          `Appointments cannot be rescheduled within ${settings.cancellationWindowHours} hours of the scheduled start time`,
+          ERROR_CODES.VALIDATION_ERROR
+        );
+      }
     }
 
     if (appointment.slotId && appointment.slotId.toString() === slotId.toString()) {

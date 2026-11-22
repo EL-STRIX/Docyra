@@ -18,6 +18,7 @@ let doctor1Profile;
 let doctor2Profile;
 let clinic1;
 let clinic2;
+let patientToken;
 
 beforeAll(async () => {
   mongoServer = await MongoMemoryServer.create();
@@ -130,6 +131,20 @@ beforeAll(async () => {
 
   doctor2Token = jwt.sign(
     { id: doctor2User._id.toString(), email: doctor2User.email, role: ROLES.DOCTOR, clinicId: clinic2._id.toString() },
+    env.JWT_ACCESS_SECRET
+  );
+
+  // Create Patient
+  const patientUser = await User.create({
+    name: 'Jane Doe',
+    email: 'jane@docyra.test',
+    passwordHash: 'hash',
+    role: ROLES.PATIENT,
+    status: USER_STATUS.ACTIVE,
+  });
+
+  patientToken = jwt.sign(
+    { id: patientUser._id.toString(), email: patientUser.email, role: ROLES.PATIENT },
     env.JWT_ACCESS_SECRET
   );
 }, 30000);
@@ -345,6 +360,10 @@ describe('Phase 5: Availability Rules & Slot Generation Engine Tests', () => {
           cancellationWindowHours: 12,
           defaultCurrency: 'INR',
           maxAdvanceBookingDays: 90,
+          allowIndependentDoctors: false,
+          twoFactorEnforcedForStaff: true,
+          autoApproveReviews: false,
+          maintenanceMode: true,
         });
 
       expect(res.statusCode).toBe(200);
@@ -352,6 +371,39 @@ describe('Phase 5: Availability Rules & Slot Generation Engine Tests', () => {
       expect(res.body.data.defaultSlotDurationMinutes).toBe(45);
       expect(res.body.data.cancellationWindowHours).toBe(12);
       expect(res.body.data.maxAdvanceBookingDays).toBe(90);
+      expect(res.body.data.allowIndependentDoctors).toBe(false);
+      expect(res.body.data.twoFactorEnforcedForStaff).toBe(true);
+      expect(res.body.data.autoApproveReviews).toBe(false);
+      expect(res.body.data.maintenanceMode).toBe(true);
+    });
+
+    it('Maintenance mode should block booking new appointments', async () => {
+      // Find open slot
+      const openSlot = await AppointmentSlot.findOne({ doctorId: doctor1Profile._id, isBooked: false, slotStart: { $gt: new Date() } });
+      expect(openSlot).toBeDefined();
+
+      const res = await request(app)
+        .post('/api/v1/appointments')
+        .set('Authorization', `Bearer ${patientToken}`)
+        .send({
+          doctorId: doctor1Profile._id.toString(),
+          slotId: openSlot._id.toString(),
+          reasonForVisit: 'General Checkup',
+        });
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.message).toContain('maintenance mode');
+
+      // Revert maintenance mode
+      await request(app)
+        .put('/api/v1/admin/settings')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          maintenanceMode: false,
+          allowIndependentDoctors: true,
+          autoApproveReviews: true,
+        });
     });
 
     it('GET /api/v1/admin/settings should forbid non-admin users', async () => {

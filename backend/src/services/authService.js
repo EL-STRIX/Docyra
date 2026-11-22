@@ -4,7 +4,7 @@ import speakeasy from 'speakeasy';
 import QRCode from 'qrcode';
 import { env } from '../config/env.js';
 import { ROLES, USER_STATUS, ERROR_CODES } from '../config/constants.js';
-import { User, DoctorProfile, Specialization } from '../models/index.js';
+import { User, DoctorProfile, Specialization, SystemSettings } from '../models/index.js';
 import { AppError, ConflictError, UnauthorizedError, NotFoundError } from '../utils/AppError.js';
 import notificationService from './notificationService.js';
 import logger from '../utils/logger.js';
@@ -453,6 +453,18 @@ class AuthService {
 
     if (!user.twoFactorEnabled || !user.twoFactorSecret) {
       throw new AppError(ERROR_CODES.BAD_REQUEST, 400, '2FA is not currently enabled');
+    }
+
+    const isStaff = [ROLES.DOCTOR, ROLES.CLINIC_ADMIN, ROLES.ADMIN].includes(user.role);
+    if (isStaff) {
+      const settings = await SystemSettings.getSettings();
+      if (settings.twoFactorEnforcedForStaff) {
+        throw new AppError(
+          ERROR_CODES.BAD_REQUEST,
+          400,
+          'Cannot disable 2FA: Two-factor authentication is enforced for all clinical and administrative staff by platform policy.'
+        );
+      }
     }
 
     const verified = speakeasy.totp.verify({

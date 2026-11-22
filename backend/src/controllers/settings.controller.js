@@ -35,7 +35,7 @@ export const triggerSlotGenerationJob = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
-    message: 'Slot generation job executed successfully',
+    message: `Slot generation job executed successfully: processed ${result.doctorsProcessed} doctor(s), created ${result.totalNewSlotsCreated} new slot(s).`,
     data: result,
   });
 });

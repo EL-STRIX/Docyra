@@ -15,6 +15,7 @@ class SystemSettingsService {
       defaultCurrency: 'INR',
       allowIndependentDoctors: obj.allowIndependentDoctors !== false,
       twoFactorEnforcedForStaff: obj.twoFactorEnforcedForStaff !== false,
+      autoApproveReviews: obj.autoApproveReviews !== false,
       maintenanceMode: Boolean(obj.maintenanceMode),
     };
   }

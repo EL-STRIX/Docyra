@@ -1,9 +1,9 @@
 import bcrypt from 'bcrypt';
 import mongoose from 'mongoose';
-import { User, DoctorProfile, Clinic, Specialization, AvailabilityRule, Appointment } from '../models/index.js';
+import { User, DoctorProfile, Clinic, Specialization, AvailabilityRule, Appointment, SystemSettings } from '../models/index.js';
 import { ROLES, USER_STATUS, ERROR_CODES, APPOINTMENT_STATUS } from '../config/constants.js';
 import { env } from '../config/env.js';
-import { NotFoundError, ConflictError, AppError } from '../utils/AppError.js';
+import { NotFoundError, ConflictError, AppError, ForbiddenError } from '../utils/AppError.js';
 import storageService from './storageService.js';
 import notificationService from './notificationService.js';
 import logger from '../utils/logger.js';
@@ -285,6 +285,14 @@ class DoctorService {
       }
     }
 
+    const settings = await SystemSettings.getSettings();
+    if (!clinic && settings.allowIndependentDoctors === false) {
+      throw new ForbiddenError(
+        'Independent doctor applications are currently disabled by platform policy. Doctors must be affiliated with an accredited clinic.',
+        ERROR_CODES.FORBIDDEN
+      );
+    }
+
     // Verify specialization exists
     const spec = await Specialization.findById(specializationId);
     if (!spec) {
@@ -325,7 +333,7 @@ class DoctorService {
       bio: bio || '',
       licenseDocumentUrl,
       consultationFee: parseFloat(consultationFee) || 500,
-      slotDurationMinutes: parseInt(slotDurationMinutes, 10) || 30,
+      slotDurationMinutes: parseInt(slotDurationMinutes, 10) || settings.defaultSlotDurationMinutes || 30,
       feeCurrency: 'INR',
       clinicAddress: computedClinicAddress || clinicAddress || (clinic ? clinic.name : 'Independent Practice'),
       yearsExperience: parseInt(yearsExperience, 10) || 0,
@@ -703,6 +711,8 @@ class DoctorService {
       throw new NotFoundError('Specialization not found', ERROR_CODES.NOT_FOUND);
     }
 
+    const settings = await SystemSettings.getSettings();
+
     const passwordHash = await bcrypt.hash(password, env.BCRYPT_SALT_ROUNDS);
 
     const user = await User.create({
@@ -730,7 +740,7 @@ class DoctorService {
       qualifications: parsedQualifications.length > 0 ? parsedQualifications : ['MBBS'],
       bio: bio || '',
       consultationFee: parseFloat(consultationFee) || 500,
-      slotDurationMinutes: parseInt(slotDurationMinutes, 10) || 30,
+      slotDurationMinutes: parseInt(slotDurationMinutes, 10) || settings.defaultSlotDurationMinutes || 30,
       feeCurrency: 'INR',
       yearsExperience: effectiveYears,
       isApproved: true, // Auto-approved under vetted clinic

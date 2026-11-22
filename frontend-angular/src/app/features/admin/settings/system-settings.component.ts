@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminService } from '../../../core/services/admin.service';
@@ -55,6 +55,9 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
             <label class="form-label">Default Consultation Duration</label>
             <mat-form-field appearance="outline" class="w-full">
               <mat-select [(ngModel)]="settings.slotDurationDefaultMinutes">
+                <mat-option *ngIf="settings.slotDurationDefaultMinutes && ![15, 30, 45, 60].includes(settings.slotDurationDefaultMinutes)" [value]="settings.slotDurationDefaultMinutes">
+                  {{ settings.slotDurationDefaultMinutes }} Minutes (Custom)
+                </mat-option>
                 <mat-option [value]="15">15 Minutes</mat-option>
                 <mat-option [value]="30">30 Minutes (Standard)</mat-option>
                 <mat-option [value]="45">45 Minutes</mat-option>
@@ -76,6 +79,9 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
             <label class="form-label">Advance Booking Horizon (Days)</label>
             <mat-form-field appearance="outline" class="w-full">
               <mat-select [(ngModel)]="settings.maxAdvanceBookingDays">
+                <mat-option *ngIf="settings.maxAdvanceBookingDays && ![30, 60, 90].includes(settings.maxAdvanceBookingDays)" [value]="settings.maxAdvanceBookingDays">
+                  {{ settings.maxAdvanceBookingDays }} Days Ahead (Custom)
+                </mat-option>
                 <mat-option [value]="30">30 Days Ahead</mat-option>
                 <mat-option [value]="60">60 Days Ahead (Default)</mat-option>
                 <mat-option [value]="90">90 Days Ahead</mat-option>
@@ -280,6 +286,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 export class SystemSettingsComponent implements OnInit {
   private adminService = inject(AdminService);
   private notificationService = inject(NotificationService);
+  private cdr = inject(ChangeDetectorRef);
 
   loading = true;
   saving = false;
@@ -318,9 +325,11 @@ export class SystemSettingsComponent implements OnInit {
           };
         }
         this.loading = false;
+        this.cdr.markForCheck();
       },
       error: () => {
         this.loading = false;
+        this.cdr.markForCheck();
       },
     });
   }
@@ -341,13 +350,28 @@ export class SystemSettingsComponent implements OnInit {
     };
 
     this.adminService.updateSystemSettings(payload).subscribe({
-      next: () => {
+      next: (res) => {
         this.saving = false;
+        if (res.success && res.data) {
+          const d: any = res.data;
+          this.settings = {
+            slotDurationDefaultMinutes: d.defaultSlotDurationMinutes ?? d.slotDurationDefaultMinutes ?? 30,
+            cancellationWindowHours: d.cancellationWindowHours ?? 24,
+            currency: 'INR',
+            maxAdvanceBookingDays: d.maxAdvanceBookingDays ?? 60,
+            allowIndependentDoctors: d.allowIndependentDoctors !== false,
+            twoFactorEnforcedForStaff: d.twoFactorEnforcedForStaff !== false,
+            autoApproveReviews: d.autoApproveReviews !== false,
+            maintenanceMode: Boolean(d.maintenanceMode),
+          };
+        }
         this.notificationService.success('Platform system settings saved successfully (INR Currency Enforced)');
+        this.cdr.markForCheck();
       },
       error: (err) => {
         this.saving = false;
-        this.notificationService.error(err.error?.error?.message || 'Failed to save system settings');
+        this.notificationService.error(err.error?.error?.message || err.error?.message || 'Failed to save system settings');
+        this.cdr.markForCheck();
       },
     });
   }
@@ -358,10 +382,12 @@ export class SystemSettingsComponent implements OnInit {
       next: (res) => {
         this.triggeringJob = false;
         this.notificationService.success(res.message || 'Slot generation job executed successfully');
+        this.cdr.markForCheck();
       },
       error: (err) => {
         this.triggeringJob = false;
-        this.notificationService.error(err.error?.error?.message || 'Failed to trigger slot generation');
+        this.notificationService.error(err.error?.error?.message || err.error?.message || 'Failed to trigger slot generation');
+        this.cdr.markForCheck();
       },
     });
   }
