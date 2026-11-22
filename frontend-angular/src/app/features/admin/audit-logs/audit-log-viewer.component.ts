@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminService } from '../../../core/services/admin.service';
 import { NotificationService } from '../../../core/services/notification.service';
-import { AuditLogEntry } from '../../../core/models/audit-log.model';
+import { AuditLogEntry, AuditLogStats } from '../../../core/models/audit-log.model';
 import { DateFormatPipe } from '../../../shared/pipes/date-format.pipe';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -34,7 +34,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       <div class="page-header">
         <div>
           <h1 class="page-title">Audit Logs</h1>
-          <p class="page-subtitle">Chronological record of system activity, security access events, and administrative actions.</p>
+          <p class="page-subtitle">Track system activity, user access, and administrative changes across the platform.</p>
         </div>
 
         <div class="header-actions">
@@ -58,6 +58,49 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
             <mat-icon>download</mat-icon>
             <span>Export CSV</span>
           </button>
+        </div>
+      </div>
+
+      <!-- KPI Summary Cards -->
+      <div class="kpi-grid">
+        <div class="kpi-card" (click)="setRoleFilter('all')" [class.kpi-active]="roleFilter === 'all' && !searchTerm">
+          <div class="kpi-icon-wrap primary">
+            <mat-icon>history</mat-icon>
+          </div>
+          <div class="kpi-info">
+            <span class="kpi-label">Total Events</span>
+            <span class="kpi-value">{{ stats.totalEvents || totalItems }}</span>
+          </div>
+        </div>
+
+        <div class="kpi-card" (click)="setRoleFilter('admin')" [class.kpi-active]="roleFilter === 'admin'">
+          <div class="kpi-icon-wrap admin">
+            <mat-icon>admin_panel_settings</mat-icon>
+          </div>
+          <div class="kpi-info">
+            <span class="kpi-label">Admin Actions</span>
+            <span class="kpi-value text-amber-700">{{ stats.adminEvents || 0 }}</span>
+          </div>
+        </div>
+
+        <div class="kpi-card" (click)="filterSecurityEvents()" [class.kpi-active]="searchTerm === 'AUTH'">
+          <div class="kpi-icon-wrap security">
+            <mat-icon>security</mat-icon>
+          </div>
+          <div class="kpi-info">
+            <span class="kpi-label">Security & Auth</span>
+            <span class="kpi-value text-indigo-700">{{ stats.securityEvents || 0 }}</span>
+          </div>
+        </div>
+
+        <div class="kpi-card" (click)="setRoleFilter('system')" [class.kpi-active]="roleFilter === 'system'">
+          <div class="kpi-icon-wrap system">
+            <mat-icon>memory</mat-icon>
+          </div>
+          <div class="kpi-info">
+            <span class="kpi-label">System Operations</span>
+            <span class="kpi-value text-teal-800">{{ stats.systemEvents || 0 }}</span>
+          </div>
         </div>
       </div>
 
@@ -125,12 +168,12 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
           <!-- Clear Filters -->
           <button
             *ngIf="hasActiveFilters"
-            mat-button
+            mat-stroked-button
             color="warn"
             (click)="clearFilters()"
             class="reset-btn"
           >
-            Reset
+            Reset Filters
           </button>
         </div>
 
@@ -150,8 +193,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
           <mat-icon class="empty-icon">search_off</mat-icon>
           <p class="empty-title">No audit records found</p>
           <p class="empty-subtitle">No events match the selected filter criteria.</p>
-          <button *ngIf="hasActiveFilters" mat-stroked-button (click)="clearFilters()" class="mt-3">
-            Reset Filters
+          <button *ngIf="hasActiveFilters" mat-stroked-button color="primary" (click)="clearFilters()" class="mt-3">
+            Clear Filters
           </button>
         </div>
 
@@ -171,30 +214,44 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
               <tr
                 *ngFor="let log of filteredLogs"
                 class="log-row"
+                [class.row-selected]="selectedLog?._id === log._id"
                 (click)="openLogDetails(log)"
               >
                 <!-- Timestamp -->
                 <td class="td-time">
-                  {{ (log.timestamp || log.createdAt) | portalDate:'dd MMM yyyy, HH:mm:ss' }}
+                  <div class="exact-time">{{ (log.timestamp || log.createdAt) | portalDate:'dd MMM yyyy, HH:mm:ss' }}</div>
+                  <div class="rel-time">{{ getRelativeTime(log.timestamp || log.createdAt) }}</div>
                 </td>
 
                 <!-- Actor -->
                 <td class="td-actor">
-                  <div class="actor-primary">{{ log.actorName || log.actorEmail || 'System' }}</div>
-                  <div class="actor-role">{{ getRoleLabel(log.actorRole) }}</div>
+                  <div class="actor-cell">
+                    <div class="actor-avatar" [ngClass]="log.actorRole">
+                      {{ getActorInitials(log) }}
+                    </div>
+                    <div class="actor-meta">
+                      <div class="actor-primary">{{ log.actorName || log.actorEmail || 'System' }}</div>
+                      <span class="role-badge" [ngClass]="log.actorRole">{{ getRoleLabel(log.actorRole) }}</span>
+                    </div>
+                  </div>
                 </td>
 
                 <!-- Action -->
                 <td class="td-action">
-                  <span class="action-tag">{{ log.action }}</span>
+                  <span class="action-badge" [ngClass]="getActionCategory(log.action)">
+                    {{ log.action }}
+                  </span>
                 </td>
 
                 <!-- Resource -->
                 <td class="td-resource">
-                  <span class="resource-type">{{ log.resourceType || log.targetType || 'System' }}</span>
-                  <span *ngIf="log.resourceId || log.targetId" class="resource-id font-mono">
+                  <div class="resource-cell">
+                    <mat-icon class="res-icon">{{ getResourceIcon(log.resourceType || log.targetType) }}</mat-icon>
+                    <span class="resource-name">{{ log.resourceType || log.targetType || 'System' }}</span>
+                  </div>
+                  <div *ngIf="log.resourceId || log.targetId" class="resource-id font-mono">
                     #{{ (log.resourceId || log.targetId) | slice:0:8 }}
-                  </span>
+                  </div>
                 </td>
 
                 <!-- IP Address -->
@@ -210,7 +267,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
                     title="View Log Details"
                     class="view-btn"
                   >
-                    <mat-icon>visibility</mat-icon>
+                    <mat-icon>chevron_right</mat-icon>
                   </button>
                 </td>
               </tr>
@@ -224,6 +281,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
             <span class="page-size-label">Rows per page:</span>
             <select [(ngModel)]="pageSize" (change)="onPageSizeChange()" class="page-size-select">
               <option [value]="10">10</option>
+              <option [value]="15">15</option>
               <option [value]="25">25</option>
               <option [value]="50">50</option>
             </select>
@@ -270,67 +328,74 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
         </div>
       </mat-card>
 
-      <!-- Details Drawer / Modal -->
-      <div *ngIf="selectedLog" class="modal-backdrop" (click)="closeLogDetails()">
-        <div class="modal-panel" (click)="$event.stopPropagation()">
-          <div class="modal-header">
+      <!-- Clean Slide-over Drawer / Modal -->
+      <div *ngIf="selectedLog" class="drawer-backdrop" (click)="closeLogDetails()">
+        <div class="drawer-panel" (click)="$event.stopPropagation()">
+          <div class="drawer-header">
             <div>
-              <h2 class="modal-title">Audit Record Details</h2>
-              <div class="modal-subtitle font-mono">{{ selectedLog.action }}</div>
+              <span class="drawer-kicker">AUDIT RECORD</span>
+              <h2 class="drawer-title font-mono">{{ selectedLog.action }}</h2>
+              <div class="drawer-id font-mono">ID: {{ selectedLog._id || selectedLog.id }}</div>
             </div>
             <button mat-icon-button (click)="closeLogDetails()" class="close-btn">
               <mat-icon>close</mat-icon>
             </button>
           </div>
 
-          <div class="modal-body">
-            <div class="details-grid">
-              <div class="detail-item">
-                <span class="detail-lbl">Timestamp</span>
-                <span class="detail-val font-mono">{{ (selectedLog.timestamp || selectedLog.createdAt) | portalDate:'dd MMM yyyy, HH:mm:ss' }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-lbl">Actor</span>
-                <span class="detail-val font-bold">{{ selectedLog.actorName || selectedLog.actorEmail || 'System' }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-lbl">Role</span>
-                <span class="detail-val">{{ getRoleLabel(selectedLog.actorRole) }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-lbl">Resource</span>
-                <span class="detail-val">{{ selectedLog.resourceType || selectedLog.targetType || 'System' }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-lbl">Resource ID</span>
-                <span class="detail-val font-mono">{{ selectedLog.resourceId || selectedLog.targetId || 'N/A' }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-lbl">IP Address</span>
-                <span class="detail-val font-mono">{{ selectedLog.ipAddress || '127.0.0.1' }}</span>
+          <div class="drawer-body">
+            <!-- Details Grid -->
+            <div class="drawer-section">
+              <h3 class="section-title">Context & Identification</h3>
+              <div class="details-grid">
+                <div class="detail-item">
+                  <span class="detail-lbl">Timestamp</span>
+                  <span class="detail-val font-mono">{{ (selectedLog.timestamp || selectedLog.createdAt) | portalDate:'dd MMM yyyy, HH:mm:ss' }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-lbl">Actor</span>
+                  <span class="detail-val font-bold text-teal-900">{{ selectedLog.actorName || selectedLog.actorEmail || 'System' }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-lbl">Role</span>
+                  <span class="role-badge" [ngClass]="selectedLog.actorRole">{{ getRoleLabel(selectedLog.actorRole) }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-lbl">Target Resource</span>
+                  <span class="detail-val font-semibold">{{ selectedLog.resourceType || selectedLog.targetType || 'System' }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-lbl">Resource ID</span>
+                  <span class="detail-val font-mono">{{ selectedLog.resourceId || selectedLog.targetId || 'N/A' }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-lbl">IP Address</span>
+                  <span class="detail-val font-mono">{{ selectedLog.ipAddress || '127.0.0.1' }}</span>
+                </div>
               </div>
             </div>
 
-            <div class="detail-section" *ngIf="selectedLog.userAgent">
-              <span class="detail-lbl">User Agent</span>
-              <div class="ua-text font-mono">{{ selectedLog.userAgent }}</div>
+            <!-- User Agent -->
+            <div class="drawer-section" *ngIf="selectedLog.userAgent">
+              <h3 class="section-title">Client User Agent</h3>
+              <div class="ua-box font-mono">{{ selectedLog.userAgent }}</div>
             </div>
 
-            <div class="detail-section">
+            <!-- Metadata JSON -->
+            <div class="drawer-section">
               <div class="payload-header">
-                <span class="detail-lbl">Payload / Metadata</span>
-                <button mat-button (click)="copyPayload(selectedLog)" class="copy-btn">
+                <h3 class="section-title">Event Metadata & Payload</h3>
+                <button mat-stroked-button (click)="copyPayload(selectedLog)" class="copy-btn">
                   <mat-icon class="sm-icon">content_copy</mat-icon>
-                  <span>Copy</span>
+                  <span>Copy JSON</span>
                 </button>
               </div>
               <pre class="json-box">{{ selectedLog.metadata ? (selectedLog.metadata | json) : '{}' }}</pre>
             </div>
           </div>
 
-          <div class="modal-footer">
+          <div class="drawer-footer">
             <button mat-flat-button color="primary" (click)="closeLogDetails()">
-              Close
+              Close Details
             </button>
           </div>
         </div>
@@ -341,7 +406,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     .audit-log-page {
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 18px;
     }
 
     .page-header {
@@ -384,13 +449,95 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       100% { transform: rotate(360deg); }
     }
 
+    /* KPI Summary Cards Grid */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 14px;
+    }
+
+    .kpi-card {
+      background: #FFFFFF;
+      border: 1px solid #E7E5E0;
+      border-radius: 12px;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+    }
+
+    .kpi-card:hover {
+      border-color: #0F5C5C;
+      transform: translateY(-1px);
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.06);
+    }
+
+    .kpi-card.kpi-active {
+      border-color: #0F5C5C;
+      background: #FAFDFD;
+    }
+
+    .kpi-icon-wrap {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .kpi-icon-wrap.primary {
+      background: #E6F2F1;
+      color: #0F5C5C;
+    }
+
+    .kpi-icon-wrap.admin {
+      background: #FEF3E8;
+      color: #B45309;
+    }
+
+    .kpi-icon-wrap.security {
+      background: #EEF2FF;
+      color: #4F46E5;
+    }
+
+    .kpi-icon-wrap.system {
+      background: #F0FDF4;
+      color: #15803D;
+    }
+
+    .kpi-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .kpi-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #6B7280;
+    }
+
+    .kpi-value {
+      font-size: 20px;
+      font-weight: 800;
+      color: #1A2E2E;
+      line-height: 1.2;
+      margin-top: 2px;
+    }
+
     /* Filter Card */
     .filter-card {
-      padding: 14px 16px !important;
-      border-radius: 10px !important;
+      padding: 14px 18px !important;
+      border-radius: 12px !important;
       background: #FFFFFF;
-      border: 1px solid #E5E7EB;
-      box-shadow: none !important;
+      border: 1px solid #E7E5E0;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
     }
 
     .filter-row {
@@ -403,9 +550,9 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     .search-box {
       display: flex;
       align-items: center;
-      background: #F9FAFB;
+      background: #FAFAF8;
       border: 1px solid #D1D5DB;
-      border-radius: 6px;
+      border-radius: 8px;
       padding: 6px 10px;
       gap: 6px;
       flex: 1;
@@ -445,7 +592,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     }
 
     .filter-field {
-      width: 150px;
+      width: 155px;
       font-size: 13px;
     }
 
@@ -455,6 +602,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
     .reset-btn {
       font-size: 12px;
+      height: 38px;
     }
 
     .filter-count {
@@ -468,10 +616,10 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     /* Table Card */
     .table-card {
       padding: 0 !important;
-      border-radius: 10px !important;
+      border-radius: 12px !important;
       background: #FFFFFF;
-      border: 1px solid #E5E7EB;
-      box-shadow: none !important;
+      border: 1px solid #E7E5E0;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
       overflow: hidden;
     }
 
@@ -486,20 +634,20 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     }
 
     .logs-table th {
-      padding: 10px 14px;
+      padding: 12px 16px;
       font-size: 11px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      color: #6B7280;
-      border-bottom: 1px solid #E5E7EB;
-      background: #F9FAFB;
+      color: #5C6B6B;
+      border-bottom: 2px solid #E7E5E0;
+      background: #FAFAF8;
       white-space: nowrap;
     }
 
     .logs-table td {
-      padding: 12px 14px;
-      border-bottom: 1px solid #F3F4F6;
+      padding: 13px 16px;
+      border-bottom: 1px solid #F1F3F5;
       font-size: 13px;
       vertical-align: middle;
     }
@@ -510,47 +658,161 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     }
 
     .log-row:hover {
-      background-color: #F9FAFB;
+      background-color: #F8FAF9;
+    }
+
+    .log-row.row-selected {
+      background-color: #EBF7F6;
     }
 
     .td-time {
-      color: #374151;
       white-space: nowrap;
+    }
+
+    .exact-time {
+      font-weight: 600;
+      color: #1A2E2E;
       font-size: 12px;
+    }
+
+    .rel-time {
+      font-size: 11px;
+      color: #8C98A4;
+      margin-top: 2px;
+    }
+
+    .actor-cell {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .actor-avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      flex-shrink: 0;
+      background: #F1F5F9;
+      color: #475569;
+    }
+
+    .actor-avatar.admin {
+      background: #FEF3E8;
+      color: #B45309;
+    }
+
+    .actor-avatar.clinic_admin {
+      background: #E6F2F1;
+      color: #0F5C5C;
+    }
+
+    .actor-avatar.doctor {
+      background: #EBF7EE;
+      color: #166534;
+    }
+
+    .actor-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
     }
 
     .actor-primary {
       font-weight: 600;
-      color: #111827;
+      color: #1A2E2E;
       font-size: 13px;
     }
 
-    .actor-role {
-      font-size: 11px;
-      color: #6B7280;
+    .role-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: #F3F4F6;
+      color: #4B5563;
+      width: fit-content;
     }
 
-    .action-tag {
+    .role-badge.admin {
+      background: #FEF3E8;
+      color: #B45309;
+    }
+
+    .role-badge.clinic_admin {
+      background: #E6F2F1;
+      color: #0F5C5C;
+    }
+
+    .role-badge.doctor {
+      background: #EBF7EE;
+      color: #15803D;
+    }
+
+    .action-badge {
       display: inline-block;
-      padding: 2px 8px;
-      border-radius: 4px;
+      padding: 3px 8px;
+      border-radius: 6px;
       font-size: 11px;
       font-family: monospace;
       font-weight: 600;
       background: #F3F4F6;
-      color: #1F2937;
+      color: #374151;
       border: 1px solid #E5E7EB;
     }
 
-    .resource-type {
-      font-weight: 500;
-      color: #374151;
+    .action-badge.auth {
+      background: #EEF2FF;
+      color: #4338CA;
+      border-color: #C7D2FE;
+    }
+
+    .action-badge.create {
+      background: #ECFDF5;
+      color: #047857;
+      border-color: #A7F3D0;
+    }
+
+    .action-badge.update {
+      background: #FFFBEB;
+      color: #B45309;
+      border-color: #FDE68A;
+    }
+
+    .action-badge.danger {
+      background: #FEF2F2;
+      color: #B91C1C;
+      border-color: #FECACA;
+    }
+
+    .resource-cell {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .res-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      color: #6B7280;
+    }
+
+    .resource-name {
+      font-weight: 600;
+      color: #1A2E2E;
+      font-size: 13px;
     }
 
     .resource-id {
       font-size: 11px;
       color: #9CA3AF;
-      margin-left: 4px;
+      margin-top: 2px;
     }
 
     .td-ip {
@@ -559,10 +821,10 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     }
 
     .view-btn {
-      color: #6B7280;
+      color: #9CA3AF;
     }
 
-    .view-btn:hover {
+    .log-row:hover .view-btn {
       color: #0F5C5C;
     }
 
@@ -571,8 +833,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 8px 16px;
-      border-top: 1px solid #E5E7EB;
+      padding: 10px 18px;
+      border-top: 1px solid #E7E5E0;
       background: #FAFAF8;
       font-size: 12px;
       color: #4B5563;
@@ -588,8 +850,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
     .page-size-select {
       border: 1px solid #D1D5DB;
-      border-radius: 4px;
-      padding: 2px 6px;
+      border-radius: 6px;
+      padding: 3px 8px;
       font-size: 12px;
       background: #FFFFFF;
       color: #374151;
@@ -621,119 +883,150 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     }
 
     .empty-icon {
-      font-size: 36px;
-      width: 36px;
-      height: 36px;
+      font-size: 38px;
+      width: 38px;
+      height: 38px;
       color: #9CA3AF;
       margin-bottom: 6px;
     }
 
     .empty-title {
-      font-size: 14px;
+      font-size: 15px;
       font-weight: 700;
       color: #111827;
       margin: 0 0 4px;
     }
 
     .empty-subtitle {
-      font-size: 12px;
+      font-size: 13px;
       color: #6B7280;
       margin: 0;
     }
 
-    /* Modal */
-    .modal-backdrop {
+    /* Slide-over Drawer Backdrop & Panel */
+    .drawer-backdrop {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.4);
+      background: rgba(0, 0, 0, 0.45);
       z-index: 1000;
       display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
+      justify-content: flex-end;
+      animation: fadeIn 0.15s ease;
     }
 
-    .modal-panel {
+    .drawer-panel {
       background: #FFFFFF;
-      border-radius: 10px;
       width: 100%;
-      max-width: 600px;
-      max-height: 85vh;
+      max-width: 580px;
+      height: 100%;
       display: flex;
       flex-direction: column;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-      overflow: hidden;
+      box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+      animation: slideInRight 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    .modal-header {
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes slideInRight {
+      from { transform: translateX(100%); }
+      to { transform: translateX(0); }
+    }
+
+    .drawer-header {
       display: flex;
       align-items: flex-start;
       justify-content: space-between;
-      padding: 16px 20px;
-      border-bottom: 1px solid #E5E7EB;
+      padding: 20px 24px;
+      border-bottom: 1px solid #E7E5E0;
+      background: #FAFAF8;
     }
 
-    .modal-title {
-      font-size: 16px;
+    .drawer-kicker {
+      font-size: 11px;
       font-weight: 700;
-      color: #111827;
-      margin: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #0F5C5C;
     }
 
-    .modal-subtitle {
-      font-size: 12px;
+    .drawer-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: #1A2E2E;
+      margin: 4px 0 2px;
+    }
+
+    .drawer-id {
+      font-size: 11px;
       color: #6B7280;
-      margin-top: 2px;
     }
 
-    .modal-body {
-      padding: 20px;
+    .drawer-body {
+      padding: 24px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 20px;
+      flex: 1;
+    }
+
+    .drawer-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .section-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #5C6B6B;
+      margin: 0;
     }
 
     .details-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 12px;
+      background: #FAFAF8;
+      border: 1px solid #E7E5E0;
+      border-radius: 8px;
+      padding: 14px;
     }
 
     .detail-item {
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: 3px;
     }
 
     .detail-lbl {
       font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      font-weight: 600;
       color: #6B7280;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
     }
 
     .detail-val {
       font-size: 13px;
-      color: #111827;
+      color: #1A2E2E;
       word-break: break-all;
     }
 
-    .detail-section {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .ua-text {
+    .ua-box {
       font-size: 11px;
       color: #4B5563;
-      background: #F9FAFB;
-      border: 1px solid #E5E7EB;
-      padding: 6px 8px;
-      border-radius: 4px;
+      background: #FAFAF8;
+      border: 1px solid #E7E5E0;
+      padding: 8px 12px;
+      border-radius: 6px;
       word-break: break-all;
+      line-height: 1.4;
     }
 
     .payload-header {
@@ -744,7 +1037,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
     .copy-btn {
       font-size: 11px;
-      height: 28px;
+      height: 30px;
     }
 
     .sm-icon {
@@ -755,23 +1048,24 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     }
 
     .json-box {
-      background: #111827;
-      color: #34D399;
-      padding: 12px;
-      border-radius: 6px;
-      font-size: 11px;
+      background: #1A2E2E;
+      color: #80E3C2;
+      padding: 14px;
+      border-radius: 8px;
+      font-size: 12px;
       font-family: monospace;
-      max-height: 220px;
+      max-height: 280px;
       overflow: auto;
       margin: 0;
+      line-height: 1.4;
     }
 
-    .modal-footer {
+    .drawer-footer {
       display: flex;
       justify-content: flex-end;
-      padding: 12px 20px;
-      border-top: 1px solid #E5E7EB;
-      background: #F9FAFB;
+      padding: 14px 24px;
+      border-top: 1px solid #E7E5E0;
+      background: #FAFAF8;
     }
   `],
 })
@@ -783,6 +1077,14 @@ export class AuditLogViewerComponent implements OnInit {
   logs: AuditLogEntry[] = [];
   filteredLogs: AuditLogEntry[] = [];
   loading = true;
+
+  stats: AuditLogStats = {
+    totalEvents: 0,
+    adminEvents: 0,
+    systemEvents: 0,
+    securityEvents: 0,
+    distinctActors: 0,
+  };
 
   searchTerm = '';
   roleFilter = 'all';
@@ -805,6 +1107,20 @@ export class AuditLogViewerComponent implements OnInit {
   }
 
   refreshNow(): void {
+    this.loadLogs();
+  }
+
+  setRoleFilter(role: string): void {
+    this.roleFilter = role;
+    this.searchTerm = '';
+    this.currentPage = 1;
+    this.loadLogs();
+  }
+
+  filterSecurityEvents(): void {
+    this.searchTerm = 'AUTH';
+    this.roleFilter = 'all';
+    this.currentPage = 1;
     this.loadLogs();
   }
 
@@ -840,6 +1156,9 @@ export class AuditLogViewerComponent implements OnInit {
           if (res.meta) {
             this.totalItems = res.meta['total'] || res.data.length;
             this.totalPages = res.meta['totalPages'] || Math.ceil(this.totalItems / this.pageSize) || 1;
+            if (res.meta['stats']) {
+              this.stats = res.meta['stats'];
+            }
           } else {
             this.totalItems = res.data.length;
             this.totalPages = 1;
@@ -894,7 +1213,7 @@ export class AuditLogViewerComponent implements OnInit {
     try {
       const json = JSON.stringify(log.metadata || log, null, 2);
       navigator.clipboard.writeText(json);
-      this.notificationService.success('Payload copied to clipboard');
+      this.notificationService.success('Audit record payload copied to clipboard');
     } catch {
       this.notificationService.error('Failed to copy to clipboard');
     }
@@ -941,6 +1260,66 @@ export class AuditLogViewerComponent implements OnInit {
         return 'System';
       default:
         return role || 'Anonymous';
+    }
+  }
+
+  getActionCategory(action: string): string {
+    if (!action) return 'system';
+    const a = action.toUpperCase();
+    if (a.includes('LOGIN') || a.includes('LOGOUT') || a.includes('AUTH') || a.includes('PASSWORD')) return 'auth';
+    if (a.includes('VERIF') || a.includes('ONBOARD') || a.includes('CREATE')) return 'create';
+    if (a.includes('UPDATE') || a.includes('SAVE') || a.includes('EDIT')) return 'update';
+    if (a.includes('CANCEL') || a.includes('REJECT') || a.includes('DELETE') || a.includes('SUSPEND')) return 'danger';
+    return 'system';
+  }
+
+  getResourceIcon(resType?: string): string {
+    switch (resType) {
+      case 'Clinic':
+        return 'domain';
+      case 'DoctorProfile':
+        return 'medical_services';
+      case 'Appointment':
+        return 'calendar_today';
+      case 'Auth':
+        return 'vpn_key';
+      case 'SystemSettings':
+        return 'settings';
+      case 'AppointmentSlot':
+        return 'event_available';
+      default:
+        return 'folder';
+    }
+  }
+
+  getActorInitials(log: AuditLogEntry): string {
+    if (log.actorName) {
+      const parts = log.actorName.split(' ');
+      if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+      return parts[0].slice(0, 2).toUpperCase();
+    }
+    if (log.actorEmail) {
+      return log.actorEmail.slice(0, 2).toUpperCase();
+    }
+    return 'SY';
+  }
+
+  getRelativeTime(timestamp?: string | Date): string {
+    if (!timestamp) return '';
+    try {
+      const d = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
+      const now = new Date();
+      const diffMs = now.getTime() - d.getTime();
+      const diffSecs = Math.floor(diffMs / 1000);
+      if (diffSecs < 60) return 'Just now';
+      const diffMins = Math.floor(diffSecs / 60);
+      if (diffMins < 60) return `${diffMins}m ago`;
+      const diffHours = Math.floor(diffMins / 60);
+      if (diffHours < 24) return `${diffHours}h ago`;
+      const diffDays = Math.floor(diffHours / 24);
+      return `${diffDays}d ago`;
+    } catch {
+      return '';
     }
   }
 }
