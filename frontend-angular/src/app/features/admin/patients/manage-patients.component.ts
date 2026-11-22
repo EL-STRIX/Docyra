@@ -69,23 +69,19 @@ interface BmiInfo {
               class="refresh-btn"
               (click)="loadPatients()"
               [disabled]="loading"
-              title="Refresh patient list"
+              title="Refresh patient directory"
             >
-              <mat-icon [class.spinning]="loading">refresh</mat-icon>
+              <mat-icon [class.spinning]="loading" class="btn-icon">refresh</mat-icon>
               <span>Refresh Directory</span>
             </button>
           </div>
         </div>
 
-        <!-- Live KPI Summary Metric Cards -->
+        <!-- Live KPI Summary Metric Cards (Clean neutral design, no highlight ring) -->
         <div class="kpi-grid">
-          <div
-            class="kpi-card"
-            [class.active-kpi]="statusFilter === 'all'"
-            (click)="setStatusFilter('all')"
-          >
+          <div class="kpi-card" (click)="setStatusFilter('all')">
             <div class="kpi-icon-wrap total">
-              <mat-icon>people</mat-icon>
+              <mat-icon class="kpi-mat-icon">people</mat-icon>
             </div>
             <div class="kpi-info">
               <span class="kpi-label">Total Patients</span>
@@ -93,13 +89,9 @@ interface BmiInfo {
             </div>
           </div>
 
-          <div
-            class="kpi-card"
-            [class.active-kpi]="statusFilter === 'active'"
-            (click)="setStatusFilter('active')"
-          >
+          <div class="kpi-card" (click)="setStatusFilter('active')">
             <div class="kpi-icon-wrap active">
-              <mat-icon>verified_user</mat-icon>
+              <mat-icon class="kpi-mat-icon">verified_user</mat-icon>
             </div>
             <div class="kpi-info">
               <span class="kpi-label">Active Accounts</span>
@@ -107,13 +99,9 @@ interface BmiInfo {
             </div>
           </div>
 
-          <div
-            class="kpi-card"
-            [class.active-kpi]="statusFilter === 'suspended'"
-            (click)="setStatusFilter('suspended')"
-          >
+          <div class="kpi-card" (click)="setStatusFilter('suspended')">
             <div class="kpi-icon-wrap suspended">
-              <mat-icon>person_off</mat-icon>
+              <mat-icon class="kpi-mat-icon">person_off</mat-icon>
             </div>
             <div class="kpi-info">
               <span class="kpi-label">Suspended Accounts</span>
@@ -123,7 +111,7 @@ interface BmiInfo {
 
           <div class="kpi-card">
             <div class="kpi-icon-wrap family">
-              <mat-icon>family_restroom</mat-icon>
+              <mat-icon class="kpi-mat-icon">family_restroom</mat-icon>
             </div>
             <div class="kpi-info">
               <span class="kpi-label">Family Dependents</span>
@@ -140,13 +128,13 @@ interface BmiInfo {
               <mat-icon class="search-icon">search</mat-icon>
               <input
                 type="text"
-                placeholder="Search patient name, email, or phone number..."
+                placeholder="Search by patient name, email, or phone number..."
                 [(ngModel)]="searchTerm"
                 (ngModelChange)="applySearch()"
                 class="search-input"
               />
               <button *ngIf="searchTerm" class="clear-search" (click)="searchTerm = ''; applySearch()">
-                <mat-icon>close</mat-icon>
+                <mat-icon class="clear-icon">close</mat-icon>
               </button>
             </div>
 
@@ -231,11 +219,11 @@ interface BmiInfo {
                   <td class="contact-cell">
                     <div class="contact-line email-line">
                       <mat-icon class="contact-icon">email</mat-icon>
-                      <span class="text-xs text-neutral-700">{{ p.email }}</span>
+                      <span class="contact-text">{{ p.email }}</span>
                     </div>
                     <div class="contact-line phone-line" *ngIf="p.phone">
                       <mat-icon class="contact-icon">call</mat-icon>
-                      <span class="text-xs text-neutral-600 font-mono">{{ p.phone }}</span>
+                      <span class="contact-text font-mono">{{ p.phone }}</span>
                     </div>
                   </td>
 
@@ -291,17 +279,16 @@ interface BmiInfo {
                     <app-status-badge [status]="p.status || 'active'"></app-status-badge>
                   </td>
 
-                  <!-- Actions Column -->
+                  <!-- Actions Column (Clean styled View Profile button with aligned icon) -->
                   <td class="actions-cell text-right" (click)="$event.stopPropagation()">
                     <div class="btn-group">
                       <button
-                        mat-button
-                        color="primary"
+                        mat-stroked-button
                         class="view-profile-btn"
                         (click)="openPatientDetails(p)"
                         matTooltip="Open Full Patient Profile Dossier"
                       >
-                        <mat-icon>visibility</mat-icon>
+                        <mat-icon class="view-icon">visibility</mat-icon>
                         <span>View Profile</span>
                       </button>
 
@@ -396,7 +383,7 @@ interface BmiInfo {
         <div class="detail-nav-bar">
           <div class="nav-left">
             <button mat-button class="back-btn" (click)="navigateToList()">
-              <mat-icon>arrow_back</mat-icon>
+              <mat-icon class="back-icon">arrow_back</mat-icon>
               <span>Back to Directory</span>
             </button>
             <div class="nav-divider"></div>
@@ -414,7 +401,7 @@ interface BmiInfo {
               [disabled]="loadingDetails"
               class="action-btn"
             >
-              <mat-icon [class.spinning]="loadingDetails">refresh</mat-icon>
+              <mat-icon [class.spinning]="loadingDetails" class="btn-icon">refresh</mat-icon>
               <span>Refresh</span>
             </button>
 
@@ -425,7 +412,7 @@ interface BmiInfo {
               (click)="togglePatientStatus(selectedPatient._id, 'suspended')"
               class="status-action-btn"
             >
-              <mat-icon>block</mat-icon>
+              <mat-icon class="btn-icon">block</mat-icon>
               <span>Suspend Account</span>
             </button>
 
@@ -436,7 +423,7 @@ interface BmiInfo {
               (click)="togglePatientStatus(selectedPatient._id, 'active')"
               class="status-action-btn"
             >
-              <mat-icon>check_circle</mat-icon>
+              <mat-icon class="btn-icon">check_circle</mat-icon>
               <span>Reactivate Account</span>
             </button>
           </div>
@@ -444,7 +431,7 @@ interface BmiInfo {
 
         <!-- Detail Loading Spinner -->
         <div *ngIf="loadingDetails && !selectedPatient" class="detail-loading-box">
-          <mat-spinner diameter="44"></mat-spinner>
+          <mat-spinner diameter="40"></mat-spinner>
           <h3>Loading Complete Patient Dossier...</h3>
           <p>Retrieving healthcare demographics, family relations, and appointment history.</p>
         </div>
@@ -494,17 +481,17 @@ interface BmiInfo {
 
                 <div class="hero-badges-row">
                   <span class="badge-item" [class.active-item]="selectedPatient.isTwoFactorEnabled || selectedPatient.twoFactorEnabled">
-                    <mat-icon>{{ (selectedPatient.isTwoFactorEnabled || selectedPatient.twoFactorEnabled) ? 'lock' : 'lock_open' }}</mat-icon>
+                    <mat-icon class="badge-icon-sm">{{ (selectedPatient.isTwoFactorEnabled || selectedPatient.twoFactorEnabled) ? 'lock' : 'lock_open' }}</mat-icon>
                     {{ (selectedPatient.isTwoFactorEnabled || selectedPatient.twoFactorEnabled) ? '2FA Enforced' : '2FA Off' }}
                   </span>
 
                   <span class="badge-item" [class.active-item]="selectedPatient.isEmailVerified || selectedPatient.emailVerifiedAt">
-                    <mat-icon>{{ (selectedPatient.isEmailVerified || selectedPatient.emailVerifiedAt) ? 'verified' : 'hourglass_empty' }}</mat-icon>
-                    {{ (selectedPatient.isEmailVerified || selectedPatient.emailVerifiedAt) ? 'Email Address Verified' : 'Email Unverified' }}
+                    <mat-icon class="badge-icon-sm">{{ (selectedPatient.isEmailVerified || selectedPatient.emailVerifiedAt) ? 'verified' : 'hourglass_empty' }}</mat-icon>
+                    {{ (selectedPatient.isEmailVerified || selectedPatient.emailVerifiedAt) ? 'Email Verified' : 'Email Unverified' }}
                   </span>
 
                   <span class="badge-item">
-                    <mat-icon>calendar_today</mat-icon>
+                    <mat-icon class="badge-icon-sm">calendar_today</mat-icon>
                     Registered on {{ selectedPatient.createdAt | portalDate:'dd MMMM yyyy' }}
                   </span>
                 </div>
@@ -914,7 +901,7 @@ interface BmiInfo {
     .manage-patients-container {
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 16px;
     }
 
     /* Page Header */
@@ -922,37 +909,37 @@ interface BmiInfo {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      gap: 16px;
+      gap: 14px;
       flex-wrap: wrap;
     }
 
     .badge-row {
-      margin-bottom: 6px;
+      margin-bottom: 4px;
     }
 
     .category-badge {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
       font-size: 11px;
       font-weight: 700;
-      padding: 3px 10px;
+      padding: 2px 9px;
       border-radius: 999px;
       background: #E6F2F1;
       color: #0F5C5C;
     }
 
     .badge-icon {
-      font-size: 14px;
-      width: 14px;
-      height: 14px;
+      font-size: 13px;
+      width: 13px;
+      height: 13px;
     }
 
     .page-title {
-      font-size: 22px;
+      font-size: 21px;
       font-weight: 800;
       color: #1A2E2E;
-      margin: 0 0 4px;
+      margin: 0 0 3px;
       letter-spacing: -0.3px;
     }
 
@@ -960,17 +947,28 @@ interface BmiInfo {
       font-size: 13px;
       color: #5C6B6B;
       margin: 0;
-      max-width: 800px;
-      line-height: 1.5;
+      max-width: 780px;
+      line-height: 1.45;
     }
 
     .refresh-btn {
-      display: flex;
+      display: inline-flex;
       align-items: center;
       gap: 6px;
-      border-color: #D3CECE !important;
-      color: #1A2E2E !important;
+      border-color: #D1D5DB !important;
+      color: #374151 !important;
       font-weight: 600 !important;
+      font-size: 12px !important;
+      height: 36px !important;
+      padding: 0 14px !important;
+      border-radius: 8px !important;
+    }
+
+    .btn-icon {
+      font-size: 16px !important;
+      width: 16px !important;
+      height: 16px !important;
+      line-height: 16px !important;
     }
 
     .spinning {
@@ -983,46 +981,45 @@ interface BmiInfo {
       }
     }
 
-    /* KPI Grid */
+    /* KPI Grid - Clean, consistent, neutral stat cards without active highlight rings */
     .kpi-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-      gap: 16px;
+      gap: 12px;
     }
 
     .kpi-card {
       background: #FFFFFF;
       border: 1px solid #E5E7EB;
-      border-radius: 12px;
-      padding: 16px 18px;
+      border-radius: 10px;
+      padding: 13px 16px;
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 12px;
       cursor: pointer;
       transition: all 0.15s ease;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
     }
 
     .kpi-card:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-      border-color: #0F5C5C;
-    }
-
-    .kpi-card.active-kpi {
-      border-color: #0F5C5C;
-      background: #F4FAF9;
-      box-shadow: 0 0 0 2px #0F5C5C;
+      border-color: #CBD5E1;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
     }
 
     .kpi-icon-wrap {
-      width: 44px;
-      height: 44px;
-      border-radius: 10px;
+      width: 40px;
+      height: 40px;
+      border-radius: 9px;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
+    }
+
+    .kpi-mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
     }
 
     .kpi-icon-wrap.total { background: #EEF2F6; color: #1E3A8A; }
@@ -1040,11 +1037,11 @@ interface BmiInfo {
       font-weight: 700;
       color: #6B7280;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.4px;
     }
 
     .kpi-value {
-      font-size: 22px;
+      font-size: 21px;
       font-weight: 800;
       color: #111827;
       line-height: 1.2;
@@ -1056,18 +1053,18 @@ interface BmiInfo {
       padding: 0 !important;
       border-radius: 12px !important;
       background: #FFFFFF;
-      border: 1px solid #E7E5E0;
+      border: 1px solid #E5E7EB;
       overflow: hidden;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
     }
 
     .toolbar-wrap {
-      padding: 14px 18px;
+      padding: 12px 16px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 16px;
-      border-bottom: 1px solid #F0EFEB;
+      gap: 14px;
+      border-bottom: 1px solid #F1F5F9;
       flex-wrap: wrap;
     }
 
@@ -1084,24 +1081,26 @@ interface BmiInfo {
       position: absolute;
       left: 12px;
       color: #9CA3AF;
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
+      font-size: 17px;
+      width: 17px;
+      height: 17px;
+      line-height: 17px;
     }
 
     .search-input {
       width: 100%;
-      padding: 8px 36px 8px 36px;
+      padding: 7px 32px 7px 36px;
       border-radius: 999px;
       border: 1px solid #D1D5DB;
-      font-size: 13px;
+      font-size: 12px;
       outline: none;
-      transition: border-color 0.2s;
+      transition: all 0.15s ease;
+      background: #FFFFFF;
     }
 
     .search-input:focus {
       border-color: #0F5C5C;
-      box-shadow: 0 0 0 3px rgba(15, 92, 92, 0.1);
+      box-shadow: 0 0 0 3px rgba(15, 92, 92, 0.08);
     }
 
     .clear-search {
@@ -1116,44 +1115,45 @@ interface BmiInfo {
       padding: 0;
     }
 
-    .clear-search mat-icon {
-      font-size: 16px;
-      width: 16px;
-      height: 16px;
+    .clear-icon {
+      font-size: 15px;
+      width: 15px;
+      height: 15px;
+      line-height: 15px;
     }
 
     .status-tabs {
       display: flex;
-      gap: 4px;
-      background: #F4F3EF;
+      gap: 3px;
+      background: #F1F5F9;
       padding: 3px;
-      border-radius: 8px;
+      border-radius: 7px;
     }
 
     .tab-btn {
-      padding: 6px 14px;
-      font-size: 12px;
+      padding: 5px 12px;
+      font-size: 11px;
       font-weight: 700;
       border: none;
       background: transparent;
-      color: #6C757D;
-      border-radius: 6px;
+      color: #64748B;
+      border-radius: 5px;
       cursor: pointer;
       transition: all 0.15s ease;
     }
 
     .tab-btn.active {
       background: #FFFFFF;
-      color: #1A2E2E;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      color: #0F172A;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
     }
 
     .tab-btn.active-tab.active {
-      color: #2E9E6B;
+      color: #15803D;
     }
 
     .tab-btn.suspended-tab.active {
-      color: #D9534F;
+      color: #B91C1C;
     }
 
     .table-container {
@@ -1168,54 +1168,56 @@ interface BmiInfo {
     }
 
     .patients-table th {
-      padding: 12px 16px;
+      padding: 10px 14px;
       font-size: 11px;
-      font-weight: 800;
+      font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: #5C6B6B;
-      background: #F9F9F7;
-      border-bottom: 1px solid #E7E5E0;
+      letter-spacing: 0.4px;
+      color: #475569;
+      background: #F8FAFC;
+      border-bottom: 1px solid #E2E8F0;
       white-space: nowrap;
     }
 
     .patients-table td {
-      padding: 14px 16px;
-      border-bottom: 1px solid #E7E5E0;
-      font-size: 13px;
+      padding: 12px 14px;
+      border-bottom: 1px solid #F1F5F9;
+      font-size: 12px;
       vertical-align: middle;
     }
 
     .patient-row:hover {
-      background-color: #FAFAF8;
+      background-color: #F8FAFC;
     }
 
     .suspended-row {
-      background-color: #FFF9F9;
+      background-color: #FFF8F8;
     }
 
     .patient-identity-wrap {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
     }
 
     .patient-avatar {
-      width: 38px;
-      height: 38px;
+      width: 36px;
+      height: 36px;
       border-radius: 50%;
       background: #0F5C5C;
       color: #FFFFFF;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 700;
       flex-shrink: 0;
+      border: 1px solid #BCE0DE;
     }
 
     .patient-avatar.suspended {
       background: #D9534F;
+      border-color: #F8CECE;
     }
 
     .contact-cell {
@@ -1227,55 +1229,65 @@ interface BmiInfo {
     .contact-line {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
     }
 
     .contact-icon {
       font-size: 14px;
       width: 14px;
       height: 14px;
-      color: #9E9E9E;
+      line-height: 14px;
+      color: #94A3B8;
+    }
+
+    .contact-text {
+      color: #334155;
+      font-size: 12px;
     }
 
     .security-tags-wrap {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 3px;
     }
 
     .security-tag, .verify-tag {
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 700;
-      padding: 2px 8px;
-      border-radius: 999px;
+      padding: 2px 7px;
+      border-radius: 4px;
       width: fit-content;
-      background: #F1F3F5;
-      color: #6C757D;
+      background: #F1F5F9;
+      color: #64748B;
+      border: 1px solid #E2E8F0;
     }
 
     .security-tag.enabled {
-      background: #EBF7EE;
-      color: #2E9E6B;
+      background: #DCFCE7;
+      color: #166534;
+      border-color: #BBF7D0;
     }
 
     .verify-tag.verified {
-      background: #E6F2F1;
-      color: #0F5C5C;
+      background: #E0F2FE;
+      color: #0369A1;
+      border-color: #BAE6FD;
     }
 
     .tag-icon {
-      font-size: 12px;
-      width: 12px;
-      height: 12px;
+      font-size: 11px;
+      width: 11px;
+      height: 11px;
+      line-height: 11px;
     }
 
     .utilization-wrap {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 3px;
     }
 
     .meta-stat-pill {
@@ -1284,48 +1296,81 @@ interface BmiInfo {
       gap: 4px;
       font-size: 11px;
       font-weight: 600;
-      color: #4A5568;
+      color: #475569;
     }
 
     .stat-pill-icon {
-      font-size: 14px;
-      width: 14px;
-      height: 14px;
-      color: #718096;
+      font-size: 13px;
+      width: 13px;
+      height: 13px;
+      line-height: 13px;
+      color: #64748B;
     }
 
+    /* Clean View Profile action button with perfectly aligned icon */
     .view-profile-btn {
-      font-size: 12px !important;
+      height: 30px !important;
+      padding: 0 10px !important;
+      font-size: 11px !important;
       font-weight: 700 !important;
       color: #0F5C5C !important;
+      border-color: #BCE0DE !important;
+      background: #F4FAF9 !important;
+      border-radius: 6px !important;
       display: inline-flex !important;
       align-items: center !important;
-      gap: 4px !important;
+      gap: 5px !important;
+      line-height: 1 !important;
+      transition: all 0.15s ease !important;
+    }
+
+    .view-profile-btn:hover {
+      background: #E6F2F1 !important;
+      border-color: #0F5C5C !important;
+    }
+
+    .view-icon {
+      font-size: 15px !important;
+      width: 15px !important;
+      height: 15px !important;
+      line-height: 15px !important;
+      color: #0F5C5C !important;
     }
 
     .btn-group {
-      display: flex;
+      display: inline-flex;
       align-items: center;
       justify-content: flex-end;
-      gap: 8px;
+      gap: 6px;
     }
 
     .btn-sm {
-      padding: 2px 10px !important;
+      height: 30px !important;
+      padding: 0 10px !important;
       font-size: 11px !important;
       font-weight: 700 !important;
       border-radius: 6px !important;
       min-width: unset !important;
+      line-height: 1 !important;
     }
 
     .suspend-btn {
-      border-color: #F8CECE !important;
-      color: #D9534F !important;
+      border-color: #FECACA !important;
+      color: #DC2626 !important;
+      background: #FEF2F2 !important;
+    }
+
+    .suspend-btn:hover {
+      background: #FEE2E2 !important;
     }
 
     .activate-btn {
-      background: #2E9E6B !important;
+      background: #16A34A !important;
       color: #FFFFFF !important;
+    }
+
+    .activate-btn:hover {
+      background: #15803D !important;
     }
 
     /* Pagination Bar */
@@ -1333,13 +1378,13 @@ interface BmiInfo {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 20px;
-      background: #FAFAF8;
-      border-top: 1px solid #E7E5E0;
+      padding: 10px 16px;
+      background: #F8FAFC;
+      border-top: 1px solid #E2E8F0;
       font-size: 12px;
-      color: #6C757D;
+      color: #64748B;
       flex-wrap: wrap;
-      gap: 12px;
+      gap: 10px;
     }
 
     .page-size-selector {
@@ -1349,25 +1394,25 @@ interface BmiInfo {
     }
 
     .page-size-dropdown {
-      border: 1px solid #D3CECE;
+      border: 1px solid #CBD5E1;
       border-radius: 6px;
-      padding: 4px 8px;
+      padding: 3px 8px;
       background: #FFFFFF;
       font-size: 12px;
       font-weight: 600;
-      color: #1A2E2E;
+      color: #0F172A;
     }
 
     .pagination-buttons {
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 3px;
     }
 
     .current-page-num {
       font-weight: 700;
-      padding: 0 8px;
-      color: #1A2E2E;
+      padding: 0 6px;
+      color: #0F172A;
     }
 
     .loading-wrap, .empty-state {
@@ -1375,21 +1420,21 @@ interface BmiInfo {
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 48px;
+      padding: 40px;
       text-align: center;
-      gap: 8px;
+      gap: 6px;
     }
 
     .empty-icon-wrap {
-      width: 52px;
-      height: 52px;
+      width: 48px;
+      height: 48px;
       border-radius: 50%;
-      background: #F4F3EF;
+      background: #F1F5F9;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #9E9E9E;
-      margin-bottom: 8px;
+      color: #94A3B8;
+      margin-bottom: 6px;
     }
 
     /* ====================================================================== */
@@ -1398,7 +1443,7 @@ interface BmiInfo {
     .patient-full-page {
       display: flex;
       flex-direction: column;
-      gap: 18px;
+      gap: 14px;
     }
 
     .detail-nav-bar {
@@ -1406,46 +1451,54 @@ interface BmiInfo {
       justify-content: space-between;
       align-items: center;
       background: #FFFFFF;
-      padding: 10px 18px;
-      border-radius: 12px;
-      border: 1px solid #E7E5E0;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      padding: 10px 16px;
+      border-radius: 10px;
+      border: 1px solid #E5E7EB;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
       flex-wrap: wrap;
-      gap: 12px;
+      gap: 10px;
     }
 
     .nav-left {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       flex-wrap: wrap;
     }
 
     .back-btn {
       font-weight: 700 !important;
       color: #0F5C5C !important;
-      display: flex;
+      display: inline-flex;
       align-items: center;
-      gap: 6px;
-      font-size: 13px !important;
-      padding: 0 8px !important;
+      gap: 5px;
+      font-size: 12px !important;
+      padding: 0 6px !important;
+      height: 32px !important;
+    }
+
+    .back-icon {
+      font-size: 16px !important;
+      width: 16px !important;
+      height: 16px !important;
+      line-height: 16px !important;
     }
 
     .nav-divider {
       width: 1px;
-      height: 20px;
-      background: #E7E5E0;
+      height: 18px;
+      background: #E2E8F0;
     }
 
     .nav-breadcrumbs {
       display: flex;
       align-items: center;
-      gap: 4px;
-      font-size: 13px;
+      gap: 3px;
+      font-size: 12px;
     }
 
     .crumb-link {
-      color: #718096;
+      color: #64748B;
       cursor: pointer;
       font-weight: 600;
     }
@@ -1456,34 +1509,43 @@ interface BmiInfo {
     }
 
     .crumb-sep {
-      font-size: 16px;
-      width: 16px;
-      height: 16px;
-      color: #A0AEC0;
+      font-size: 15px;
+      width: 15px;
+      height: 15px;
+      line-height: 15px;
+      color: #94A3B8;
     }
 
     .crumb-active {
       font-weight: 700;
-      color: #1A2E2E;
+      color: #0F172A;
     }
 
     .nav-actions {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
 
     .action-btn {
-      border-color: #D3CECE !important;
-      color: #1A2E2E !important;
+      border-color: #D1D5DB !important;
+      color: #374151 !important;
       font-weight: 600 !important;
+      font-size: 12px !important;
+      height: 32px !important;
+      padding: 0 10px !important;
+      border-radius: 6px !important;
     }
 
     .status-action-btn {
-      display: flex;
+      display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
       font-weight: 700 !important;
+      font-size: 12px !important;
+      height: 32px !important;
+      padding: 0 12px !important;
+      border-radius: 6px !important;
     }
 
     .detail-loading-box {
@@ -1491,107 +1553,107 @@ interface BmiInfo {
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 64px 20px;
+      padding: 48px 16px;
       text-align: center;
-      gap: 12px;
+      gap: 10px;
     }
 
     .dossier-body {
       display: flex;
       flex-direction: column;
-      gap: 18px;
+      gap: 14px;
     }
 
     /* Hero Card */
     .hero-card {
-      padding: 20px 24px !important;
-      border-radius: 12px !important;
+      padding: 16px 20px !important;
+      border-radius: 10px !important;
       background: #FFFFFF;
-      border: 1px solid #E7E5E0;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      border: 1px solid #E5E7EB;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
     }
 
     .hero-content {
       display: flex;
       align-items: center;
-      gap: 20px;
+      gap: 18px;
       flex-wrap: wrap;
     }
 
     .hero-avatar {
-      width: 68px;
-      height: 68px;
+      width: 60px;
+      height: 60px;
       border-radius: 50%;
       background: #0F5C5C;
       color: #FFFFFF;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 24px;
+      font-size: 20px;
       font-weight: 800;
-      box-shadow: 0 4px 12px rgba(15, 92, 92, 0.12);
       border: 3px solid #E6F2F1;
       flex-shrink: 0;
     }
 
     .hero-avatar.suspended {
       background: #D9534F;
-      border-color: #FDF2F2;
+      border-color: #FEE2E2;
     }
 
     .hero-info {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
       flex: 1;
     }
 
     .hero-title-row {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       flex-wrap: wrap;
     }
 
     .patient-full-name {
-      font-size: 22px;
+      font-size: 20px;
       font-weight: 800;
-      color: #1A2E2E;
+      color: #0F172A;
       margin: 0;
       letter-spacing: -0.3px;
     }
 
     .role-pill {
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 700;
-      padding: 2px 10px;
+      padding: 2px 8px;
       border-radius: 999px;
       background: #E6F2F1;
       color: #0F5C5C;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.4px;
     }
 
     .hero-meta-row {
       display: flex;
       align-items: center;
-      gap: 18px;
+      gap: 16px;
       flex-wrap: wrap;
-      font-size: 13px;
+      font-size: 12px;
     }
 
     .meta-item {
       display: flex;
       align-items: center;
-      gap: 6px;
-      color: #4A5568;
+      gap: 5px;
+      color: #475569;
     }
 
     .meta-icon {
-      font-size: 16px;
-      width: 16px;
-      height: 16px;
-      color: #718096;
+      font-size: 15px;
+      width: 15px;
+      height: 15px;
+      line-height: 15px;
+      color: #64748B;
     }
 
     .meta-link {
@@ -1605,8 +1667,8 @@ interface BmiInfo {
     }
 
     .mini-copy-btn {
-      width: 24px !important;
-      height: 24px !important;
+      width: 22px !important;
+      height: 22px !important;
       padding: 0 !important;
       display: inline-flex !important;
       align-items: center !important;
@@ -1614,55 +1676,56 @@ interface BmiInfo {
     }
 
     .copy-icon {
-      font-size: 14px;
-      width: 14px;
-      height: 14px;
-      color: #A0AEC0;
+      font-size: 13px;
+      width: 13px;
+      height: 13px;
+      color: #94A3B8;
     }
 
     .hero-badges-row {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
       flex-wrap: wrap;
-      margin-top: 2px;
+      margin-top: 1px;
     }
 
     .badge-item {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
       font-size: 11px;
       font-weight: 600;
-      padding: 3px 10px;
-      border-radius: 6px;
-      background: #F7FAFC;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: #F8FAFC;
       border: 1px solid #E2E8F0;
-      color: #4A5568;
+      color: #475569;
     }
 
-    .badge-item mat-icon {
-      font-size: 14px;
-      width: 14px;
-      height: 14px;
-      color: #718096;
+    .badge-icon-sm {
+      font-size: 13px;
+      width: 13px;
+      height: 13px;
+      line-height: 13px;
+      color: #64748B;
     }
 
     .badge-item.active-item {
-      background: #EBF7EE;
-      border-color: #C3ECD0;
-      color: #15803D;
+      background: #DCFCE7;
+      border-color: #BBF7D0;
+      color: #166534;
     }
 
-    .badge-item.active-item mat-icon {
-      color: #15803D;
+    .badge-item.active-item .badge-icon-sm {
+      color: #166534;
     }
 
-    /* 2-Column Responsive Dossier Grid */
+    /* 2-Column Responsive Dossier Grid with tight clean gaps */
     .dossier-grid {
       display: grid;
       grid-template-columns: 360px minmax(0, 1fr);
-      gap: 20px;
+      gap: 14px;
       align-items: start;
     }
 
@@ -1675,39 +1738,39 @@ interface BmiInfo {
     .dossier-left-col {
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 12px;
     }
 
     .dossier-right-col {
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 12px;
       min-width: 0;
     }
 
     .spec-card {
-      padding: 18px 20px !important;
-      border-radius: 12px !important;
+      padding: 16px 18px !important;
+      border-radius: 10px !important;
       background: #FFFFFF;
-      border: 1px solid #E7E5E0;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      border: 1px solid #E5E7EB;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 12px;
     }
 
     .card-section-header {
       display: flex;
       align-items: center;
-      gap: 12px;
-      border-bottom: 1px solid #F0EFEB;
-      padding-bottom: 12px;
+      gap: 10px;
+      border-bottom: 1px solid #F1F5F9;
+      padding-bottom: 10px;
     }
 
     .sec-icon-wrap {
-      width: 36px;
-      height: 36px;
-      border-radius: 8px;
+      width: 32px;
+      height: 32px;
+      border-radius: 7px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1719,54 +1782,55 @@ interface BmiInfo {
     .sec-icon-wrap.success { background: #EBF7EE; color: #2E9E6B; }
 
     .sec-icon {
-      font-size: 20px;
-      width: 20px;
-      height: 20px;
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      line-height: 18px;
     }
 
     .sec-title {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 800;
-      color: #1A2E2E;
+      color: #0F172A;
       margin: 0;
     }
 
     .sec-subtitle {
       font-size: 11px;
-      color: #718096;
+      color: #64748B;
       margin: 1px 0 0;
     }
 
     .spec-list {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 8px;
     }
 
     .spec-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       font-size: 12px;
     }
 
     .spec-row-stacked {
       display: flex;
       flex-direction: column;
-      gap: 5px;
+      gap: 4px;
       font-size: 12px;
     }
 
     .spec-label {
-      color: #5C6B6B;
+      color: #64748B;
       font-weight: 600;
-      font-size: 12px;
+      font-size: 11px;
     }
 
     .spec-value {
       font-weight: 700;
-      color: #1A2E2E;
+      color: #0F172A;
       text-align: right;
     }
 
@@ -1777,56 +1841,57 @@ interface BmiInfo {
     .tag-box {
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 6px 10px;
-      border-radius: 6px;
-      font-size: 12px;
+      gap: 6px;
+      padding: 5px 9px;
+      border-radius: 5px;
+      font-size: 11px;
       font-weight: 600;
     }
 
     .allergy-box {
-      background: #FDF2F2;
+      background: #FEF2F2;
       color: #B91C1C;
       border: 1px solid #FECACA;
     }
 
     .condition-box {
-      background: #FEF3E8;
-      color: #9A3412;
-      border: 1px solid #FED7AA;
+      background: #FFFBEB;
+      color: #92400E;
+      border: 1px solid #FDE68A;
     }
 
     .empty-tag-box {
       display: flex;
       align-items: center;
-      gap: 6px;
-      padding: 6px 10px;
-      border-radius: 6px;
+      gap: 5px;
+      padding: 5px 9px;
+      border-radius: 5px;
       background: #F0FDF4;
       color: #166534;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
       border: 1px solid #BBF7D0;
     }
 
     .box-tag-icon {
-      font-size: 16px;
-      width: 16px;
-      height: 16px;
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+      line-height: 14px;
     }
 
     .blood-pill {
       font-weight: 800;
       color: #B91C1C;
       background: #FEF2F2;
-      padding: 2px 8px;
-      border-radius: 6px;
+      padding: 1px 7px;
+      border-radius: 4px;
       border: 1px solid #FECACA;
     }
 
     .bmi-pill {
-      padding: 2px 8px;
-      border-radius: 6px;
+      padding: 1px 7px;
+      border-radius: 4px;
       font-size: 11px;
       font-weight: 700;
     }
@@ -1850,56 +1915,57 @@ interface BmiInfo {
     }
 
     .security-level-pill {
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 700;
-      padding: 3px 8px;
-      border-radius: 6px;
-      background: #F1F3F5;
-      color: #4A5568;
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: #F1F5F9;
+      color: #475569;
+      border: 1px solid #E2E8F0;
     }
 
     .security-level-pill.high {
-      background: #EBF7EE;
-      color: #15803D;
-      border: 1px solid #C3ECD0;
+      background: #DCFCE7;
+      color: #166534;
+      border-color: #BBF7D0;
     }
 
     /* Section Cards (Dependents & Appointments) */
     .section-card {
-      padding: 20px 22px !important;
-      border-radius: 12px !important;
+      padding: 16px 18px !important;
+      border-radius: 10px !important;
       background: #FFFFFF;
-      border: 1px solid #E7E5E0;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      border: 1px solid #E5E7EB;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 12px;
     }
 
     .section-header-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 1px solid #F0EFEB;
-      padding-bottom: 12px;
+      border-bottom: 1px solid #F1F5F9;
+      padding-bottom: 10px;
     }
 
     .section-title-wrap {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
     }
 
     .section-heading {
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 800;
-      color: #1A2E2E;
+      color: #0F172A;
       margin: 0;
     }
 
     .section-subheading {
-      font-size: 12px;
-      color: #718096;
+      font-size: 11px;
+      color: #64748B;
       margin: 1px 0 0;
     }
 
@@ -1908,67 +1974,67 @@ interface BmiInfo {
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 32px 16px;
+      padding: 28px 14px;
       text-align: center;
-      color: #718096;
+      color: #64748B;
     }
 
     .empty-dependents-state .empty-icon, .empty-appointments-state .empty-icon {
-      font-size: 40px;
-      width: 40px;
-      height: 40px;
-      color: #A0AEC0;
-      margin-bottom: 6px;
+      font-size: 36px;
+      width: 36px;
+      height: 36px;
+      color: #94A3B8;
+      margin-bottom: 4px;
     }
 
     .empty-dependents-state h4, .empty-appointments-state h4 {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 700;
-      color: #2D3748;
-      margin: 0 0 3px;
+      color: #1E293B;
+      margin: 0 0 2px;
     }
 
     .empty-dependents-state p, .empty-appointments-state p {
-      font-size: 12px;
-      color: #718096;
+      font-size: 11px;
+      color: #64748B;
       margin: 0;
-      max-width: 480px;
+      max-width: 440px;
     }
 
     /* Dependents Grid */
     .dependents-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 14px;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 10px;
     }
 
     .dep-profile-card {
-      padding: 14px 16px;
-      border-radius: 10px;
-      border: 1px solid #E7E5E0;
-      background: #FAFAF8;
+      padding: 12px 14px;
+      border-radius: 8px;
+      border: 1px solid #E2E8F0;
+      background: #F8FAFC;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 8px;
     }
 
     .dep-header {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
 
     .dep-avatar {
-      width: 36px;
-      height: 36px;
+      width: 32px;
+      height: 32px;
       border-radius: 50%;
-      background: #319795;
+      background: #0F5C5C;
       color: #FFFFFF;
       font-weight: 700;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 13px;
+      font-size: 12px;
       flex-shrink: 0;
     }
 
@@ -1981,7 +2047,7 @@ interface BmiInfo {
     .dep-name {
       font-size: 13px;
       font-weight: 800;
-      color: #1A2E2E;
+      color: #0F172A;
       margin: 0;
     }
 
@@ -1990,7 +2056,7 @@ interface BmiInfo {
       font-weight: 700;
       color: #0F5C5C;
       background: #E6F2F1;
-      padding: 1px 7px;
+      padding: 1px 6px;
       border-radius: 999px;
       width: fit-content;
     }
@@ -1998,8 +2064,8 @@ interface BmiInfo {
     .dep-details-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 6px 10px;
-      font-size: 12px;
+      gap: 5px 8px;
+      font-size: 11px;
     }
 
     .dep-field {
@@ -2013,7 +2079,7 @@ interface BmiInfo {
     }
 
     .df-lbl {
-      color: #718096;
+      color: #64748B;
       font-size: 10px;
       font-weight: 600;
       text-transform: uppercase;
@@ -2021,12 +2087,12 @@ interface BmiInfo {
     }
 
     .df-val {
-      color: #1A2E2E;
+      color: #0F172A;
       font-weight: 700;
-      font-size: 12px;
+      font-size: 11px;
     }
 
-    /* Appointments Table */
+    /* Appointments Table with crisp look */
     .appointments-history-table {
       width: 100%;
       border-collapse: collapse;
@@ -2034,38 +2100,43 @@ interface BmiInfo {
     }
 
     .appointments-history-table th {
-      padding: 10px 12px;
+      padding: 9px 12px;
       font-size: 11px;
-      font-weight: 800;
+      font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: #5C6B6B;
-      background: #F9F9F7;
-      border-bottom: 1px solid #E7E5E0;
+      letter-spacing: 0.4px;
+      color: #475569;
+      background: #F8FAFC;
+      border-bottom: 1px solid #E2E8F0;
       white-space: nowrap;
     }
 
     .appointments-history-table td {
-      padding: 12px;
-      border-bottom: 1px solid #E7E5E0;
-      font-size: 13px;
+      padding: 10px 12px;
+      border-bottom: 1px solid #F1F5F9;
+      font-size: 12px;
       vertical-align: middle;
+    }
+
+    .apt-row:hover {
+      background-color: #F8FAFC;
     }
 
     .apt-date-text {
       font-weight: 700;
-      color: #1A2E2E;
+      color: #0F172A;
       font-size: 12px;
     }
 
     .apt-time-text {
       font-size: 11px;
-      color: #718096;
-      margin-top: 2px;
+      color: #64748B;
+      margin-top: 1px;
     }
 
     .doctor-name {
-      font-size: 13px;
+      font-size: 12px;
+      color: #0F172A;
     }
 
     .doctor-spec-chip {
@@ -2073,7 +2144,7 @@ interface BmiInfo {
       font-weight: 600;
       color: #0F5C5C;
       background: #E6F2F1;
-      padding: 1px 6px;
+      padding: 1px 5px;
       border-radius: 4px;
       width: fit-content;
       margin-top: 2px;
@@ -2081,16 +2152,22 @@ interface BmiInfo {
 
     .clinic-name {
       font-size: 12px;
+      color: #334155;
+    }
+
+    .clinic-city {
+      font-size: 11px;
+      color: #64748B;
     }
 
     .beneficiary-pill {
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      gap: 3px;
       font-size: 11px;
       font-weight: 700;
-      padding: 2px 7px;
-      border-radius: 6px;
+      padding: 1px 6px;
+      border-radius: 4px;
       background: #FEF3E8;
       color: #C05621;
     }
@@ -2101,31 +2178,32 @@ interface BmiInfo {
     }
 
     .ben-icon {
-      font-size: 13px;
-      width: 13px;
-      height: 13px;
+      font-size: 12px;
+      width: 12px;
+      height: 12px;
+      line-height: 12px;
     }
 
     .reason-text {
       font-size: 12px;
-      color: #2D3748;
+      color: #334155;
     }
 
     .prescription-pill {
       display: inline-block;
       font-size: 10px;
       font-weight: 600;
-      color: #2E9E6B;
-      background: #EBF7EE;
-      padding: 1px 6px;
-      border-radius: 4px;
-      margin-top: 3px;
+      color: #166534;
+      background: #DCFCE7;
+      padding: 1px 5px;
+      border-radius: 3px;
+      margin-top: 2px;
     }
 
     .cancel-reason-text {
       font-size: 11px;
-      color: #D9534F;
-      margin-top: 2px;
+      color: #B91C1C;
+      margin-top: 1px;
       font-weight: 600;
     }
   `],
