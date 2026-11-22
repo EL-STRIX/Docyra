@@ -122,6 +122,7 @@ export const routes: Routes = [
           { path: 'applications', redirectTo: 'dashboard', pathMatch: 'full' },
           { path: 'specializations', component: ManageSpecializationsComponent },
           { path: 'patients', component: ManagePatientsComponent },
+          { path: 'patients/:id', component: ManagePatientsComponent },
           { path: 'audit-logs', component: AuditLogViewerComponent },
           { path: 'analytics', component: AnalyticsReportsComponent },
           { path: 'settings', component: SystemSettingsComponent },

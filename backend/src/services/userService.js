@@ -300,18 +300,28 @@ class UserService {
    * Get comprehensive patient profile with dependents and appointment timeline
    */
   async getUserDetail(userId) {
-    const user = await User.findById(userId).lean();
+    const user = await User.findById(userId)
+      .populate('clinicId', 'name city address contactPhone contactEmail')
+      .lean();
     if (!user) {
       throw new NotFoundError('User not found', ERROR_CODES.NOT_FOUND);
     }
 
     const [dependents, appointments] = await Promise.all([
-      Dependent.find({ patientId: userId }).lean(),
+      Dependent.find({ patientId: userId }).sort({ createdAt: -1 }).lean(),
       Appointment.find({ patientId: userId })
         .populate('clinicId', 'name city address contactPhone')
-        .populate('doctorId', 'name email')
+        .populate({
+          path: 'doctorId',
+          select: 'userId clinicId specializationId title consultationFee feeCurrency slotDurationMinutes',
+          populate: [
+            { path: 'userId', select: 'name email phone profilePhotoUrl' },
+            { path: 'specializationId', select: 'name description' },
+          ],
+        })
+        .populate('bookedForId')
         .sort({ slotStart: -1 })
-        .limit(10)
+        .limit(50)
         .lean(),
     ]);
 
@@ -343,8 +353,18 @@ class UserService {
           status: 'active',
           role: 'patient',
           twoFactorEnabled: true,
-          emailVerifiedAt: new Date(),
+          emailVerifiedAt: new Date('2024-03-15T10:30:00Z'),
           acceptedTermsVersion: '1.0',
+          bloodGroup: 'B+',
+          dateOfBirth: new Date('1992-06-14'),
+          gender: 'male',
+          allergies: 'Penicillin, Peanuts',
+          chronicConditions: 'Mild Asthma',
+          emergencyContactName: 'Meera Patel',
+          emergencyContactPhone: '+91 98201 54321',
+          heightCm: 178,
+          weightKg: 74,
+          timezone: 'Asia/Kolkata',
         },
         {
           name: 'Ananya Sen',
@@ -353,8 +373,18 @@ class UserService {
           status: 'active',
           role: 'patient',
           twoFactorEnabled: false,
-          emailVerifiedAt: new Date(),
+          emailVerifiedAt: new Date('2024-05-20T14:15:00Z'),
           acceptedTermsVersion: '1.0',
+          bloodGroup: 'O+',
+          dateOfBirth: new Date('1996-11-22'),
+          gender: 'female',
+          allergies: 'None reported',
+          chronicConditions: 'None reported',
+          emergencyContactName: 'Rohan Sen',
+          emergencyContactPhone: '+91 98310 99881',
+          heightCm: 164,
+          weightKg: 58,
+          timezone: 'Asia/Kolkata',
         },
         {
           name: 'Rahul Verma',
@@ -363,8 +393,18 @@ class UserService {
           status: 'suspended',
           role: 'patient',
           twoFactorEnabled: false,
-          emailVerifiedAt: new Date(),
+          emailVerifiedAt: new Date('2023-10-10T09:00:00Z'),
           acceptedTermsVersion: '1.0',
+          bloodGroup: 'AB+',
+          dateOfBirth: new Date('1988-04-03'),
+          gender: 'male',
+          allergies: 'Sulfa antibiotics',
+          chronicConditions: 'Hypertension',
+          emergencyContactName: 'Sanjay Verma',
+          emergencyContactPhone: '+91 98450 11223',
+          heightCm: 172,
+          weightKg: 82,
+          timezone: 'Asia/Kolkata',
         },
         {
           name: 'Kavita Menon',
@@ -373,18 +413,60 @@ class UserService {
           status: 'active',
           role: 'patient',
           twoFactorEnabled: true,
-          emailVerifiedAt: new Date(),
+          emailVerifiedAt: new Date('2024-01-08T11:45:00Z'),
           acceptedTermsVersion: '1.0',
+          bloodGroup: 'A+',
+          dateOfBirth: new Date('1990-09-18'),
+          gender: 'female',
+          allergies: 'Latex, Shellfish',
+          chronicConditions: 'Migraine',
+          emergencyContactName: 'Deepak Menon',
+          emergencyContactPhone: '+91 94470 88776',
+          heightCm: 160,
+          weightKg: 55,
+          timezone: 'Asia/Kolkata',
         },
       ];
 
       for (const p of samplePatients) {
         const existing = await User.findOne({ email: p.email });
         if (!existing) {
-          await User.create({
+          const created = await User.create({
             ...p,
             passwordHash: '$2b$12$eXoPzKkS3WfW8fP2wE6Dpe7wQY.UeTf8uR9gP2i7jN1f6s9jX.7O2', // Password@123
           });
+
+          // Seed sample dependent for Aarav Patel
+          if (p.name === 'Aarav Patel') {
+            await Dependent.create({
+              patientId: created._id,
+              name: 'Vihaan Patel',
+              relationship: 'child',
+              dateOfBirth: new Date('2018-08-10'),
+              gender: 'male',
+              bloodGroup: 'B+',
+              allergies: 'Dust, Pollen',
+              chronicConditions: 'None',
+              emergencyContactName: 'Meera Patel',
+              emergencyContactPhone: '+91 98201 54321',
+              heightCm: 122,
+              weightKg: 24,
+            });
+            await Dependent.create({
+              patientId: created._id,
+              name: 'Meera Patel',
+              relationship: 'spouse',
+              dateOfBirth: new Date('1994-01-25'),
+              gender: 'female',
+              bloodGroup: 'O+',
+              allergies: 'None',
+              chronicConditions: 'None',
+              emergencyContactName: 'Aarav Patel',
+              emergencyContactPhone: '+91 98201 12345',
+              heightCm: 165,
+              weightKg: 60,
+            });
+          }
         }
       }
     } catch (err) {

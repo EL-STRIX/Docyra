@@ -120,7 +120,7 @@ export class AdminService {
 
   // Patients Management
   getPatients(params?: PaginationParams): Observable<ApiResponse<User[]>> {
-    let httpParams = new HttpParams().set('role', 'patient');
+    let httpParams = new HttpParams().set('role', 'patient').set('limit', '100');
     if (params) {
       Object.keys(params).forEach((key) => {
         if (params[key] !== undefined && params[key] !== null) {

@@ -19,9 +19,24 @@ export interface User {
   emailVerifiedAt?: string;
   appointmentsCount?: number;
   dependentsCount?: number;
-  clinicId?: string; // Set for clinic_admin and clinic-affiliated doctors
+  clinicId?: any; // String ID or populated Clinic object
+  clinic?: any;
   status?: 'active' | 'suspended' | 'pending';
   timezone?: string;
+  bloodGroup?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  allergies?: string;
+  chronicConditions?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  heightCm?: number;
+  weightKg?: number;
+  profilePhotoUrl?: string;
+  acceptedTermsVersion?: string;
+  acceptedTermsAt?: string;
+  failedLoginCount?: number;
+  lockedUntil?: string;
   consent?: UserConsent;
   createdAt?: string;
   updatedAt?: string;
