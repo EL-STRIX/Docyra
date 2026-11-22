@@ -1,3 +1,19 @@
+export interface HospitalReport {
+  clinicId: string;
+  name: string;
+  city: string;
+  address?: any;
+  status: string;
+  isActive: boolean;
+  rating: number;
+  reviewCount: number;
+  totalAppointments: number;
+  completedAppointments: number;
+  cancelledAppointments: number;
+  totalIncome: number;
+  doctorsCount: number;
+}
+
 export interface AnalyticsSummary {
   totalAppointments: number;
   completedAppointments: number;
@@ -24,6 +40,8 @@ export interface AnalyticsSummary {
     appointmentsCount: number;
     rating: number;
   }>;
+  hospitalReports?: HospitalReport[];
+  clinicReports?: HospitalReport[];
 }
 
 export interface SystemSettings {

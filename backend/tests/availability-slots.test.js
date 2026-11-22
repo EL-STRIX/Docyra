@@ -413,5 +413,29 @@ describe('Phase 5: Availability Rules & Slot Generation Engine Tests', () => {
 
       expect(res.statusCode).toBe(403);
     });
+
+    it('GET /api/v1/admin/analytics should return overall figures and per-hospital performance reports', async () => {
+      const res = await request(app)
+        .get('/api/v1/admin/analytics')
+        .set('Authorization', `Bearer ${adminToken}`);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toHaveProperty('totalAppointments');
+      expect(res.body.data).toHaveProperty('completedAppointments');
+      expect(res.body.data).toHaveProperty('cancelledAppointments');
+      expect(res.body.data).toHaveProperty('revenueEstimated');
+      expect(res.body.data).toHaveProperty('hospitalReports');
+      expect(Array.isArray(res.body.data.hospitalReports)).toBe(true);
+      if (res.body.data.hospitalReports.length > 0) {
+        const report = res.body.data.hospitalReports[0];
+        expect(report).toHaveProperty('name');
+        expect(report).toHaveProperty('totalAppointments');
+        expect(report).toHaveProperty('completedAppointments');
+        expect(report).toHaveProperty('cancelledAppointments');
+        expect(report).toHaveProperty('totalIncome');
+        expect(report).toHaveProperty('doctorsCount');
+      }
+    });
   });
 });

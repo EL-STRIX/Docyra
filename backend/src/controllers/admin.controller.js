@@ -59,10 +59,31 @@ export const getPlatformAnalytics = asyncHandler(async (req, res) => {
     User.countDocuments({ role: ROLES.PATIENT }),
   ]);
 
-  // Revenue calculation
+  // Revenue calculation across completed consultations
   const revenueAgg = await Appointment.aggregate([
     { $match: { ...matchFilter, status: APPOINTMENT_STATUS.COMPLETED } },
-    { $group: { _id: null, total: { $sum: '$consultationFee' } } },
+    {
+      $lookup: {
+        from: 'doctorprofiles',
+        localField: 'doctorId',
+        foreignField: '_id',
+        as: 'doctor',
+      },
+    },
+    { $unwind: { path: '$doctor', preserveNullAndEmptyArrays: true } },
+    {
+      $group: {
+        _id: null,
+        total: {
+          $sum: {
+            $ifNull: [
+              '$consultationFee',
+              { $ifNull: ['$doctor.consultationFee', 500] },
+            ],
+          },
+        },
+      },
+    },
   ]);
   const revenueEstimated = revenueAgg[0]?.total || completedAppointments * 500;
 
@@ -144,6 +165,103 @@ export const getPlatformAnalytics = asyncHandler(async (req, res) => {
     rating: c.avgRating || 5.0,
   }));
 
+  // Detailed Hospital / Clinic Performance Reports across all clinics
+  const allClinics = await Clinic.find().sort({ name: 1 }).lean();
+
+  const clinicStatsAgg = await Appointment.aggregate([
+    { $match: { clinicId: { $ne: null } } },
+    {
+      $lookup: {
+        from: 'doctorprofiles',
+        localField: 'doctorId',
+        foreignField: '_id',
+        as: 'doctor',
+      },
+    },
+    { $unwind: { path: '$doctor', preserveNullAndEmptyArrays: true } },
+    {
+      $project: {
+        clinicId: 1,
+        status: 1,
+        fee: {
+          $ifNull: [
+            '$consultationFee',
+            { $ifNull: ['$doctor.consultationFee', 500] },
+          ],
+        },
+      },
+    },
+    {
+      $group: {
+        _id: '$clinicId',
+        totalAppointments: { $sum: 1 },
+        completedAppointments: {
+          $sum: { $cond: [{ $eq: ['$status', APPOINTMENT_STATUS.COMPLETED] }, 1, 0] },
+        },
+        cancelledAppointments: {
+          $sum: { $cond: [{ $eq: ['$status', APPOINTMENT_STATUS.CANCELLED] }, 1, 0] },
+        },
+        totalIncome: {
+          $sum: {
+            $cond: [{ $eq: ['$status', APPOINTMENT_STATUS.COMPLETED] }, '$fee', 0],
+          },
+        },
+      },
+    },
+  ]);
+
+  const clinicStatsMap = {};
+  clinicStatsAgg.forEach((s) => {
+    if (s._id) {
+      clinicStatsMap[s._id.toString()] = {
+        totalAppointments: s.totalAppointments || 0,
+        completedAppointments: s.completedAppointments || 0,
+        cancelledAppointments: s.cancelledAppointments || 0,
+        totalIncome: s.totalIncome || 0,
+      };
+    }
+  });
+
+  const doctorCountsAgg = await DoctorProfile.aggregate([
+    { $match: { clinicId: { $ne: null }, isApproved: true } },
+    { $group: { _id: '$clinicId', count: { $sum: 1 } } },
+  ]);
+
+  const doctorCountMap = {};
+  doctorCountsAgg.forEach((d) => {
+    if (d._id) {
+      doctorCountMap[d._id.toString()] = d.count || 0;
+    }
+  });
+
+  const hospitalReports = allClinics.map((c) => {
+    const cid = c._id.toString();
+    const stats = clinicStatsMap[cid] || {
+      totalAppointments: 0,
+      completedAppointments: 0,
+      cancelledAppointments: 0,
+      totalIncome: 0,
+    };
+    const isActive = c.subscriptionStatus === 'active' || c.status === 'active' || c.isActive === true;
+    const city = c.city || (typeof c.address === 'object' && c.address?.city) || (typeof c.address === 'string' && c.address) || 'India';
+
+    return {
+      clinicId: cid,
+      name: c.name,
+      city,
+      address: c.address,
+      status: isActive ? 'active' : 'suspended',
+      isActive,
+      rating: c.avgRating || c.rating || 5.0,
+      reviewCount: c.reviewCount || 0,
+      totalAppointments: stats.totalAppointments,
+      completedAppointments: stats.completedAppointments,
+      cancelledAppointments: stats.cancelledAppointments,
+      totalIncome: stats.totalIncome,
+      doctorsCount: doctorCountMap[cid] || 0,
+    };
+  });
+
   res.status(200).json({
     success: true,
     data: {
@@ -158,6 +276,8 @@ export const getPlatformAnalytics = asyncHandler(async (req, res) => {
       statusBreakdown,
       specializationBreakdown,
       topClinics,
+      hospitalReports,
+      clinicReports: hospitalReports,
     },
   });
 });

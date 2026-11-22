@@ -1,31 +1,44 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { AdminService } from '../../../core/services/admin.service';
-import { AnalyticsSummary } from '../../../core/models/analytics.model';
-import { Clinic } from '../../../core/models/clinic.model';
+import { AnalyticsSummary, HospitalReport } from '../../../core/models/analytics.model';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 
 @Component({
   selector: 'app-analytics-reports',
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     MatCardModule,
     MatIconModule,
+    MatButtonModule,
     MatProgressSpinnerModule,
+    MatFormFieldModule,
+    MatInputModule,
   ],
   template: `
     <div class="analytics-page">
+      <!-- Header -->
       <div class="page-header">
         <div>
-          <h1 class="page-title">Platform Analytics & Intelligence</h1>
-          <p class="page-subtitle">Healthcare utilization, booking conversion, and partner clinic performance metrics.</p>
+          <h1 class="page-title">Platform Analytics & Hospital Reports</h1>
+          <p class="page-subtitle">Overall performance totals and comprehensive per-hospital consultation and income reports.</p>
         </div>
+        <button mat-stroked-button color="primary" (click)="loadAnalytics()" [disabled]="loading" class="refresh-btn">
+          <mat-spinner *ngIf="loading" diameter="16" class="mr-2"></mat-spinner>
+          <mat-icon *ngIf="!loading">refresh</mat-icon>
+          <span>Refresh Report</span>
+        </button>
       </div>
 
-      <!-- High-Level Metric Tiles -->
+      <!-- Top Important Figures Grid -->
       <div class="stats-grid">
         <mat-card class="stat-card">
           <div class="stat-icon-wrap primary">
@@ -43,7 +56,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
           </div>
           <div class="stat-info">
             <span class="stat-label">Completed Consultations</span>
-            <span class="stat-value">{{ analytics?.completedAppointments || 0 }}</span>
+            <span class="stat-value text-emerald-700">{{ analytics?.completedAppointments || 0 }}</span>
           </div>
         </mat-card>
 
@@ -52,8 +65,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
             <mat-icon>event_busy</mat-icon>
           </div>
           <div class="stat-info">
-            <span class="stat-label">Cancellations</span>
-            <span class="stat-value">{{ analytics?.cancelledAppointments || 0 }}</span>
+            <span class="stat-label">Cancelled Appointments</span>
+            <span class="stat-value text-rose-700">{{ analytics?.cancelledAppointments || 0 }}</span>
           </div>
         </mat-card>
 
@@ -62,85 +75,136 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
             <mat-icon>payments</mat-icon>
           </div>
           <div class="stat-info">
-            <span class="stat-label">Consultation Volume</span>
-            <span class="stat-value">₹{{ (analytics?.revenueEstimated || (analytics?.totalAppointments || 0) * 500) | number }}</span>
+            <span class="stat-label">Total Platform Income</span>
+            <span class="stat-value text-amber-700">₹{{ (analytics?.revenueEstimated || 0) | number }}</span>
+          </div>
+        </mat-card>
+
+        <mat-card class="stat-card">
+          <div class="stat-icon-wrap hospitals">
+            <mat-icon>local_hospital</mat-icon>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Hospitals & Clinics</span>
+            <span class="stat-value">{{ hospitalReports.length || analytics?.totalClinics || 0 }}</span>
+          </div>
+        </mat-card>
+
+        <mat-card class="stat-card">
+          <div class="stat-icon-wrap doctors">
+            <mat-icon>medical_services</mat-icon>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Active Doctors</span>
+            <span class="stat-value">{{ analytics?.totalDoctors || 0 }}</span>
+          </div>
+        </mat-card>
+
+        <mat-card class="stat-card">
+          <div class="stat-icon-wrap patients">
+            <mat-icon>people</mat-icon>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Registered Patients</span>
+            <span class="stat-value">{{ analytics?.totalPatients || 0 }}</span>
           </div>
         </mat-card>
       </div>
 
-      <!-- Breakdown Split -->
-      <div class="content-split">
-        <!-- Clinic Performance Breakdown -->
-        <mat-card class="main-card">
-          <h2 class="card-title">Partner Clinic Performance Breakdown</h2>
-          <p class="card-desc">Volume and rating distribution by clinic</p>
-
-          <div *ngIf="loading" class="loading-wrap">
-            <mat-spinner diameter="36"></mat-spinner>
+      <!-- All Hospitals Listed Down: Individual Hospital Reports Table -->
+      <mat-card class="report-card">
+        <div class="report-header">
+          <div>
+            <h2 class="card-title">Hospital & Clinic Performance Reports</h2>
+            <p class="card-desc">Detailed utilization, completion, cancellation, and total revenue breakdown per hospital facility.</p>
           </div>
-
-          <div *ngIf="!loading && clinics.length === 0" class="empty-state">
-            <p>No clinic data recorded yet.</p>
+          <div class="search-box">
+            <mat-icon class="search-icon">search</mat-icon>
+            <input
+              type="text"
+              [(ngModel)]="searchQuery"
+              placeholder="Search hospital or city..."
+              class="search-input"
+            />
           </div>
+        </div>
 
-          <div *ngIf="!loading && clinics.length > 0" class="table-container mt-4">
-            <table class="report-table">
-              <thead>
-                <tr>
-                  <th>Clinic Facility</th>
-                  <th>Location</th>
-                  <th>Status</th>
-                  <th>Patient Rating</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let c of clinics">
-                  <td>
-                    <div class="font-bold text-neutral-900 text-sm">{{ c.name }}</div>
-                  </td>
-                  <td class="text-sm text-neutral-700">{{ getClinicCity(c) }}</td>
-                  <td>
-                    <span class="status-chip" [class.active]="isClinicActive(c)">
-                      {{ isClinicActive(c) ? 'Active' : 'Suspended' }}
-                    </span>
-                  </td>
-                  <td class="text-sm font-bold text-amber-600">
-                    ⭐ {{ c.rating ? (c.rating | number:'1.1-1') : '5.0' }} ({{ c.reviewCount || 0 }})
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </mat-card>
+        <div *ngIf="loading" class="loading-wrap">
+          <mat-spinner diameter="40"></mat-spinner>
+        </div>
 
-        <!-- Status Breakdown Widget -->
-        <mat-card class="side-card">
-          <h2 class="card-title">Booking Status Distribution</h2>
-          <p class="card-desc">Overall appointment outcomes</p>
+        <div *ngIf="!loading && filteredHospitals.length === 0" class="empty-state">
+          <mat-icon class="empty-icon">search_off</mat-icon>
+          <p class="empty-title">No hospitals found</p>
+          <p class="empty-subtitle">No hospital report records matching your query.</p>
+        </div>
 
-          <div class="distribution-list mt-4">
-            <div class="dist-row">
-              <span class="dist-lbl">Completed</span>
-              <span class="dist-val text-emerald-600 font-bold">{{ analytics?.completedAppointments || 0 }}</span>
-            </div>
-            <div class="dist-row">
-              <span class="dist-lbl">Cancelled</span>
-              <span class="dist-val text-rose-600 font-bold">{{ analytics?.cancelledAppointments || 0 }}</span>
-            </div>
-            <div class="dist-row">
-              <span class="dist-lbl">Active Clinics</span>
-              <span class="dist-val text-teal-800 font-bold">{{ getActiveClinicsCount() }}</span>
-            </div>
-          </div>
-        </mat-card>
-      </div>
+        <div *ngIf="!loading && filteredHospitals.length > 0" class="table-container">
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th class="th-clinic">Hospital / Facility</th>
+                <th class="th-location">Location</th>
+                <th class="th-num">Total Appointments</th>
+                <th class="th-num">Completed</th>
+                <th class="th-num">Cancelled</th>
+                <th class="th-num">Total Income</th>
+                <th class="th-num">Doctors</th>
+                <th class="th-status">Status</th>
+                <th class="th-rating">Rating</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let h of filteredHospitals">
+                <td class="td-clinic">
+                  <div class="clinic-name">{{ h.name }}</div>
+                  <div class="clinic-sub" *ngIf="getClinicAddress(h)">{{ getClinicAddress(h) }}</div>
+                </td>
+                <td class="td-location">{{ h.city }}</td>
+                <td class="td-num">
+                  <span class="pill-badge pill-total">{{ h.totalAppointments }}</span>
+                </td>
+                <td class="td-num">
+                  <span class="pill-badge pill-completed">{{ h.completedAppointments }}</span>
+                </td>
+                <td class="td-num">
+                  <span class="pill-badge pill-cancelled">{{ h.cancelledAppointments }}</span>
+                </td>
+                <td class="td-num font-bold text-neutral-900">
+                  ₹{{ h.totalIncome | number }}
+                </td>
+                <td class="td-num font-medium">
+                  {{ h.doctorsCount }}
+                </td>
+                <td class="td-status">
+                  <span class="status-chip" [class.active]="h.isActive">
+                    {{ h.isActive ? 'Active' : 'Suspended' }}
+                  </span>
+                </td>
+                <td class="td-rating">
+                  <span class="rating-text">⭐ {{ h.rating | number:'1.1-1' }}</span>
+                  <span class="review-count">({{ h.reviewCount }})</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </mat-card>
     </div>
   `,
   styles: [`
     .analytics-page {
       display: flex;
       flex-direction: column;
-      gap: 24px;
+      gap: 20px;
+    }
+
+    .page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
     }
 
     .page-title {
@@ -156,26 +220,33 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       margin: 0;
     }
 
+    .refresh-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
       gap: 16px;
     }
 
     .stat-card {
-      padding: 16px 20px !important;
+      padding: 16px 18px !important;
       border-radius: 12px !important;
       display: flex;
       flex-direction: row;
       align-items: center;
-      gap: 16px;
+      gap: 14px;
       background: #FFFFFF;
       border: 1px solid #E7E5E0;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
     }
 
     .stat-icon-wrap {
-      width: 46px;
-      height: 46px;
+      width: 44px;
+      height: 44px;
       border-radius: 12px;
       display: flex;
       align-items: center;
@@ -203,6 +274,21 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       color: #B57416;
     }
 
+    .stat-icon-wrap.hospitals {
+      background-color: #EEF2FF;
+      color: #4F46E5;
+    }
+
+    .stat-icon-wrap.doctors {
+      background-color: #E0F2FE;
+      color: #0284C7;
+    }
+
+    .stat-icon-wrap.patients {
+      background-color: #F3E8FF;
+      color: #7E22CE;
+    }
+
     .stat-info {
       display: flex;
       flex-direction: column;
@@ -223,52 +309,66 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       margin-top: 2px;
     }
 
-    .content-split {
-      display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: 24px;
-    }
-
-    @media (max-width: 960px) {
-      .content-split {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .main-card, .side-card {
+    .report-card {
       padding: 24px !important;
       border-radius: 12px !important;
       background: #FFFFFF;
       border: 1px solid #E7E5E0;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+    }
+
+    .report-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 20px;
     }
 
     .card-title {
-      font-size: 16px;
+      font-size: 17px;
       font-weight: 700;
       color: #1A2E2E;
       margin: 0;
     }
 
     .card-desc {
-      font-size: 12px;
+      font-size: 13px;
       color: #5C6B6B;
-      margin: 2px 0 0;
+      margin: 3px 0 0;
     }
 
-    .loading-wrap {
+    .search-box {
       display: flex;
-      justify-content: center;
-      padding: 40px;
+      align-items: center;
+      background: #FAFAF8;
+      border: 1px solid #D1D5DB;
+      border-radius: 8px;
+      padding: 6px 12px;
+      gap: 8px;
+      min-width: 260px;
     }
 
-    .empty-state {
-      text-align: center;
-      padding: 32px;
-      color: #5C6B6B;
+    .search-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      color: #9CA3AF;
+    }
+
+    .search-input {
+      border: none;
+      background: transparent;
+      outline: none;
+      font-size: 13px;
+      color: #1A2E2E;
+      width: 100%;
     }
 
     .table-container {
       overflow-x: auto;
+      margin-top: 8px;
     }
 
     .report-table {
@@ -278,7 +378,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     }
 
     .report-table th {
-      padding: 10px 14px;
+      padding: 12px 14px;
       font-size: 11px;
       font-weight: 800;
       text-transform: uppercase;
@@ -289,15 +389,59 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     }
 
     .report-table td {
-      padding: 12px 14px;
+      padding: 14px;
       border-bottom: 1px solid #E7E5E0;
       font-size: 13px;
+      vertical-align: middle;
+    }
+
+    .clinic-name {
+      font-weight: 700;
+      color: #1A2E2E;
+      font-size: 14px;
+    }
+
+    .clinic-sub {
+      font-size: 11px;
+      color: #718096;
+      margin-top: 2px;
+    }
+
+    .td-num {
+      text-align: right;
+    }
+
+    .th-num {
+      text-align: right;
+    }
+
+    .pill-badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .pill-total {
+      background: #F3F4F6;
+      color: #1F2937;
+    }
+
+    .pill-completed {
+      background: #EBF7EE;
+      color: #15803D;
+    }
+
+    .pill-cancelled {
+      background: #FDF2F2;
+      color: #B91C1C;
     }
 
     .status-chip {
-      font-size: 10px;
+      font-size: 11px;
       font-weight: 700;
-      padding: 2px 8px;
+      padding: 3px 10px;
       border-radius: 999px;
       background: #FDF2F2;
       color: #D9534F;
@@ -308,52 +452,87 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       color: #2E9E6B;
     }
 
-    .distribution-list {
+    .rating-text {
+      font-weight: 700;
+      color: #D97706;
+    }
+
+    .review-count {
+      font-size: 11px;
+      color: #9CA3AF;
+      margin-left: 4px;
+    }
+
+    .loading-wrap {
+      display: flex;
+      justify-content: center;
+      padding: 48px;
+    }
+
+    .empty-state {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 16px;
+      text-align: center;
     }
 
-    .dist-row {
-      display: flex;
-      justify-content: space-between;
-      padding: 10px 12px;
-      border-radius: 8px;
-      background: #FAFAF8;
-      border: 1px solid #E7E5E0;
-      font-size: 13px;
+    .empty-icon {
+      font-size: 44px;
+      width: 44px;
+      height: 44px;
+      color: #9CA3AF;
+      margin-bottom: 8px;
     }
 
-    .dist-lbl {
-      color: #5C6B6B;
+    .empty-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1A2E2E;
+      margin: 0 0 4px;
+    }
+
+    .empty-subtitle {
+      font-size: 12px;
+      color: #6B7280;
+      margin: 0;
     }
   `],
 })
 export class AnalyticsReportsComponent implements OnInit {
   private adminService = inject(AdminService);
+  private cdr = inject(ChangeDetectorRef);
 
   analytics: AnalyticsSummary | null = null;
-  clinics: Clinic[] = [];
+  hospitalReports: HospitalReport[] = [];
   loading = true;
+  searchQuery = '';
 
   ngOnInit(): void {
     this.loadAnalytics();
   }
 
-  isClinicActive(c: any): boolean {
-    if (typeof c?.isActive === 'boolean') return c.isActive;
-    return c?.subscriptionStatus === 'active' || c?.status === 'active';
+  get filteredHospitals(): HospitalReport[] {
+    if (!this.searchQuery.trim()) {
+      return this.hospitalReports;
+    }
+    const q = this.searchQuery.toLowerCase().trim();
+    return this.hospitalReports.filter(
+      (h) =>
+        h.name.toLowerCase().includes(q) ||
+        (h.city && h.city.toLowerCase().includes(q))
+    );
   }
 
-  getClinicCity(c: any): string {
-    if (c?.city) return c.city;
-    if (typeof c?.address === 'object' && c?.address?.city) return c.address.city;
-    if (typeof c?.address === 'string' && c?.address) return c.address;
-    return 'India';
-  }
-
-  getActiveClinicsCount(): number {
-    return this.clinics.filter((c) => this.isClinicActive(c)).length;
+  getClinicAddress(h: HospitalReport): string {
+    if (!h.address) return '';
+    if (typeof h.address === 'string') return h.address;
+    if (typeof h.address === 'object') {
+      const parts = [h.address.street, h.address.state].filter(Boolean);
+      return parts.join(', ');
+    }
+    return '';
   }
 
   loadAnalytics(): void {
@@ -362,19 +541,14 @@ export class AnalyticsReportsComponent implements OnInit {
       next: (res) => {
         if (res.success && res.data) {
           this.analytics = res.data;
-        }
-      },
-    });
-
-    this.adminService.getClinics().subscribe({
-      next: (res) => {
-        if (res.success && Array.isArray(res.data)) {
-          this.clinics = res.data;
+          this.hospitalReports = res.data.hospitalReports || res.data.clinicReports || [];
         }
         this.loading = false;
+        this.cdr.markForCheck();
       },
       error: () => {
         this.loading = false;
+        this.cdr.markForCheck();
       },
     });
   }
