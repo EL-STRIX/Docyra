@@ -11,9 +11,6 @@ import { DateFormatPipe } from '../../../shared/pipes/date-format.pipe';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
@@ -42,9 +39,6 @@ interface BmiInfo {
     MatCardModule,
     MatButtonModule,
     MatIconModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
   ],
@@ -65,65 +59,77 @@ interface BmiInfo {
             </div>
             <h1 class="page-title">Patient Management Directory</h1>
             <p class="page-subtitle">
-              Inspect registered patient profiles, audit biometric and health specifications, review family dependents, and manage account security privileges.
+              Inspect registered patient profiles, audit health specifications, review family dependents, and manage account security privileges.
             </p>
           </div>
 
           <div class="header-actions">
             <button
               mat-stroked-button
-              class="action-btn"
+              class="refresh-btn"
               (click)="loadPatients()"
               [disabled]="loading"
               title="Refresh patient list"
             >
               <mat-icon [class.spinning]="loading">refresh</mat-icon>
-              <span>Refresh</span>
+              <span>Refresh Directory</span>
             </button>
           </div>
         </div>
 
         <!-- Live KPI Summary Metric Cards -->
-        <div class="stats-grid">
-          <mat-card class="stat-card" (click)="setStatusFilter('all')">
-            <div class="stat-icon-wrap primary">
+        <div class="kpi-grid">
+          <div
+            class="kpi-card"
+            [class.active-kpi]="statusFilter === 'all'"
+            (click)="setStatusFilter('all')"
+          >
+            <div class="kpi-icon-wrap total">
               <mat-icon>people</mat-icon>
             </div>
-            <div class="stat-info">
-              <span class="stat-label">Total Patients</span>
-              <span class="stat-value">{{ stats.totalPatients }}</span>
+            <div class="kpi-info">
+              <span class="kpi-label">Total Patients</span>
+              <span class="kpi-value">{{ stats.totalPatients }}</span>
             </div>
-          </mat-card>
+          </div>
 
-          <mat-card class="stat-card" (click)="setStatusFilter('active')">
-            <div class="stat-icon-wrap success">
+          <div
+            class="kpi-card"
+            [class.active-kpi]="statusFilter === 'active'"
+            (click)="setStatusFilter('active')"
+          >
+            <div class="kpi-icon-wrap active">
               <mat-icon>verified_user</mat-icon>
             </div>
-            <div class="stat-info">
-              <span class="stat-label">Active Accounts</span>
-              <span class="stat-value text-emerald-700">{{ stats.activePatients }}</span>
+            <div class="kpi-info">
+              <span class="kpi-label">Active Accounts</span>
+              <span class="kpi-value text-emerald-700">{{ stats.activePatients }}</span>
             </div>
-          </mat-card>
+          </div>
 
-          <mat-card class="stat-card" (click)="setStatusFilter('suspended')">
-            <div class="stat-icon-wrap warn">
+          <div
+            class="kpi-card"
+            [class.active-kpi]="statusFilter === 'suspended'"
+            (click)="setStatusFilter('suspended')"
+          >
+            <div class="kpi-icon-wrap suspended">
               <mat-icon>person_off</mat-icon>
             </div>
-            <div class="stat-info">
-              <span class="stat-label">Suspended Accounts</span>
-              <span class="stat-value text-rose-700">{{ stats.suspendedPatients }}</span>
+            <div class="kpi-info">
+              <span class="kpi-label">Suspended Accounts</span>
+              <span class="kpi-value text-rose-700">{{ stats.suspendedPatients }}</span>
             </div>
-          </mat-card>
+          </div>
 
-          <mat-card class="stat-card">
-            <div class="stat-icon-wrap info">
+          <div class="kpi-card">
+            <div class="kpi-icon-wrap family">
               <mat-icon>family_restroom</mat-icon>
             </div>
-            <div class="stat-info">
-              <span class="stat-label">Family Dependents</span>
-              <span class="stat-value text-amber-700">{{ stats.totalDependents }}</span>
+            <div class="kpi-info">
+              <span class="kpi-label">Family Dependents</span>
+              <span class="kpi-value text-amber-700">{{ stats.totalDependents }}</span>
             </div>
-          </mat-card>
+          </div>
         </div>
 
         <!-- Patients Table Card -->
@@ -131,25 +137,17 @@ interface BmiInfo {
           <!-- Filter & Search Toolbar -->
           <div class="toolbar-wrap">
             <div class="search-box">
-              <mat-form-field appearance="outline" class="w-full search-field">
-                <mat-label>Search by patient name, email, or phone number...</mat-label>
-                <input
-                  matInput
-                  [(ngModel)]="searchTerm"
-                  (ngModelChange)="applySearch()"
-                  placeholder="e.g. Aarav Patel, patient@docyra.com, +91 98..."
-                />
-                <mat-icon matPrefix class="mr-2 text-neutral-400">search</mat-icon>
-                <button
-                  *ngIf="searchTerm"
-                  mat-icon-button
-                  matSuffix
-                  (click)="searchTerm = ''; applySearch()"
-                  class="clear-input-btn"
-                >
-                  <mat-icon>close</mat-icon>
-                </button>
-              </mat-form-field>
+              <mat-icon class="search-icon">search</mat-icon>
+              <input
+                type="text"
+                placeholder="Search patient name, email, or phone number..."
+                [(ngModel)]="searchTerm"
+                (ngModelChange)="applySearch()"
+                class="search-input"
+              />
+              <button *ngIf="searchTerm" class="clear-search" (click)="searchTerm = ''; applySearch()">
+                <mat-icon>close</mat-icon>
+              </button>
             </div>
 
             <div class="status-tabs">
@@ -179,7 +177,7 @@ interface BmiInfo {
 
           <!-- Loading State -->
           <div *ngIf="loading && patients.length === 0" class="loading-wrap">
-            <mat-spinner diameter="40"></mat-spinner>
+            <mat-spinner diameter="36"></mat-spinner>
             <p class="loading-text">Loading registered patient records...</p>
           </div>
 
@@ -303,7 +301,7 @@ interface BmiInfo {
                         (click)="openPatientDetails(p)"
                         matTooltip="Open Full Patient Profile Dossier"
                       >
-                        <mat-icon>account_circle</mat-icon>
+                        <mat-icon>visibility</mat-icon>
                         <span>View Profile</span>
                       </button>
 
@@ -394,16 +392,19 @@ interface BmiInfo {
       <!-- 2. FULL PAGE PATIENT INFORMATION DOSSIER (viewMode === 'detail')     -->
       <!-- ==================================================================== -->
       <div *ngIf="viewMode === 'detail'" class="patient-full-page">
-        <!-- Full Page Navigation & Action Toolbar -->
+        <!-- Top Navigation Bar & Action Toolbar -->
         <div class="detail-nav-bar">
           <div class="nav-left">
             <button mat-button class="back-btn" (click)="navigateToList()">
               <mat-icon>arrow_back</mat-icon>
-              <span>Back to Patients Directory</span>
+              <span>Back to Directory</span>
             </button>
             <div class="nav-divider"></div>
-            <span class="dossier-kicker">PATIENT DOSSIER</span>
-            <span class="dossier-id font-mono text-xs text-neutral-500">ID: {{ activePatientId }}</span>
+            <div class="nav-breadcrumbs">
+              <span class="crumb-link" (click)="navigateToList()">Patients</span>
+              <mat-icon class="crumb-sep">chevron_right</mat-icon>
+              <span class="crumb-active">{{ selectedPatient?.name || 'Patient Dossier' }}</span>
+            </div>
           </div>
 
           <div class="nav-actions">
@@ -425,7 +426,7 @@ interface BmiInfo {
               class="status-action-btn"
             >
               <mat-icon>block</mat-icon>
-              <span>Suspend Patient Account</span>
+              <span>Suspend Account</span>
             </button>
 
             <button
@@ -436,7 +437,7 @@ interface BmiInfo {
               class="status-action-btn"
             >
               <mat-icon>check_circle</mat-icon>
-              <span>Reactivate Patient Account</span>
+              <span>Reactivate Account</span>
             </button>
           </div>
         </div>
@@ -494,7 +495,7 @@ interface BmiInfo {
                 <div class="hero-badges-row">
                   <span class="badge-item" [class.active-item]="selectedPatient.isTwoFactorEnabled || selectedPatient.twoFactorEnabled">
                     <mat-icon>{{ (selectedPatient.isTwoFactorEnabled || selectedPatient.twoFactorEnabled) ? 'lock' : 'lock_open' }}</mat-icon>
-                    {{ (selectedPatient.isTwoFactorEnabled || selectedPatient.twoFactorEnabled) ? '2FA Enabled' : '2FA Not Configured' }}
+                    {{ (selectedPatient.isTwoFactorEnabled || selectedPatient.twoFactorEnabled) ? '2FA Enforced' : '2FA Off' }}
                   </span>
 
                   <span class="badge-item" [class.active-item]="selectedPatient.isEmailVerified || selectedPatient.emailVerifiedAt">
@@ -511,384 +512,400 @@ interface BmiInfo {
             </div>
           </mat-card>
 
-          <!-- 3-Column Specifications Grid -->
-          <div class="specs-grid">
-            <!-- 1. Personal & Biometric Specs -->
-            <mat-card class="spec-card">
-              <div class="card-section-header">
-                <mat-icon class="sec-icon primary-icon">person</mat-icon>
-                <div>
-                  <h3 class="sec-title">Personal & Biometric Profile</h3>
-                  <p class="sec-subtitle">Demographics, age, blood group & vitals</p>
-                </div>
-              </div>
-
-              <div class="spec-list">
-                <div class="spec-row">
-                  <span class="spec-label">Date of Birth & Age</span>
-                  <span class="spec-value">
-                    {{ selectedPatient.dateOfBirth ? (selectedPatient.dateOfBirth | portalDate:'dd MMM yyyy') : 'Not specified' }}
-                    <span *ngIf="selectedPatient.dateOfBirth" class="text-neutral-500 font-normal">
-                      ({{ calculateAge(selectedPatient.dateOfBirth) }})
-                    </span>
-                  </span>
-                </div>
-
-                <div class="spec-row">
-                  <span class="spec-label">Gender</span>
-                  <span class="spec-value capitalize">
-                    {{ selectedPatient.gender ? (selectedPatient.gender | titlecase) : 'Not specified' }}
-                  </span>
-                </div>
-
-                <div class="spec-row">
-                  <span class="spec-label">Blood Group</span>
-                  <span class="spec-value">
-                    <span *ngIf="selectedPatient.bloodGroup" class="blood-pill">
-                      🩸 {{ selectedPatient.bloodGroup }}
-                    </span>
-                    <span *ngIf="!selectedPatient.bloodGroup" class="text-neutral-400">Not recorded</span>
-                  </span>
-                </div>
-
-                <div class="spec-row">
-                  <span class="spec-label">Height & Weight</span>
-                  <span class="spec-value">
-                    <span *ngIf="selectedPatient.heightCm">{{ selectedPatient.heightCm }} cm</span>
-                    <span *ngIf="selectedPatient.heightCm && selectedPatient.weightKg"> &bull; </span>
-                    <span *ngIf="selectedPatient.weightKg">{{ selectedPatient.weightKg }} kg</span>
-                    <span *ngIf="!selectedPatient.heightCm && !selectedPatient.weightKg" class="text-neutral-400">Not recorded</span>
-                  </span>
-                </div>
-
-                <div class="spec-row" *ngIf="getBmi(selectedPatient.heightCm, selectedPatient.weightKg) as bmi">
-                  <span class="spec-label">Body Mass Index (BMI)</span>
-                  <span class="spec-value">
-                    <span class="bmi-pill" [ngClass]="bmi.badgeClass">
-                      {{ bmi.value | number:'1.1-1' }} kg/m² ({{ bmi.category }})
-                    </span>
-                  </span>
-                </div>
-
-                <div class="spec-row">
-                  <span class="spec-label">Timezone & Locale</span>
-                  <span class="spec-value font-mono text-xs">
-                    {{ selectedPatient.timezone || 'Asia/Kolkata' }} (IST)
-                  </span>
-                </div>
-
-                <div class="spec-row" *ngIf="selectedPatient.clinicId">
-                  <span class="spec-label">Registered Hospital</span>
-                  <span class="spec-value font-semibold text-emerald-800">
-                    {{ getClinicDisplayName(selectedPatient.clinicId) }}
-                  </span>
-                </div>
-              </div>
-            </mat-card>
-
-            <!-- 2. Medical Conditions & Emergency Contacts -->
-            <mat-card class="spec-card">
-              <div class="card-section-header">
-                <mat-icon class="sec-icon warn-icon">medical_information</mat-icon>
-                <div>
-                  <h3 class="sec-title">Medical Conditions & Emergency</h3>
-                  <p class="sec-subtitle">Allergies, chronic conditions & contact</p>
-                </div>
-              </div>
-
-              <div class="spec-list">
-                <div class="spec-row-stacked">
-                  <span class="spec-label">Known Allergies</span>
-                  <div class="spec-value-box">
-                    <div *ngIf="selectedPatient.allergies && selectedPatient.allergies !== 'None reported'" class="tag-box allergy-box">
-                      <mat-icon class="box-tag-icon text-rose-600">warning</mat-icon>
-                      <span>{{ selectedPatient.allergies }}</span>
-                    </div>
-                    <div *ngIf="!selectedPatient.allergies || selectedPatient.allergies === 'None reported'" class="empty-tag-box">
-                      <mat-icon class="box-tag-icon text-emerald-600">check_circle</mat-icon>
-                      <span>No known drug or food allergies on record</span>
-                    </div>
+          <!-- 2-Column Responsive Dossier Layout -->
+          <div class="dossier-grid">
+            <!-- LEFT COLUMN: Patient Specifications & Vitals Sidebar -->
+            <div class="dossier-left-col">
+              <!-- 1. Personal & Biometric Specs -->
+              <mat-card class="spec-card">
+                <div class="card-section-header">
+                  <div class="sec-icon-wrap primary">
+                    <mat-icon class="sec-icon">person</mat-icon>
+                  </div>
+                  <div>
+                    <h3 class="sec-title">Personal & Biometrics</h3>
+                    <p class="sec-subtitle">Demographics, age, blood group & vitals</p>
                   </div>
                 </div>
 
-                <div class="spec-row-stacked">
-                  <span class="spec-label">Chronic Medical Conditions</span>
-                  <div class="spec-value-box">
-                    <div *ngIf="selectedPatient.chronicConditions && selectedPatient.chronicConditions !== 'None reported'" class="tag-box condition-box">
-                      <mat-icon class="box-tag-icon text-amber-600">info</mat-icon>
-                      <span>{{ selectedPatient.chronicConditions }}</span>
-                    </div>
-                    <div *ngIf="!selectedPatient.chronicConditions || selectedPatient.chronicConditions === 'None reported'" class="empty-tag-box">
-                      <mat-icon class="box-tag-icon text-emerald-600">check_circle</mat-icon>
-                      <span>No chronic conditions reported</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="spec-row">
-                  <span class="spec-label">Emergency Contact Name</span>
-                  <span class="spec-value font-semibold">
-                    {{ selectedPatient.emergencyContactName || 'None listed' }}
-                  </span>
-                </div>
-
-                <div class="spec-row">
-                  <span class="spec-label">Emergency Contact Phone</span>
-                  <span class="spec-value">
-                    <a *ngIf="selectedPatient.emergencyContactPhone" [href]="'tel:' + selectedPatient.emergencyContactPhone" class="meta-link font-mono">
-                      📞 {{ selectedPatient.emergencyContactPhone }}
-                    </a>
-                    <span *ngIf="!selectedPatient.emergencyContactPhone" class="text-neutral-400">Not provided</span>
-                  </span>
-                </div>
-              </div>
-            </mat-card>
-
-            <!-- 3. Account Security & Compliance -->
-            <mat-card class="spec-card">
-              <div class="card-section-header">
-                <mat-icon class="sec-icon success-icon">shield</mat-icon>
-                <div>
-                  <h3 class="sec-title">Security & Account Governance</h3>
-                  <p class="sec-subtitle">Authentication, audit trail & compliance</p>
-                </div>
-              </div>
-
-              <div class="spec-list">
-                <div class="spec-row">
-                  <span class="spec-label">Account Security Level</span>
-                  <span class="spec-value">
-                    <span class="security-level-pill" [class.high]="selectedPatient.isTwoFactorEnabled || selectedPatient.twoFactorEnabled">
-                      {{ (selectedPatient.isTwoFactorEnabled || selectedPatient.twoFactorEnabled) ? 'High (2FA Enforced)' : 'Standard (Password Only)' }}
-                    </span>
-                  </span>
-                </div>
-
-                <div class="spec-row">
-                  <span class="spec-label">Email Verification</span>
-                  <span class="spec-value">
-                    <span *ngIf="selectedPatient.isEmailVerified || selectedPatient.emailVerifiedAt" class="text-emerald-700 font-semibold">
-                      Verified {{ selectedPatient.emailVerifiedAt ? ('on ' + (selectedPatient.emailVerifiedAt | portalDate:'dd MMM yyyy')) : '' }}
-                    </span>
-                    <span *ngIf="!selectedPatient.isEmailVerified && !selectedPatient.emailVerifiedAt" class="text-amber-700 font-semibold">
-                      Pending Verification
-                    </span>
-                  </span>
-                </div>
-
-                <div class="spec-row">
-                  <span class="spec-label">Failed Login Attempts</span>
-                  <span class="spec-value font-mono">
-                    {{ selectedPatient.failedLoginCount || 0 }} failed attempts
-                  </span>
-                </div>
-
-                <div class="spec-row">
-                  <span class="spec-label">Lockout Status</span>
-                  <span class="spec-value">
-                    <span *ngIf="selectedPatient.lockedUntil" class="text-rose-700 font-bold">
-                      Locked until {{ selectedPatient.lockedUntil | portalDate:'dd MMM yyyy, h:mm a' }}
-                    </span>
-                    <span *ngIf="!selectedPatient.lockedUntil" class="text-emerald-700 font-semibold">
-                      Unlocked & Healthy
-                    </span>
-                  </span>
-                </div>
-
-                <div class="spec-row">
-                  <span class="spec-label">Terms & Privacy Version</span>
-                  <span class="spec-value font-mono text-xs">
-                    v{{ selectedPatient.acceptedTermsVersion || '1.0' }}
-                    <span *ngIf="selectedPatient.acceptedTermsAt" class="text-neutral-500 font-normal">
-                      (Accepted {{ selectedPatient.acceptedTermsAt | portalDate:'dd MMM yyyy' }})
-                    </span>
-                  </span>
-                </div>
-
-                <div class="spec-row">
-                  <span class="spec-label">Last Profile Modification</span>
-                  <span class="spec-value text-xs text-neutral-600">
-                    {{ selectedPatient.updatedAt | portalDate:'dd MMM yyyy, h:mm a' }}
-                  </span>
-                </div>
-              </div>
-            </mat-card>
-          </div>
-
-          <!-- Family Dependents Section -->
-          <mat-card class="section-card">
-            <div class="section-header-bar">
-              <div class="section-title-wrap">
-                <mat-icon class="section-icon primary-color">family_restroom</mat-icon>
-                <div>
-                  <h2 class="section-heading">Family Dependents Directory</h2>
-                  <p class="section-subheading">
-                    Registered family beneficiaries linked to this primary patient account ({{ patientDetails?.dependents?.length || 0 }} total).
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <!-- Empty Dependents -->
-            <div *ngIf="!patientDetails?.dependents || patientDetails?.dependents?.length === 0" class="empty-dependents-state">
-              <mat-icon class="empty-icon">family_restroom</mat-icon>
-              <h4>No Family Dependents Registered</h4>
-              <p>This patient currently does not have any family members or dependents attached to their healthcare profile.</p>
-            </div>
-
-            <!-- Dependents Cards Grid -->
-            <div *ngIf="patientDetails?.dependents && (patientDetails?.dependents?.length || 0) > 0" class="dependents-grid">
-              <div *ngFor="let dep of patientDetails?.dependents" class="dep-profile-card">
-                <div class="dep-header">
-                  <div class="dep-avatar">
-                    {{ getInitials(dep.name) }}
-                  </div>
-                  <div class="dep-title-wrap">
-                    <h4 class="dep-name">{{ dep.name }}</h4>
-                    <div class="dep-rel-badge">{{ dep.relationship | titlecase }}</div>
-                  </div>
-                </div>
-
-                <div class="dep-details-grid">
-                  <div class="dep-field">
-                    <span class="df-lbl">Date of Birth & Age</span>
-                    <span class="df-val">
-                      {{ dep.dateOfBirth | portalDate:'dd MMM yyyy' }}
-                      <span class="text-neutral-500">({{ calculateAge(dep.dateOfBirth) }})</span>
-                    </span>
-                  </div>
-
-                  <div class="dep-field">
-                    <span class="df-lbl">Gender</span>
-                    <span class="df-val capitalize">{{ dep.gender | titlecase }}</span>
-                  </div>
-
-                  <div class="dep-field">
-                    <span class="df-lbl">Blood Group</span>
-                    <span class="df-val font-bold text-rose-700">
-                      {{ dep.bloodGroup ? ('🩸 ' + dep.bloodGroup) : 'Not recorded' }}
-                    </span>
-                  </div>
-
-                  <div class="dep-field">
-                    <span class="df-lbl">Height / Weight</span>
-                    <span class="df-val">
-                      {{ dep.heightCm ? (dep.heightCm + ' cm') : '-' }} / {{ dep.weightKg ? (dep.weightKg + ' kg') : '-' }}
-                    </span>
-                  </div>
-
-                  <div class="dep-field col-span-2" *ngIf="dep.allergies">
-                    <span class="df-lbl">Allergies</span>
-                    <span class="df-val text-rose-700 font-medium">{{ dep.allergies }}</span>
-                  </div>
-
-                  <div class="dep-field col-span-2" *ngIf="dep.chronicConditions">
-                    <span class="df-lbl">Chronic Conditions</span>
-                    <span class="df-val text-amber-700 font-medium">{{ dep.chronicConditions }}</span>
-                  </div>
-
-                  <div class="dep-field col-span-2" *ngIf="dep.emergencyContactName || dep.emergencyContactPhone">
-                    <span class="df-lbl">Emergency Contact</span>
-                    <span class="df-val">
-                      {{ dep.emergencyContactName }}
-                      <span *ngIf="dep.emergencyContactPhone" class="font-mono text-xs">({{ dep.emergencyContactPhone }})</span>
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </mat-card>
-
-          <!-- Appointment & Consultation History Section -->
-          <mat-card class="section-card">
-            <div class="section-header-bar">
-              <div class="section-title-wrap">
-                <mat-icon class="section-icon primary-color">calendar_month</mat-icon>
-                <div>
-                  <h2 class="section-heading">Consultation & Appointment History</h2>
-                  <p class="section-subheading">
-                    Complete chronological history of scheduled, completed, and cancelled consultations for this patient ({{ patientDetails?.appointments?.length || 0 }} total records).
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <!-- Empty Appointments -->
-            <div *ngIf="!patientDetails?.appointments || patientDetails?.appointments?.length === 0" class="empty-appointments-state">
-              <mat-icon class="empty-icon">event_busy</mat-icon>
-              <h4>No Consultation Records Found</h4>
-              <p>This patient has not booked any doctor appointments yet on the Docyra platform.</p>
-            </div>
-
-            <!-- Appointments Table -->
-            <div *ngIf="patientDetails?.appointments && (patientDetails?.appointments?.length || 0) > 0" class="table-container">
-              <table class="appointments-history-table">
-                <thead>
-                  <tr>
-                    <th class="th-date">Date & Time</th>
-                    <th class="th-doctor">Attending Physician</th>
-                    <th class="th-clinic">Hospital / Clinic</th>
-                    <th class="th-beneficiary">Beneficiary</th>
-                    <th class="th-reason">Reason for Visit</th>
-                    <th class="th-fee text-right">Fee</th>
-                    <th class="th-status text-right">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr *ngFor="let apt of patientDetails?.appointments" class="apt-row">
-                    <!-- Date & Time -->
-                    <td class="td-date">
-                      <div class="apt-date-text">{{ apt.slotStart | portalDate:'dd MMM yyyy' }}</div>
-                      <div class="apt-time-text">{{ apt.slotStart | portalDate:'h:mm a' }} - {{ apt.slotEnd | portalDate:'h:mm a' }}</div>
-                    </td>
-
-                    <!-- Attending Physician -->
-                    <td class="td-doctor">
-                      <div class="doctor-name font-bold text-neutral-900">{{ getDoctorDisplayName(apt) }}</div>
-                      <div class="doctor-spec-chip" *ngIf="getDoctorSpecialization(apt)">
-                        {{ getDoctorSpecialization(apt) }}
-                      </div>
-                    </td>
-
-                    <!-- Hospital / Clinic -->
-                    <td class="td-clinic">
-                      <div class="clinic-name font-semibold text-neutral-800">{{ getAppointmentClinicName(apt) }}</div>
-                      <div class="clinic-city text-xs text-neutral-500">{{ getAppointmentClinicCity(apt) }}</div>
-                    </td>
-
-                    <!-- Beneficiary -->
-                    <td class="td-beneficiary">
-                      <span class="beneficiary-pill" [class.self]="!isBookedForDependent(apt)">
-                        <mat-icon class="ben-icon">{{ isBookedForDependent(apt) ? 'family_restroom' : 'person' }}</mat-icon>
-                        <span>{{ getBeneficiaryLabel(apt) }}</span>
+                <div class="spec-list">
+                  <div class="spec-row">
+                    <span class="spec-label">Date of Birth & Age</span>
+                    <span class="spec-value">
+                      {{ selectedPatient.dateOfBirth ? (selectedPatient.dateOfBirth | portalDate:'dd MMM yyyy') : 'Not specified' }}
+                      <span *ngIf="selectedPatient.dateOfBirth" class="text-neutral-500 font-normal">
+                        ({{ calculateAge(selectedPatient.dateOfBirth) }})
                       </span>
-                    </td>
+                    </span>
+                  </div>
 
-                    <!-- Reason for Visit -->
-                    <td class="td-reason">
-                      <div class="reason-text">{{ apt.reasonForVisit || 'General Medical Consultation' }}</div>
-                      <div *ngIf="apt.prescription?.medicines?.length" class="prescription-pill">
-                        💊 {{ apt.prescription.medicines.length }} medicines prescribed
+                  <div class="spec-row">
+                    <span class="spec-label">Gender</span>
+                    <span class="spec-value capitalize">
+                      {{ selectedPatient.gender ? (selectedPatient.gender | titlecase) : 'Not specified' }}
+                    </span>
+                  </div>
+
+                  <div class="spec-row">
+                    <span class="spec-label">Blood Group</span>
+                    <span class="spec-value">
+                      <span *ngIf="selectedPatient.bloodGroup" class="blood-pill">
+                        🩸 {{ selectedPatient.bloodGroup }}
+                      </span>
+                      <span *ngIf="!selectedPatient.bloodGroup" class="text-neutral-400">Not recorded</span>
+                    </span>
+                  </div>
+
+                  <div class="spec-row">
+                    <span class="spec-label">Height & Weight</span>
+                    <span class="spec-value">
+                      <span *ngIf="selectedPatient.heightCm">{{ selectedPatient.heightCm }} cm</span>
+                      <span *ngIf="selectedPatient.heightCm && selectedPatient.weightKg"> &bull; </span>
+                      <span *ngIf="selectedPatient.weightKg">{{ selectedPatient.weightKg }} kg</span>
+                      <span *ngIf="!selectedPatient.heightCm && !selectedPatient.weightKg" class="text-neutral-400">Not recorded</span>
+                    </span>
+                  </div>
+
+                  <div class="spec-row" *ngIf="getBmi(selectedPatient.heightCm, selectedPatient.weightKg) as bmi">
+                    <span class="spec-label">Body Mass Index (BMI)</span>
+                    <span class="spec-value">
+                      <span class="bmi-pill" [ngClass]="bmi.badgeClass">
+                        {{ bmi.value | number:'1.1-1' }} kg/m² ({{ bmi.category }})
+                      </span>
+                    </span>
+                  </div>
+
+                  <div class="spec-row">
+                    <span class="spec-label">Timezone & Locale</span>
+                    <span class="spec-value font-mono text-xs">
+                      {{ selectedPatient.timezone || 'Asia/Kolkata' }} (IST)
+                    </span>
+                  </div>
+
+                  <div class="spec-row" *ngIf="selectedPatient.clinicId">
+                    <span class="spec-label">Registered Hospital</span>
+                    <span class="spec-value font-semibold text-emerald-800">
+                      {{ getClinicDisplayName(selectedPatient.clinicId) }}
+                    </span>
+                  </div>
+                </div>
+              </mat-card>
+
+              <!-- 2. Medical Conditions & Emergency Contacts -->
+              <mat-card class="spec-card">
+                <div class="card-section-header">
+                  <div class="sec-icon-wrap warn">
+                    <mat-icon class="sec-icon">medical_information</mat-icon>
+                  </div>
+                  <div>
+                    <h3 class="sec-title">Medical Conditions</h3>
+                    <p class="sec-subtitle">Allergies, chronic conditions & contact</p>
+                  </div>
+                </div>
+
+                <div class="spec-list">
+                  <div class="spec-row-stacked">
+                    <span class="spec-label">Known Allergies</span>
+                    <div class="spec-value-box">
+                      <div *ngIf="selectedPatient.allergies && selectedPatient.allergies !== 'None reported'" class="tag-box allergy-box">
+                        <mat-icon class="box-tag-icon text-rose-600">warning</mat-icon>
+                        <span>{{ selectedPatient.allergies }}</span>
                       </div>
-                      <div *ngIf="apt.cancellationReason" class="cancel-reason-text">
-                        Cancelled: {{ apt.cancellationReason }}
+                      <div *ngIf="!selectedPatient.allergies || selectedPatient.allergies === 'None reported'" class="empty-tag-box">
+                        <mat-icon class="box-tag-icon text-emerald-600">check_circle</mat-icon>
+                        <span>No known drug or food allergies on record</span>
                       </div>
-                    </td>
+                    </div>
+                  </div>
 
-                    <!-- Fee -->
-                    <td class="td-fee text-right font-bold text-neutral-900">
-                      ₹{{ getAppointmentFee(apt) | number }}
-                    </td>
+                  <div class="spec-row-stacked">
+                    <span class="spec-label">Chronic Medical Conditions</span>
+                    <div class="spec-value-box">
+                      <div *ngIf="selectedPatient.chronicConditions && selectedPatient.chronicConditions !== 'None reported'" class="tag-box condition-box">
+                        <mat-icon class="box-tag-icon text-amber-600">info</mat-icon>
+                        <span>{{ selectedPatient.chronicConditions }}</span>
+                      </div>
+                      <div *ngIf="!selectedPatient.chronicConditions || selectedPatient.chronicConditions === 'None reported'" class="empty-tag-box">
+                        <mat-icon class="box-tag-icon text-emerald-600">check_circle</mat-icon>
+                        <span>No chronic conditions reported</span>
+                      </div>
+                    </div>
+                  </div>
 
-                    <!-- Status -->
-                    <td class="td-status text-right">
-                      <app-status-badge [status]="apt.status"></app-status-badge>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+                  <div class="spec-row">
+                    <span class="spec-label">Emergency Contact</span>
+                    <span class="spec-value font-semibold">
+                      {{ selectedPatient.emergencyContactName || 'None listed' }}
+                    </span>
+                  </div>
+
+                  <div class="spec-row">
+                    <span class="spec-label">Emergency Phone</span>
+                    <span class="spec-value">
+                      <a *ngIf="selectedPatient.emergencyContactPhone" [href]="'tel:' + selectedPatient.emergencyContactPhone" class="meta-link font-mono">
+                        📞 {{ selectedPatient.emergencyContactPhone }}
+                      </a>
+                      <span *ngIf="!selectedPatient.emergencyContactPhone" class="text-neutral-400">Not provided</span>
+                    </span>
+                  </div>
+                </div>
+              </mat-card>
+
+              <!-- 3. Account Security & Compliance -->
+              <mat-card class="spec-card">
+                <div class="card-section-header">
+                  <div class="sec-icon-wrap success">
+                    <mat-icon class="sec-icon">shield</mat-icon>
+                  </div>
+                  <div>
+                    <h3 class="sec-title">Security & Governance</h3>
+                    <p class="sec-subtitle">Authentication, audit trail & compliance</p>
+                  </div>
+                </div>
+
+                <div class="spec-list">
+                  <div class="spec-row">
+                    <span class="spec-label">Authentication Level</span>
+                    <span class="spec-value">
+                      <span class="security-level-pill" [class.high]="selectedPatient.isTwoFactorEnabled || selectedPatient.twoFactorEnabled">
+                        {{ (selectedPatient.isTwoFactorEnabled || selectedPatient.twoFactorEnabled) ? 'High (2FA Enforced)' : 'Standard (Password Only)' }}
+                      </span>
+                    </span>
+                  </div>
+
+                  <div class="spec-row">
+                    <span class="spec-label">Email Verification</span>
+                    <span class="spec-value">
+                      <span *ngIf="selectedPatient.isEmailVerified || selectedPatient.emailVerifiedAt" class="text-emerald-700 font-semibold">
+                        Verified {{ selectedPatient.emailVerifiedAt ? ('on ' + (selectedPatient.emailVerifiedAt | portalDate:'dd MMM yyyy')) : '' }}
+                      </span>
+                      <span *ngIf="!selectedPatient.isEmailVerified && !selectedPatient.emailVerifiedAt" class="text-amber-700 font-semibold">
+                        Pending Verification
+                      </span>
+                    </span>
+                  </div>
+
+                  <div class="spec-row">
+                    <span class="spec-label">Failed Login Count</span>
+                    <span class="spec-value font-mono">
+                      {{ selectedPatient.failedLoginCount || 0 }} failed attempts
+                    </span>
+                  </div>
+
+                  <div class="spec-row">
+                    <span class="spec-label">Lockout Status</span>
+                    <span class="spec-value">
+                      <span *ngIf="selectedPatient.lockedUntil" class="text-rose-700 font-bold">
+                        Locked until {{ selectedPatient.lockedUntil | portalDate:'dd MMM yyyy, h:mm a' }}
+                      </span>
+                      <span *ngIf="!selectedPatient.lockedUntil" class="text-emerald-700 font-semibold">
+                        Unlocked & Healthy
+                      </span>
+                    </span>
+                  </div>
+
+                  <div class="spec-row">
+                    <span class="spec-label">Terms Consent</span>
+                    <span class="spec-value font-mono text-xs">
+                      v{{ selectedPatient.acceptedTermsVersion || '1.0' }}
+                      <span *ngIf="selectedPatient.acceptedTermsAt" class="text-neutral-500 font-normal">
+                        ({{ selectedPatient.acceptedTermsAt | portalDate:'dd MMM yyyy' }})
+                      </span>
+                    </span>
+                  </div>
+
+                  <div class="spec-row">
+                    <span class="spec-label">Last Modified</span>
+                    <span class="spec-value text-xs text-neutral-600">
+                      {{ selectedPatient.updatedAt | portalDate:'dd MMM yyyy, h:mm a' }}
+                    </span>
+                  </div>
+                </div>
+              </mat-card>
             </div>
-          </mat-card>
+
+            <!-- RIGHT COLUMN: Family Dependents & Consultation History -->
+            <div class="dossier-right-col">
+              <!-- Family Dependents Section -->
+              <mat-card class="section-card">
+                <div class="section-header-bar">
+                  <div class="section-title-wrap">
+                    <div class="sec-icon-wrap primary">
+                      <mat-icon class="sec-icon">family_restroom</mat-icon>
+                    </div>
+                    <div>
+                      <h2 class="section-heading">Family Dependents Directory</h2>
+                      <p class="section-subheading">
+                        Registered family beneficiaries linked to this primary patient account ({{ patientDetails?.dependents?.length || 0 }} total).
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Empty Dependents -->
+                <div *ngIf="!patientDetails?.dependents || patientDetails?.dependents?.length === 0" class="empty-dependents-state">
+                  <mat-icon class="empty-icon">family_restroom</mat-icon>
+                  <h4>No Family Dependents Registered</h4>
+                  <p>This patient currently does not have any family members or dependents attached to their healthcare profile.</p>
+                </div>
+
+                <!-- Dependents Cards Grid -->
+                <div *ngIf="patientDetails?.dependents && (patientDetails?.dependents?.length || 0) > 0" class="dependents-grid">
+                  <div *ngFor="let dep of patientDetails?.dependents" class="dep-profile-card">
+                    <div class="dep-header">
+                      <div class="dep-avatar">
+                        {{ getInitials(dep.name) }}
+                      </div>
+                      <div class="dep-title-wrap">
+                        <h4 class="dep-name">{{ dep.name }}</h4>
+                        <div class="dep-rel-badge">{{ dep.relationship | titlecase }}</div>
+                      </div>
+                    </div>
+
+                    <div class="dep-details-grid">
+                      <div class="dep-field">
+                        <span class="df-lbl">Date of Birth & Age</span>
+                        <span class="df-val">
+                          {{ dep.dateOfBirth | portalDate:'dd MMM yyyy' }}
+                          <span class="text-neutral-500">({{ calculateAge(dep.dateOfBirth) }})</span>
+                        </span>
+                      </div>
+
+                      <div class="dep-field">
+                        <span class="df-lbl">Gender</span>
+                        <span class="df-val capitalize">{{ dep.gender | titlecase }}</span>
+                      </div>
+
+                      <div class="dep-field">
+                        <span class="df-lbl">Blood Group</span>
+                        <span class="df-val font-bold text-rose-700">
+                          {{ dep.bloodGroup ? ('🩸 ' + dep.bloodGroup) : 'Not recorded' }}
+                        </span>
+                      </div>
+
+                      <div class="dep-field">
+                        <span class="df-lbl">Height / Weight</span>
+                        <span class="df-val">
+                          {{ dep.heightCm ? (dep.heightCm + ' cm') : '-' }} / {{ dep.weightKg ? (dep.weightKg + ' kg') : '-' }}
+                        </span>
+                      </div>
+
+                      <div class="dep-field col-span-2" *ngIf="dep.allergies">
+                        <span class="df-lbl">Allergies</span>
+                        <span class="df-val text-rose-700 font-medium">{{ dep.allergies }}</span>
+                      </div>
+
+                      <div class="dep-field col-span-2" *ngIf="dep.chronicConditions">
+                        <span class="df-lbl">Chronic Conditions</span>
+                        <span class="df-val text-amber-700 font-medium">{{ dep.chronicConditions }}</span>
+                      </div>
+
+                      <div class="dep-field col-span-2" *ngIf="dep.emergencyContactName || dep.emergencyContactPhone">
+                        <span class="df-lbl">Emergency Contact</span>
+                        <span class="df-val">
+                          {{ dep.emergencyContactName }}
+                          <span *ngIf="dep.emergencyContactPhone" class="font-mono text-xs">({{ dep.emergencyContactPhone }})</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </mat-card>
+
+              <!-- Appointment & Consultation History Section -->
+              <mat-card class="section-card">
+                <div class="section-header-bar">
+                  <div class="section-title-wrap">
+                    <div class="sec-icon-wrap primary">
+                      <mat-icon class="sec-icon">calendar_month</mat-icon>
+                    </div>
+                    <div>
+                      <h2 class="section-heading">Consultation & Appointment History</h2>
+                      <p class="section-subheading">
+                        Chronological consultations for this patient ({{ patientDetails?.appointments?.length || 0 }} records).
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Empty Appointments -->
+                <div *ngIf="!patientDetails?.appointments || patientDetails?.appointments?.length === 0" class="empty-appointments-state">
+                  <mat-icon class="empty-icon">event_busy</mat-icon>
+                  <h4>No Consultation Records Found</h4>
+                  <p>This patient has not booked any doctor appointments yet on the Docyra platform.</p>
+                </div>
+
+                <!-- Appointments Table -->
+                <div *ngIf="patientDetails?.appointments && (patientDetails?.appointments?.length || 0) > 0" class="table-container">
+                  <table class="appointments-history-table">
+                    <thead>
+                      <tr>
+                        <th class="th-date">Date & Time</th>
+                        <th class="th-doctor">Attending Physician</th>
+                        <th class="th-clinic">Hospital / Clinic</th>
+                        <th class="th-beneficiary">Beneficiary</th>
+                        <th class="th-reason">Reason & Notes</th>
+                        <th class="th-fee text-right">Fee</th>
+                        <th class="th-status text-right">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let apt of patientDetails?.appointments" class="apt-row">
+                        <!-- Date & Time -->
+                        <td class="td-date">
+                          <div class="apt-date-text">{{ apt.slotStart | portalDate:'dd MMM yyyy' }}</div>
+                          <div class="apt-time-text">{{ apt.slotStart | portalDate:'h:mm a' }} - {{ apt.slotEnd | portalDate:'h:mm a' }}</div>
+                        </td>
+
+                        <!-- Attending Physician -->
+                        <td class="td-doctor">
+                          <div class="doctor-name font-bold text-neutral-900">{{ getDoctorDisplayName(apt) }}</div>
+                          <div class="doctor-spec-chip" *ngIf="getDoctorSpecialization(apt)">
+                            {{ getDoctorSpecialization(apt) }}
+                          </div>
+                        </td>
+
+                        <!-- Hospital / Clinic -->
+                        <td class="td-clinic">
+                          <div class="clinic-name font-semibold text-neutral-800">{{ getAppointmentClinicName(apt) }}</div>
+                          <div class="clinic-city text-xs text-neutral-500">{{ getAppointmentClinicCity(apt) }}</div>
+                        </td>
+
+                        <!-- Beneficiary -->
+                        <td class="td-beneficiary">
+                          <span class="beneficiary-pill" [class.self]="!isBookedForDependent(apt)">
+                            <mat-icon class="ben-icon">{{ isBookedForDependent(apt) ? 'family_restroom' : 'person' }}</mat-icon>
+                            <span>{{ getBeneficiaryLabel(apt) }}</span>
+                          </span>
+                        </td>
+
+                        <!-- Reason for Visit -->
+                        <td class="td-reason">
+                          <div class="reason-text">{{ apt.reasonForVisit || 'General Medical Consultation' }}</div>
+                          <div *ngIf="apt.prescription?.medicines?.length" class="prescription-pill">
+                            💊 {{ apt.prescription.medicines.length }} medicines prescribed
+                          </div>
+                          <div *ngIf="apt.cancellationReason" class="cancel-reason-text">
+                            Cancelled: {{ apt.cancellationReason }}
+                          </div>
+                        </td>
+
+                        <!-- Fee -->
+                        <td class="td-fee text-right font-bold text-neutral-900">
+                          ₹{{ getAppointmentFee(apt) | number }}
+                        </td>
+
+                        <!-- Status -->
+                        <td class="td-status text-right">
+                          <app-status-badge [status]="apt.status"></app-status-badge>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </mat-card>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -897,7 +914,7 @@ interface BmiInfo {
     .manage-patients-container {
       display: flex;
       flex-direction: column;
-      gap: 24px;
+      gap: 20px;
     }
 
     /* Page Header */
@@ -905,12 +922,12 @@ interface BmiInfo {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      gap: 20px;
+      gap: 16px;
       flex-wrap: wrap;
     }
 
     .badge-row {
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
 
     .category-badge {
@@ -932,22 +949,25 @@ interface BmiInfo {
     }
 
     .page-title {
-      font-size: 24px;
+      font-size: 22px;
       font-weight: 800;
       color: #1A2E2E;
-      margin: 0 0 6px;
-      letter-spacing: -0.4px;
+      margin: 0 0 4px;
+      letter-spacing: -0.3px;
     }
 
     .page-subtitle {
       font-size: 13px;
       color: #5C6B6B;
       margin: 0;
-      max-width: 820px;
+      max-width: 800px;
       line-height: 1.5;
     }
 
-    .action-btn {
+    .refresh-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
       border-color: #D3CECE !important;
       color: #1A2E2E !important;
       font-weight: 600 !important;
@@ -963,45 +983,39 @@ interface BmiInfo {
       }
     }
 
-    /* Stats Grid */
-    .stats-grid {
+    /* KPI Grid */
+    .kpi-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
       gap: 16px;
     }
 
-    @media (max-width: 1024px) {
-      .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
-    }
-
-    @media (max-width: 600px) {
-      .stats-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .stat-card {
-      padding: 16px 18px !important;
-      border-radius: 12px !important;
-      display: flex;
-      flex-direction: row !important;
-      align-items: center;
-      gap: 16px;
+    .kpi-card {
       background: #FFFFFF;
-      border: 1px solid #E7E5E0;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      border: 1px solid #E5E7EB;
+      border-radius: 12px;
+      padding: 16px 18px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
       cursor: pointer;
-      transition: all 0.15s ease-in-out;
+      transition: all 0.15s ease;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
     }
 
-    .stat-card:hover {
+    .kpi-card:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
       border-color: #0F5C5C;
-      box-shadow: 0 4px 12px rgba(15, 92, 92, 0.08);
     }
 
-    .stat-icon-wrap {
+    .kpi-card.active-kpi {
+      border-color: #0F5C5C;
+      background: #F4FAF9;
+      box-shadow: 0 0 0 2px #0F5C5C;
+    }
+
+    .kpi-icon-wrap {
       width: 44px;
       height: 44px;
       border-radius: 10px;
@@ -1011,43 +1025,28 @@ interface BmiInfo {
       flex-shrink: 0;
     }
 
-    .stat-icon-wrap.primary {
-      background: #E6F2F1;
-      color: #0F5C5C;
-    }
+    .kpi-icon-wrap.total { background: #EEF2F6; color: #1E3A8A; }
+    .kpi-icon-wrap.active { background: #EBF7EE; color: #2E9E6B; }
+    .kpi-icon-wrap.suspended { background: #FDF2F2; color: #D9534F; }
+    .kpi-icon-wrap.family { background: #FEF3E8; color: #C05621; }
 
-    .stat-icon-wrap.success {
-      background: #EBF7EE;
-      color: #2E9E6B;
-    }
-
-    .stat-icon-wrap.warn {
-      background: #FDF2F2;
-      color: #D9534F;
-    }
-
-    .stat-icon-wrap.info {
-      background: #FEF3E8;
-      color: #C05621;
-    }
-
-    .stat-info {
+    .kpi-info {
       display: flex;
       flex-direction: column;
     }
 
-    .stat-label {
+    .kpi-label {
       font-size: 11px;
       font-weight: 700;
+      color: #6B7280;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      color: #6C757D;
     }
 
-    .stat-value {
+    .kpi-value {
       font-size: 22px;
       font-weight: 800;
-      color: #1A2E2E;
+      color: #111827;
       line-height: 1.2;
       margin-top: 2px;
     }
@@ -1063,29 +1062,71 @@ interface BmiInfo {
     }
 
     .toolbar-wrap {
-      padding: 16px 20px;
+      padding: 14px 18px;
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      justify-content: space-between;
       gap: 16px;
-      border-bottom: 1px solid #E7E5E0;
+      border-bottom: 1px solid #F0EFEB;
       flex-wrap: wrap;
     }
 
     .search-box {
+      position: relative;
       flex: 1;
-      min-width: 280px;
+      min-width: 260px;
+      max-width: 420px;
+      display: flex;
+      align-items: center;
     }
 
-    .search-field {
-      margin-bottom: -1.34375em;
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      color: #9CA3AF;
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 8px 36px 8px 36px;
+      border-radius: 999px;
+      border: 1px solid #D1D5DB;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-input:focus {
+      border-color: #0F5C5C;
+      box-shadow: 0 0 0 3px rgba(15, 92, 92, 0.1);
+    }
+
+    .clear-search {
+      position: absolute;
+      right: 10px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: #9CA3AF;
+      display: flex;
+      align-items: center;
+      padding: 0;
+    }
+
+    .clear-search mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
     }
 
     .status-tabs {
       display: flex;
-      gap: 6px;
+      gap: 4px;
       background: #F4F3EF;
-      padding: 4px;
+      padding: 3px;
       border-radius: 8px;
     }
 
@@ -1098,7 +1139,7 @@ interface BmiInfo {
       color: #6C757D;
       border-radius: 6px;
       cursor: pointer;
-      transition: all 0.15s ease-in-out;
+      transition: all 0.15s ease;
     }
 
     .tab-btn.active {
@@ -1357,7 +1398,7 @@ interface BmiInfo {
     .patient-full-page {
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 18px;
     }
 
     .detail-nav-bar {
@@ -1365,7 +1406,7 @@ interface BmiInfo {
       justify-content: space-between;
       align-items: center;
       background: #FFFFFF;
-      padding: 12px 18px;
+      padding: 10px 18px;
       border-radius: 12px;
       border: 1px solid #E7E5E0;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
@@ -1386,6 +1427,8 @@ interface BmiInfo {
       display: flex;
       align-items: center;
       gap: 6px;
+      font-size: 13px !important;
+      padding: 0 8px !important;
     }
 
     .nav-divider {
@@ -1394,17 +1437,46 @@ interface BmiInfo {
       background: #E7E5E0;
     }
 
-    .dossier-kicker {
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 0.6px;
-      color: #5C6B6B;
+    .nav-breadcrumbs {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 13px;
+    }
+
+    .crumb-link {
+      color: #718096;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .crumb-link:hover {
+      color: #0F5C5C;
+      text-decoration: underline;
+    }
+
+    .crumb-sep {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      color: #A0AEC0;
+    }
+
+    .crumb-active {
+      font-weight: 700;
+      color: #1A2E2E;
     }
 
     .nav-actions {
       display: flex;
       align-items: center;
       gap: 10px;
+    }
+
+    .action-btn {
+      border-color: #D3CECE !important;
+      color: #1A2E2E !important;
+      font-weight: 600 !important;
     }
 
     .status-action-btn {
@@ -1427,12 +1499,12 @@ interface BmiInfo {
     .dossier-body {
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 18px;
     }
 
     /* Hero Card */
     .hero-card {
-      padding: 24px !important;
+      padding: 20px 24px !important;
       border-radius: 12px !important;
       background: #FFFFFF;
       border: 1px solid #E7E5E0;
@@ -1442,13 +1514,13 @@ interface BmiInfo {
     .hero-content {
       display: flex;
       align-items: center;
-      gap: 24px;
+      gap: 20px;
       flex-wrap: wrap;
     }
 
     .hero-avatar {
-      width: 72px;
-      height: 72px;
+      width: 68px;
+      height: 68px;
       border-radius: 50%;
       background: #0F5C5C;
       color: #FFFFFF;
@@ -1457,8 +1529,9 @@ interface BmiInfo {
       justify-content: center;
       font-size: 24px;
       font-weight: 800;
-      box-shadow: 0 4px 12px rgba(15, 92, 92, 0.15);
+      box-shadow: 0 4px 12px rgba(15, 92, 92, 0.12);
       border: 3px solid #E6F2F1;
+      flex-shrink: 0;
     }
 
     .hero-avatar.suspended {
@@ -1481,11 +1554,11 @@ interface BmiInfo {
     }
 
     .patient-full-name {
-      font-size: 24px;
+      font-size: 22px;
       font-weight: 800;
       color: #1A2E2E;
       margin: 0;
-      letter-spacing: -0.4px;
+      letter-spacing: -0.3px;
     }
 
     .role-pill {
@@ -1502,7 +1575,7 @@ interface BmiInfo {
     .hero-meta-row {
       display: flex;
       align-items: center;
-      gap: 20px;
+      gap: 18px;
       flex-wrap: wrap;
       font-size: 13px;
     }
@@ -1550,18 +1623,18 @@ interface BmiInfo {
     .hero-badges-row {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       flex-wrap: wrap;
-      margin-top: 4px;
+      margin-top: 2px;
     }
 
     .badge-item {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
-      padding: 4px 10px;
+      padding: 3px 10px;
       border-radius: 6px;
       background: #F7FAFC;
       border: 1px solid #E2E8F0;
@@ -1585,74 +1658,89 @@ interface BmiInfo {
       color: #15803D;
     }
 
-    /* Specifications Grid */
-    .specs-grid {
+    /* 2-Column Responsive Dossier Grid */
+    .dossier-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
+      grid-template-columns: 360px minmax(0, 1fr);
+      gap: 20px;
+      align-items: start;
     }
 
-    @media (max-width: 1024px) {
-      .specs-grid {
+    @media (max-width: 1100px) {
+      .dossier-grid {
         grid-template-columns: 1fr;
       }
     }
 
+    .dossier-left-col {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .dossier-right-col {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-width: 0;
+    }
+
     .spec-card {
-      padding: 20px !important;
+      padding: 18px 20px !important;
       border-radius: 12px !important;
       background: #FFFFFF;
       border: 1px solid #E7E5E0;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 14px;
     }
 
     .card-section-header {
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       gap: 12px;
       border-bottom: 1px solid #F0EFEB;
       padding-bottom: 12px;
     }
 
+    .sec-icon-wrap {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .sec-icon-wrap.primary { background: #E6F2F1; color: #0F5C5C; }
+    .sec-icon-wrap.warn { background: #FEF3E8; color: #C05621; }
+    .sec-icon-wrap.success { background: #EBF7EE; color: #2E9E6B; }
+
     .sec-icon {
-      font-size: 22px;
-      width: 22px;
-      height: 22px;
-      margin-top: 2px;
-    }
-
-    .primary-icon {
-      color: #0F5C5C;
-    }
-
-    .warn-icon {
-      color: #C05621;
-    }
-
-    .success-icon {
-      color: #2E9E6B;
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
     }
 
     .sec-title {
-      font-size: 15px;
-      font-weight: 700;
+      font-size: 14px;
+      font-weight: 800;
       color: #1A2E2E;
       margin: 0;
     }
 
     .sec-subtitle {
-      font-size: 12px;
+      font-size: 11px;
       color: #718096;
-      margin: 2px 0 0;
+      margin: 1px 0 0;
     }
 
     .spec-list {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
     }
 
     .spec-row {
@@ -1660,14 +1748,14 @@ interface BmiInfo {
       justify-content: space-between;
       align-items: center;
       gap: 12px;
-      font-size: 13px;
+      font-size: 12px;
     }
 
     .spec-row-stacked {
       display: flex;
       flex-direction: column;
-      gap: 6px;
-      font-size: 13px;
+      gap: 5px;
+      font-size: 12px;
     }
 
     .spec-label {
@@ -1683,15 +1771,15 @@ interface BmiInfo {
     }
 
     .spec-value-box {
-      margin-top: 2px;
+      margin-top: 1px;
     }
 
     .tag-box {
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 6px 12px;
-      border-radius: 8px;
+      padding: 6px 10px;
+      border-radius: 6px;
       font-size: 12px;
       font-weight: 600;
     }
@@ -1712,8 +1800,8 @@ interface BmiInfo {
       display: flex;
       align-items: center;
       gap: 6px;
-      padding: 6px 12px;
-      border-radius: 8px;
+      padding: 6px 10px;
+      border-radius: 6px;
       background: #F0FDF4;
       color: #166534;
       font-size: 12px;
@@ -1778,14 +1866,14 @@ interface BmiInfo {
 
     /* Section Cards (Dependents & Appointments) */
     .section-card {
-      padding: 20px 24px !important;
+      padding: 20px 22px !important;
       border-radius: 12px !important;
       background: #FFFFFF;
       border: 1px solid #E7E5E0;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
       display: flex;
       flex-direction: column;
-      gap: 18px;
+      gap: 16px;
     }
 
     .section-header-bar {
@@ -1793,28 +1881,17 @@ interface BmiInfo {
       justify-content: space-between;
       align-items: center;
       border-bottom: 1px solid #F0EFEB;
-      padding-bottom: 14px;
+      padding-bottom: 12px;
     }
 
     .section-title-wrap {
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       gap: 12px;
     }
 
-    .section-icon {
-      font-size: 24px;
-      width: 24px;
-      height: 24px;
-      margin-top: 2px;
-    }
-
-    .primary-color {
-      color: #0F5C5C;
-    }
-
     .section-heading {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 800;
       color: #1A2E2E;
       margin: 0;
@@ -1823,7 +1900,7 @@ interface BmiInfo {
     .section-subheading {
       font-size: 12px;
       color: #718096;
-      margin: 2px 0 0;
+      margin: 1px 0 0;
     }
 
     .empty-dependents-state, .empty-appointments-state {
@@ -1831,59 +1908,59 @@ interface BmiInfo {
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 36px 16px;
+      padding: 32px 16px;
       text-align: center;
       color: #718096;
     }
 
     .empty-dependents-state .empty-icon, .empty-appointments-state .empty-icon {
-      font-size: 44px;
-      width: 44px;
-      height: 44px;
+      font-size: 40px;
+      width: 40px;
+      height: 40px;
       color: #A0AEC0;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
 
     .empty-dependents-state h4, .empty-appointments-state h4 {
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 700;
       color: #2D3748;
-      margin: 0 0 4px;
+      margin: 0 0 3px;
     }
 
     .empty-dependents-state p, .empty-appointments-state p {
-      font-size: 13px;
+      font-size: 12px;
       color: #718096;
       margin: 0;
-      max-width: 520px;
+      max-width: 480px;
     }
 
     /* Dependents Grid */
     .dependents-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      gap: 16px;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 14px;
     }
 
     .dep-profile-card {
-      padding: 16px;
+      padding: 14px 16px;
       border-radius: 10px;
       border: 1px solid #E7E5E0;
       background: #FAFAF8;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
     }
 
     .dep-header {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
     }
 
     .dep-avatar {
-      width: 40px;
-      height: 40px;
+      width: 36px;
+      height: 36px;
       border-radius: 50%;
       background: #319795;
       color: #FFFFFF;
@@ -1891,29 +1968,29 @@ interface BmiInfo {
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 14px;
+      font-size: 13px;
       flex-shrink: 0;
     }
 
     .dep-title-wrap {
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: 1px;
     }
 
     .dep-name {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 800;
       color: #1A2E2E;
       margin: 0;
     }
 
     .dep-rel-badge {
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 700;
       color: #0F5C5C;
       background: #E6F2F1;
-      padding: 1px 8px;
+      padding: 1px 7px;
       border-radius: 999px;
       width: fit-content;
     }
@@ -1921,14 +1998,14 @@ interface BmiInfo {
     .dep-details-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 8px 12px;
+      gap: 6px 10px;
       font-size: 12px;
     }
 
     .dep-field {
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: 1px;
     }
 
     .dep-field.col-span-2 {
@@ -1937,13 +2014,16 @@ interface BmiInfo {
 
     .df-lbl {
       color: #718096;
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
     }
 
     .df-val {
       color: #1A2E2E;
       font-weight: 700;
+      font-size: 12px;
     }
 
     /* Appointments Table */
@@ -1954,7 +2034,7 @@ interface BmiInfo {
     }
 
     .appointments-history-table th {
-      padding: 12px 14px;
+      padding: 10px 12px;
       font-size: 11px;
       font-weight: 800;
       text-transform: uppercase;
@@ -1962,10 +2042,11 @@ interface BmiInfo {
       color: #5C6B6B;
       background: #F9F9F7;
       border-bottom: 1px solid #E7E5E0;
+      white-space: nowrap;
     }
 
     .appointments-history-table td {
-      padding: 14px;
+      padding: 12px;
       border-bottom: 1px solid #E7E5E0;
       font-size: 13px;
       vertical-align: middle;
@@ -1974,6 +2055,7 @@ interface BmiInfo {
     .apt-date-text {
       font-weight: 700;
       color: #1A2E2E;
+      font-size: 12px;
     }
 
     .apt-time-text {
@@ -1982,8 +2064,12 @@ interface BmiInfo {
       margin-top: 2px;
     }
 
+    .doctor-name {
+      font-size: 13px;
+    }
+
     .doctor-spec-chip {
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 600;
       color: #0F5C5C;
       background: #E6F2F1;
@@ -1993,13 +2079,17 @@ interface BmiInfo {
       margin-top: 2px;
     }
 
+    .clinic-name {
+      font-size: 12px;
+    }
+
     .beneficiary-pill {
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 700;
-      padding: 2px 8px;
+      padding: 2px 7px;
       border-radius: 6px;
       background: #FEF3E8;
       color: #C05621;
@@ -2011,14 +2101,19 @@ interface BmiInfo {
     }
 
     .ben-icon {
-      font-size: 14px;
-      width: 14px;
-      height: 14px;
+      font-size: 13px;
+      width: 13px;
+      height: 13px;
+    }
+
+    .reason-text {
+      font-size: 12px;
+      color: #2D3748;
     }
 
     .prescription-pill {
       display: inline-block;
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 600;
       color: #2E9E6B;
       background: #EBF7EE;
