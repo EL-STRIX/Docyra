@@ -230,14 +230,21 @@ import { MatTooltipModule } from '@angular/material/tooltip';
                       <span *ngIf="!doc.profilePhotoUrl">{{ getInitials(doc.name) }}</span>
                     </div>
                     <div class="identity-meta">
-                      <div class="doctor-name font-bold text-sm text-neutral-900">
+                      <div class="doctor-name">
                         {{ getDoctorDisplayName(doc) }}
                       </div>
-                      <div class="doctor-email text-xs text-neutral-500">
+                      <div class="doctor-email">
                         {{ doc.email || 'Email on file' }}
                       </div>
-                      <div class="doctor-id font-mono text-[11px] text-neutral-400">
-                        ID: {{ doc._id | slice:0:10 }}
+                      <div class="doctor-meta-sub">
+                        <span *ngIf="doc.phone" class="doctor-phone">
+                          <mat-icon class="sub-ic">call</mat-icon>
+                          <span>{{ doc.phone }}</span>
+                        </span>
+                        <span *ngIf="doc.phone && doc._id" class="sub-sep">&bull;</span>
+                        <span *ngIf="doc._id" class="doctor-code">
+                          #{{ (doc._id || '').slice(-6) }}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -255,32 +262,38 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 
                 <!-- Practice Facility -->
                 <td class="facility-cell">
-                  <div *ngIf="isClinicDoctor(doc)" class="clinic-facility-info">
-                    <div class="facility-name font-semibold text-neutral-900 text-xs">
+                  <div *ngIf="isClinicDoctor(doc)" class="facility-wrap">
+                    <div class="facility-header">
                       <mat-icon class="facility-icon">local_hospital</mat-icon>
-                      {{ getClinicName(doc) }}
+                      <span class="facility-name" [title]="getClinicName(doc)">
+                        {{ getClinicName(doc) }}
+                      </span>
                     </div>
-                    <div class="facility-city text-[11px] text-neutral-500">
-                      {{ getClinicCity(doc) }}
+                    <div class="facility-city">
+                      <mat-icon class="city-icon">location_on</mat-icon>
+                      <span>{{ getClinicCity(doc) }}</span>
                     </div>
                   </div>
-                  <div *ngIf="!isClinicDoctor(doc)" class="independent-facility-info">
-                    <span class="independent-pill">
-                      <mat-icon class="ind-icon">person_pin</mat-icon>
-                      Independent Practice
-                    </span>
-                    <div *ngIf="doc.clinicAddress" class="facility-address text-[11px] text-neutral-500 truncate" [title]="doc.clinicAddress">
-                      {{ doc.clinicAddress }}
+                  <div *ngIf="!isClinicDoctor(doc)" class="facility-wrap">
+                    <div class="facility-header">
+                      <span class="independent-tag">
+                        <mat-icon class="ind-icon">medical_services</mat-icon>
+                        <span>Independent Practice</span>
+                      </span>
+                    </div>
+                    <div class="facility-city" [title]="doc.clinicAddress || 'Bengaluru'">
+                      <mat-icon class="city-icon">location_on</mat-icon>
+                      <span>{{ truncate(doc.clinicAddress, 26) || getClinicCity(doc) }}</span>
                     </div>
                   </div>
                 </td>
 
                 <!-- Credentials & Experience -->
                 <td class="credentials-cell">
-                  <div class="experience-text text-xs font-semibold text-neutral-800">
+                  <div class="exp-text">
                     {{ getExperience(doc) }}
                   </div>
-                  <div class="qualifications-chips" *ngIf="doc.qualifications && doc.qualifications.length > 0">
+                  <div class="qual-chips-wrap" *ngIf="doc.qualifications && doc.qualifications.length > 0">
                     <span class="qual-chip" *ngFor="let q of doc.qualifications.slice(0, 2)">
                       {{ q }}
                     </span>
@@ -288,24 +301,24 @@ import { MatTooltipModule } from '@angular/material/tooltip';
                       +{{ doc.qualifications.length - 2 }}
                     </span>
                   </div>
-                  <div *ngIf="!doc.qualifications || doc.qualifications.length === 0" class="text-xs text-neutral-400">
+                  <div *ngIf="!doc.qualifications || doc.qualifications.length === 0" class="qual-fallback">
                     Medical Practitioner
                   </div>
                 </td>
 
                 <!-- Consultation Fee -->
                 <td class="fee-cell">
-                  <div class="fee-amount font-bold text-sm text-neutral-900">
+                  <div class="fee-amount">
                     ₹{{ doc.consultationFee || 500 }}
                   </div>
-                  <div class="fee-sub text-[10px] text-neutral-400">per visit</div>
+                  <div class="fee-sub">per visit</div>
                 </td>
 
                 <!-- Rating -->
                 <td class="rating-cell">
                   <div class="rating-wrap">
                     <span class="rating-badge">⭐ {{ doc.avgRating ? (doc.avgRating | number:'1.1-1') : '5.0' }}</span>
-                    <span class="review-count text-[11px] text-neutral-500">({{ doc.totalReviews || 0 }} reviews)</span>
+                    <span class="review-count">({{ doc.totalReviews || 0 }} {{ (doc.totalReviews || 0) === 1 ? 'review' : 'reviews' }})</span>
                   </div>
                 </td>
 
@@ -324,7 +337,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
                       matTooltip="Open Full Physician Dossier"
                     >
                       <mat-icon class="btn-icon">visibility</mat-icon>
-                      <span>View Profile</span>
+                      <span>View</span>
                     </button>
 
                     <button
@@ -881,27 +894,29 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 
     .doctors-table {
       width: 100%;
+      min-width: 1080px;
       border-collapse: collapse;
       text-align: left;
     }
 
     .doctors-table th {
-      padding: 12px 16px;
+      padding: 13px 16px;
       font-size: 11px;
       font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      color: #5C6B6B;
-      border-bottom: 2px solid #E5E7EB;
-      background: #FAFAF8;
+      color: #4B5563;
+      border-bottom: 1px solid #E5E7EB;
+      background: #F9FAFB;
       white-space: nowrap;
     }
 
     .doctors-table td {
-      padding: 12px 16px;
-      border-bottom: 1px solid #EBECEF;
+      padding: 14px 16px;
+      border-bottom: 1px solid #F1F5F9;
       font-size: 13px;
       vertical-align: middle;
+      color: #1F2937;
     }
 
     .doctor-row {
@@ -910,12 +925,22 @@ import { MatTooltipModule } from '@angular/material/tooltip';
     }
 
     .doctor-row:hover {
-      background-color: #F8F9FA;
+      background-color: #FAFAF8;
     }
 
     .doctor-row.suspended-row {
       background-color: #FFFDFD;
     }
+
+    /* Column Widths */
+    .physician-col { width: 22%; min-width: 220px; }
+    .spec-col { width: 14%; min-width: 135px; }
+    .facility-col { width: 17%; min-width: 170px; }
+    .credentials-col { width: 14%; min-width: 135px; }
+    .fee-col { width: 10%; min-width: 95px; }
+    .rating-col { width: 12%; min-width: 125px; }
+    .status-col { width: 8%; min-width: 90px; }
+    .actions-col { width: 13%; min-width: 145px; text-align: right; }
 
     /* Physician Identity */
     .doctor-identity-wrap {
@@ -957,7 +982,47 @@ import { MatTooltipModule } from '@angular/material/tooltip';
     }
 
     .doctor-name {
-      color: #1A2E2E;
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #0F172A;
+      line-height: 1.3;
+    }
+
+    .doctor-email {
+      font-size: 12px;
+      color: #64748B;
+    }
+
+    .doctor-meta-sub {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      color: #94A3B8;
+      margin-top: 1px;
+    }
+
+    .doctor-phone {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      color: #64748B;
+    }
+
+    .sub-ic {
+      font-size: 12px;
+      width: 12px;
+      height: 12px;
+      line-height: 12px;
+    }
+
+    .sub-sep {
+      color: #CBD5E1;
+    }
+
+    .doctor-code {
+      font-family: monospace;
+      color: #94A3B8;
     }
 
     /* Specialty Badge */
@@ -965,13 +1030,14 @@ import { MatTooltipModule } from '@angular/material/tooltip';
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: #F0FDF4;
-      color: #166534;
+      background: #E8F5F1;
+      color: #0F5C5C;
       padding: 4px 10px;
       border-radius: 6px;
       font-size: 12px;
       font-weight: 700;
-      border: 1px solid #DCFCE7;
+      border: 1px solid #C4E5DC;
+      white-space: nowrap;
     }
 
     .spec-icon {
@@ -981,30 +1047,65 @@ import { MatTooltipModule } from '@angular/material/tooltip';
     }
 
     /* Facility */
-    .facility-name {
+    .facility-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .facility-header {
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 5px;
+    }
+
+    .facility-name {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #0F172A;
+      line-height: 1.3;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 170px;
     }
 
     .facility-icon {
-      font-size: 14px;
-      width: 14px;
-      height: 14px;
-      color: #3B82F6;
+      font-size: 15px;
+      width: 15px;
+      height: 15px;
+      color: #2563EB;
+      flex-shrink: 0;
     }
 
-    .independent-pill {
+    .facility-city {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 11.5px;
+      color: #64748B;
+    }
+
+    .city-icon {
+      font-size: 13px;
+      width: 13px;
+      height: 13px;
+      color: #94A3B8;
+      flex-shrink: 0;
+    }
+
+    .independent-tag {
       display: inline-flex;
       align-items: center;
       gap: 4px;
       font-size: 11px;
       font-weight: 700;
-      color: #0D9488;
-      background: #F0FDFA;
-      padding: 2px 8px;
+      color: #0F5C5C;
+      background: #E6F2F1;
+      padding: 2px 7px;
       border-radius: 4px;
-      border: 1px solid #CCFBF1;
+      border: 1px solid #C4E5DC;
+      white-space: nowrap;
     }
 
     .ind-icon {
@@ -1014,41 +1115,81 @@ import { MatTooltipModule } from '@angular/material/tooltip';
     }
 
     /* Credentials */
-    .qualifications-chips {
+    .exp-text {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #1E293B;
+      margin-bottom: 2px;
+      white-space: nowrap;
+    }
+
+    .qual-chips-wrap {
       display: flex;
       align-items: center;
       gap: 4px;
-      margin-top: 2px;
       flex-wrap: wrap;
     }
 
     .qual-chip {
-      font-size: 10px;
-      background: #F3F4F6;
-      color: #4B5563;
+      font-size: 10.5px;
+      background: #F1F5F9;
+      color: #334155;
       padding: 1px 6px;
       border-radius: 4px;
       font-weight: 600;
+      border: 1px solid #E2E8F0;
     }
 
     .qual-more {
-      font-size: 10px;
-      color: #6B7280;
+      font-size: 10.5px;
+      color: #64748B;
       font-weight: 700;
+      cursor: help;
+    }
+
+    .qual-fallback {
+      font-size: 11px;
+      color: #94A3B8;
+    }
+
+    /* Consultation Fee */
+    .fee-amount {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: #0F5C5C;
+    }
+
+    .fee-sub {
+      font-size: 11px;
+      color: #94A3B8;
     }
 
     /* Rating */
+    .rating-wrap {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+    }
+
     .rating-badge {
-      font-weight: 700;
-      font-size: 12px;
-      color: #B45309;
+      font-weight: 800;
+      font-size: 12.5px;
+      color: #D97706;
+    }
+
+    .review-count {
+      font-size: 11px;
+      color: #64748B;
     }
 
     /* Action Buttons */
     .btn-group {
       display: inline-flex;
       align-items: center;
+      justify-content: flex-end;
       gap: 6px;
+      vertical-align: middle;
     }
 
     .inspect-btn,
@@ -1062,16 +1203,41 @@ import { MatTooltipModule } from '@angular/material/tooltip';
       align-items: center !important;
       gap: 4px !important;
       border-radius: 6px !important;
+      box-shadow: none !important;
     }
 
     .inspect-btn {
       border-color: #D1D5DB !important;
       color: #374151 !important;
+      background: #FFFFFF !important;
     }
 
     .inspect-btn:hover {
       background: #F3F4F6 !important;
       border-color: #9CA3AF !important;
+      color: #0F5C5C !important;
+    }
+
+    .suspend-btn {
+      border-color: #FECACA !important;
+      color: #DC2626 !important;
+      background: #FFFFFF !important;
+    }
+
+    .suspend-btn:hover {
+      background: #FEF2F2 !important;
+      border-color: #F87171 !important;
+    }
+
+    .activate-btn {
+      border-color: #A7F3D0 !important;
+      color: #059669 !important;
+      background: #FFFFFF !important;
+    }
+
+    .activate-btn:hover {
+      background: #ECFDF5 !important;
+      border-color: #6EE7B7 !important;
     }
 
     .btn-icon {
@@ -1079,24 +1245,6 @@ import { MatTooltipModule } from '@angular/material/tooltip';
       width: 15px !important;
       height: 15px !important;
       line-height: 15px !important;
-    }
-
-    .suspend-btn {
-      border-color: #FCA5A5 !important;
-      color: #DC2626 !important;
-    }
-
-    .suspend-btn:hover {
-      background: #FEF2F2 !important;
-    }
-
-    .activate-btn {
-      border-color: #86EFAC !important;
-      color: #16A34A !important;
-    }
-
-    .activate-btn:hover {
-      background: #F0FDF4 !important;
     }
 
     .text-right { text-align: right; }
@@ -1774,6 +1922,11 @@ export class ManageDoctorsAdminComponent implements OnInit {
       return doc.clinicId.city || 'India';
     }
     return 'India';
+  }
+
+  truncate(str?: string, maxLen: number = 24): string {
+    if (!str) return '';
+    return str.length > maxLen ? str.substring(0, maxLen) + '...' : str;
   }
 
   getExperience(doc: any): string {
