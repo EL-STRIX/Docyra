@@ -472,6 +472,7 @@ export class PortalLayoutComponent {
       this.navItems = [
         { label: 'Admin Dashboard', path: '/admin/dashboard', icon: 'analytics' },
         { label: 'Manage Clinics', path: '/admin/clinics', icon: 'domain' },
+        { label: 'Manage Doctors', path: '/admin/doctors', icon: 'medical_services' },
         { label: 'Specializations', path: '/admin/specializations', icon: 'category' },
         { label: 'Manage Patients', path: '/admin/patients', icon: 'groups' },
         { label: 'Audit Logs', path: '/admin/audit-logs', icon: 'history' },

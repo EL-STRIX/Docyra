@@ -8,7 +8,10 @@ import {
   approveDoctorApplication,
   listPendingDoctorApplications,
   getPlatformAnalytics,
+  listAllDoctorsAdmin,
+  getDoctorDetailAdmin,
 } from '../../controllers/admin.controller.js';
+import { updateDoctorStatus } from '../../controllers/doctor.controller.js';
 import {
   listSpecializations,
   getSpecialization,
@@ -43,8 +46,11 @@ router.post('/clinics', validate(onboardClinicSchema), auditLogger('CLINIC_ONBOA
 router.get('/clinics', listAllClinicsAdmin);
 router.patch('/clinics/:id', validate(updateClinicSchema), auditLogger('CLINIC_STATUS_UPDATE', 'Clinic'), updateClinic);
 
-// Independent Doctor Application Reviews
+// Independent Doctor Application Reviews & Doctor Management
+router.get('/doctors', listAllDoctorsAdmin);
 router.get('/doctors/applications', listPendingDoctorApplications);
+router.get('/doctors/:id', getDoctorDetailAdmin);
+router.patch('/doctors/:id/status', auditLogger('DOCTOR_STATUS_UPDATE', 'DoctorProfile'), updateDoctorStatus);
 router.patch('/doctors/:id/approve', validate(approveDoctorSchema), auditLogger('DOCTOR_CREDENTIAL_VERIFIED', 'DoctorProfile'), approveDoctorApplication);
 router.post('/doctors/applications/:id/review', auditLogger('DOCTOR_CREDENTIAL_VERIFIED', 'DoctorProfile'), approveDoctorApplication);
 router.post('/doctors/:id/review', auditLogger('DOCTOR_CREDENTIAL_VERIFIED', 'DoctorProfile'), approveDoctorApplication);

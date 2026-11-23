@@ -282,8 +282,42 @@ export const getPlatformAnalytics = asyncHandler(async (req, res) => {
   });
 });
 
+export const listAllDoctorsAdmin = asyncHandler(async (req, res) => {
+  const { page, limit, search, status, specializationId, clinicId, isIndependent, minRating } = req.query;
+
+  const result = await doctorService.searchDoctors({
+    page,
+    limit: limit ? (limit === 'all' ? 'all' : parseInt(limit, 10)) : 1000,
+    search,
+    specializationId,
+    clinicId,
+    isIndependent,
+    minRating,
+    isApproved: 'all',
+    status,
+  });
+
+  res.status(200).json({
+    success: true,
+    data: result.doctors,
+    meta: result.meta,
+  });
+});
+
+export const getDoctorDetailAdmin = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const doctor = await doctorService.getDoctorProfile(id);
+
+  res.status(200).json({
+    success: true,
+    data: doctor,
+  });
+});
+
 export default {
   approveDoctorApplication,
   listPendingDoctorApplications,
   getPlatformAnalytics,
+  listAllDoctorsAdmin,
+  getDoctorDetailAdmin,
 };

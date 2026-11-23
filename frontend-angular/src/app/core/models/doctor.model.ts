@@ -42,7 +42,19 @@ export interface Doctor {
     endTime?: string;
   }>;
   rating?: number;
+  avgRating?: number;
   reviewCount?: number;
+  totalReviews?: number;
+  clinicName?: string;
+  clinicCity?: string;
+  specializationName?: string;
+  specializationIcon?: string;
+  realtimeStats?: {
+    totalAppointments?: number;
+    completedAppointments?: number;
+    upcomingAppointments?: number;
+    totalRevenueGenerated?: number;
+  };
   licenseNumber?: string;
   licenseDocumentUrl?: string;
   createdAt?: string;

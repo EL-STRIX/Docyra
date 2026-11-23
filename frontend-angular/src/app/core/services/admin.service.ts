@@ -3,7 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { Clinic } from '../models/clinic.model';
-import { DoctorApplication } from '../models/doctor.model';
+import { Doctor, DoctorApplication } from '../models/doctor.model';
 import { Specialization } from '../models/specialization.model';
 import { User } from '../models/user.model';
 import { AuditLogEntry } from '../models/audit-log.model';
@@ -77,6 +77,45 @@ export class AdminService {
     return this.http.post<ApiResponse<DoctorApplication>>(
       `${environment.apiBaseUrl}/doctors/applications/${applicationId}/review`,
       { status, rejectionReason },
+      { withCredentials: true }
+    );
+  }
+
+  // Doctor Management (Platform Admin)
+  getDoctors(params?: {
+    search?: string;
+    status?: string;
+    specializationId?: string;
+    clinicId?: string;
+    isIndependent?: boolean | string;
+    page?: number;
+    limit?: number;
+  }): Observable<ApiResponse<Doctor[]>> {
+    let httpParams = new HttpParams();
+    if (params) {
+      Object.keys(params).forEach((key) => {
+        const val = (params as any)[key];
+        if (val !== undefined && val !== null && val !== '') {
+          httpParams = httpParams.set(key, String(val));
+        }
+      });
+    }
+    return this.http.get<ApiResponse<Doctor[]>>(`${this.API_URL}/doctors`, {
+      params: httpParams,
+      withCredentials: true,
+    });
+  }
+
+  getDoctorDetail(id: string): Observable<ApiResponse<Doctor>> {
+    return this.http.get<ApiResponse<Doctor>>(`${this.API_URL}/doctors/${id}`, {
+      withCredentials: true,
+    });
+  }
+
+  updateDoctorStatus(id: string, status: 'active' | 'suspended'): Observable<ApiResponse<Doctor>> {
+    return this.http.patch<ApiResponse<Doctor>>(
+      `${this.API_URL}/doctors/${id}/status`,
+      { status },
       { withCredentials: true }
     );
   }

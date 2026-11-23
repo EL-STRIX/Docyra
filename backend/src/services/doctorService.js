@@ -12,8 +12,20 @@ class DoctorService {
   /**
    * Public: Search and filter doctors (no geolocation by design)
    */
-  async searchDoctors({ page = 1, limit = 10, search, specializationId, clinicId, isIndependent, minRating }) {
-    const profileMatch = { isApproved: true };
+  async searchDoctors({ page = 1, limit = 10, search, specializationId, clinicId, isIndependent, minRating, isApproved, status }) {
+    const profileMatch = {};
+
+    if (isApproved === 'all') {
+      // Platform Admin requests full physician catalog regardless of verification state
+    } else if (isApproved !== undefined && isApproved !== null && isApproved !== '') {
+      profileMatch.isApproved = isApproved === 'true' || isApproved === true;
+    } else {
+      profileMatch.isApproved = true; // default for public discovery
+    }
+
+    if (status && status !== 'all') {
+      profileMatch.status = status;
+    }
 
     if (specializationId) {
       if (mongoose.Types.ObjectId.isValid(specializationId)) {
@@ -160,9 +172,17 @@ class DoctorService {
           consultationFee: 1,
           feeCurrency: 1,
           yearsExperience: 1,
+          experienceYears: '$yearsExperience',
           avgRating: 1,
           totalReviews: 1,
           isApproved: 1,
+          status: 1,
+          isIndependent: 1,
+          licenseNumber: 1,
+          licenseDocumentUrl: 1,
+          slotDurationMinutes: 1,
+          createdAt: 1,
+          updatedAt: 1,
         },
       }
     );

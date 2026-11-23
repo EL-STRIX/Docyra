@@ -50,6 +50,7 @@ import { ClinicRevenueComponent } from './features/clinic-admin/revenue/clinic-r
 // Platform Admin Components (Screen 41-48)
 import { AdminDashboardComponent } from './features/admin/dashboard/admin-dashboard.component';
 import { ManageClinicsComponent } from './features/admin/clinics/manage-clinics.component';
+import { ManageDoctorsAdminComponent } from './features/admin/doctors/manage-doctors.component';
 import { ManageSpecializationsComponent } from './features/admin/specializations/manage-specializations.component';
 import { ManagePatientsComponent } from './features/admin/patients/manage-patients.component';
 import { AuditLogViewerComponent } from './features/admin/audit-logs/audit-log-viewer.component';
@@ -119,6 +120,7 @@ export const routes: Routes = [
           { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
           { path: 'dashboard', component: AdminDashboardComponent },
           { path: 'clinics', component: ManageClinicsComponent },
+          { path: 'doctors', component: ManageDoctorsAdminComponent },
           { path: 'applications', redirectTo: 'dashboard', pathMatch: 'full' },
           { path: 'specializations', component: ManageSpecializationsComponent },
           { path: 'patients', component: ManagePatientsComponent },
