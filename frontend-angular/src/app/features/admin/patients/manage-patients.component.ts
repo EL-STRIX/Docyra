@@ -891,7 +891,13 @@ interface BmiInfo {
     .manage-patients-container {
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 20px;
+    }
+
+    .directory-view {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
     }
 
     /* Page Header */
@@ -904,19 +910,19 @@ interface BmiInfo {
     }
 
     .page-title {
-      font-size: 21px;
+      font-size: 24px;
       font-weight: 800;
       color: #1A2E2E;
-      margin: 0 0 3px;
-      letter-spacing: -0.3px;
+      margin: 0 0 4px;
+      letter-spacing: -0.4px;
     }
 
     .page-subtitle {
       font-size: 13px;
       color: #5C6B6B;
       margin: 0;
-      max-width: 780px;
-      line-height: 1.45;
+      max-width: 820px;
+      line-height: 1.5;
     }
 
     .refresh-btn {
@@ -953,7 +959,7 @@ interface BmiInfo {
     .kpi-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
+      gap: 14px;
     }
 
     @media (max-width: 1024px) {
@@ -970,46 +976,45 @@ interface BmiInfo {
 
     .metric-card {
       background: #FFFFFF;
-      border: 1px solid #E5E7EB;
-      border-radius: 8px;
-      padding: 14px 16px;
+      border: 1px solid #EBECEF;
+      border-radius: 12px;
+      padding: 16px 20px;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
+      gap: 4px;
       cursor: pointer;
-      transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      transition: border-color 0.15s ease, background-color 0.15s ease;
     }
 
     .metric-card:hover {
-      border-color: #D1D5DB;
+      border-color: #CBD5E1;
+      background-color: #FBFBFC;
     }
 
     .metric-card.metric-card-active {
-      border-color: #0F5C5C;
-      background: #FAFAF8;
+      border-color: #0F5C5C !important;
+      background: #FAFCFC !important;
     }
 
     .metric-top {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 8px;
-      margin-bottom: 6px;
     }
 
     .metric-label {
       font-size: 11px;
-      font-weight: 700;
-      color: #64748B;
+      font-weight: 800;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.6px;
+      color: #64748B;
     }
 
     .metric-icon {
-      font-size: 17px;
-      width: 17px;
-      height: 17px;
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
       color: #94A3B8;
       flex-shrink: 0;
     }
@@ -1019,18 +1024,19 @@ interface BmiInfo {
     }
 
     .metric-value {
-      font-size: 22px;
+      font-size: 26px;
       font-weight: 800;
       color: #0F172A;
-      line-height: 1.2;
-      letter-spacing: -0.4px;
+      letter-spacing: -0.5px;
+      line-height: 1.15;
+      margin: 2px 0 0;
       font-variant-numeric: tabular-nums;
     }
 
     .metric-sub {
-      font-size: 11px;
-      color: #94A3B8;
-      margin-top: 4px;
+      font-size: 11.5px;
+      color: #64748B;
+      margin-top: 2px;
       font-weight: 500;
     }
 
