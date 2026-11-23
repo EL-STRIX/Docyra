@@ -51,12 +51,6 @@ interface BmiInfo {
         <!-- Page Header -->
         <div class="page-header">
           <div class="header-left">
-            <div class="badge-row">
-              <span class="category-badge">
-                <mat-icon class="badge-icon">groups</mat-icon>
-                Platform Administration
-              </span>
-            </div>
             <h1 class="page-title">Patient Management Directory</h1>
             <p class="page-subtitle">
               Inspect registered patient profiles, audit health specifications, review family dependents, and manage account security privileges.
@@ -77,46 +71,42 @@ interface BmiInfo {
           </div>
         </div>
 
-        <!-- Live KPI Summary Metric Cards (Clean neutral design, no highlight ring) -->
+        <!-- KPI Summary Cards: Clean, Standard Subtle Layout -->
         <div class="kpi-grid">
-          <div class="kpi-card" (click)="setStatusFilter('all')">
-            <div class="kpi-icon-wrap total">
-              <mat-icon class="kpi-mat-icon">people</mat-icon>
+          <div class="metric-card" (click)="setStatusFilter('all')" [class.metric-card-active]="statusFilter === 'all' && !searchTerm">
+            <div class="metric-top">
+              <span class="metric-label">Total Patients</span>
+              <mat-icon class="metric-icon">people</mat-icon>
             </div>
-            <div class="kpi-info">
-              <span class="kpi-label">Total Patients</span>
-              <span class="kpi-value">{{ stats.totalPatients }}</span>
-            </div>
+            <div class="metric-value">{{ stats.totalPatients }}</div>
+            <div class="metric-sub">Registered platform patients</div>
           </div>
 
-          <div class="kpi-card" (click)="setStatusFilter('active')">
-            <div class="kpi-icon-wrap active">
-              <mat-icon class="kpi-mat-icon">verified_user</mat-icon>
+          <div class="metric-card" (click)="setStatusFilter('active')" [class.metric-card-active]="statusFilter === 'active'">
+            <div class="metric-top">
+              <span class="metric-label">Active Accounts</span>
+              <mat-icon class="metric-icon">verified_user</mat-icon>
             </div>
-            <div class="kpi-info">
-              <span class="kpi-label">Active Accounts</span>
-              <span class="kpi-value text-emerald-700">{{ stats.activePatients }}</span>
-            </div>
+            <div class="metric-value">{{ stats.activePatients }}</div>
+            <div class="metric-sub">Verified & in good standing</div>
           </div>
 
-          <div class="kpi-card" (click)="setStatusFilter('suspended')">
-            <div class="kpi-icon-wrap suspended">
-              <mat-icon class="kpi-mat-icon">person_off</mat-icon>
+          <div class="metric-card" (click)="setStatusFilter('suspended')" [class.metric-card-active]="statusFilter === 'suspended'">
+            <div class="metric-top">
+              <span class="metric-label">Suspended Accounts</span>
+              <mat-icon class="metric-icon">person_off</mat-icon>
             </div>
-            <div class="kpi-info">
-              <span class="kpi-label">Suspended Accounts</span>
-              <span class="kpi-value text-rose-700">{{ stats.suspendedPatients }}</span>
-            </div>
+            <div class="metric-value">{{ stats.suspendedPatients }}</div>
+            <div class="metric-sub">Access blocked or on hold</div>
           </div>
 
-          <div class="kpi-card">
-            <div class="kpi-icon-wrap family">
-              <mat-icon class="kpi-mat-icon">family_restroom</mat-icon>
+          <div class="metric-card">
+            <div class="metric-top">
+              <span class="metric-label">Family Dependents</span>
+              <mat-icon class="metric-icon">family_restroom</mat-icon>
             </div>
-            <div class="kpi-info">
-              <span class="kpi-label">Family Dependents</span>
-              <span class="kpi-value text-amber-700">{{ stats.totalDependents }}</span>
-            </div>
+            <div class="metric-value">{{ stats.totalDependents }}</div>
+            <div class="metric-sub">Linked family members</div>
           </div>
         </div>
 
@@ -913,28 +903,6 @@ interface BmiInfo {
       flex-wrap: wrap;
     }
 
-    .badge-row {
-      margin-bottom: 4px;
-    }
-
-    .category-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 11px;
-      font-weight: 700;
-      padding: 2px 9px;
-      border-radius: 999px;
-      background: #E6F2F1;
-      color: #0F5C5C;
-    }
-
-    .badge-icon {
-      font-size: 13px;
-      width: 13px;
-      height: 13px;
-    }
-
     .page-title {
       font-size: 21px;
       font-weight: 800;
@@ -981,71 +949,89 @@ interface BmiInfo {
       }
     }
 
-    /* KPI Grid - Clean, consistent, neutral stat cards without active highlight rings */
+    /* KPI Summary Cards Grid: Clean, Standard Subtle Layout */
     .kpi-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      grid-template-columns: repeat(4, 1fr);
       gap: 12px;
     }
 
-    .kpi-card {
+    @media (max-width: 1024px) {
+      .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 640px) {
+      .kpi-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .metric-card {
       background: #FFFFFF;
       border: 1px solid #E5E7EB;
-      border-radius: 10px;
-      padding: 13px 16px;
+      border-radius: 8px;
+      padding: 14px 16px;
       display: flex;
-      align-items: center;
-      gap: 12px;
+      flex-direction: column;
+      justify-content: space-between;
       cursor: pointer;
-      transition: all 0.15s ease;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
     }
 
-    .kpi-card:hover {
-      border-color: #CBD5E1;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    .metric-card:hover {
+      border-color: #D1D5DB;
     }
 
-    .kpi-icon-wrap {
-      width: 40px;
-      height: 40px;
-      border-radius: 9px;
+    .metric-card.metric-card-active {
+      border-color: #0F5C5C;
+      background: #FAFAF8;
+    }
+
+    .metric-top {
       display: flex;
       align-items: center;
-      justify-content: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .metric-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #64748B;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .metric-icon {
+      font-size: 17px;
+      width: 17px;
+      height: 17px;
+      color: #94A3B8;
       flex-shrink: 0;
     }
 
-    .kpi-mat-icon {
-      font-size: 20px;
-      width: 20px;
-      height: 20px;
+    .metric-card.metric-card-active .metric-icon {
+      color: #0F5C5C;
     }
 
-    .kpi-icon-wrap.total { background: #EEF2F6; color: #1E3A8A; }
-    .kpi-icon-wrap.active { background: #EBF7EE; color: #2E9E6B; }
-    .kpi-icon-wrap.suspended { background: #FDF2F2; color: #D9534F; }
-    .kpi-icon-wrap.family { background: #FEF3E8; color: #C05621; }
-
-    .kpi-info {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .kpi-label {
-      font-size: 11px;
-      font-weight: 700;
-      color: #6B7280;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
-    }
-
-    .kpi-value {
-      font-size: 21px;
+    .metric-value {
+      font-size: 22px;
       font-weight: 800;
-      color: #111827;
+      color: #0F172A;
       line-height: 1.2;
-      margin-top: 2px;
+      letter-spacing: -0.4px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .metric-sub {
+      font-size: 11px;
+      color: #94A3B8;
+      margin-top: 4px;
+      font-weight: 500;
     }
 
     /* Table Card */
