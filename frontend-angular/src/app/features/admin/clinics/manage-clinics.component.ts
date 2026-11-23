@@ -53,46 +53,42 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
         </div>
       </div>
 
-      <!-- KPI Summary Cards -->
+      <!-- KPI Summary Cards: Clean Standard Subtle Layout -->
       <div class="kpi-grid">
-        <div class="kpi-card" (click)="setStatusFilter('all')" [class.active-kpi]="statusFilter === 'all'">
-          <div class="kpi-icon-wrap total">
-            <mat-icon>domain</mat-icon>
+        <div class="metric-card" (click)="setStatusFilter('all')" [class.metric-card-active]="statusFilter === 'all' && !searchTerm">
+          <div class="metric-top">
+            <span class="metric-label">Total Facilities</span>
+            <mat-icon class="metric-icon">domain</mat-icon>
           </div>
-          <div class="kpi-info">
-            <span class="kpi-label">Total Facilities</span>
-            <span class="kpi-value">{{ clinics.length }}</span>
-          </div>
+          <div class="metric-value">{{ clinics.length }}</div>
+          <div class="metric-sub">Registered hospitals & clinics</div>
         </div>
 
-        <div class="kpi-card" (click)="setStatusFilter('active')" [class.active-kpi]="statusFilter === 'active'">
-          <div class="kpi-icon-wrap active">
-            <mat-icon>verified</mat-icon>
+        <div class="metric-card" (click)="setStatusFilter('active')" [class.metric-card-active]="statusFilter === 'active'">
+          <div class="metric-top">
+            <span class="metric-label">Active Clinics</span>
+            <mat-icon class="metric-icon">verified</mat-icon>
           </div>
-          <div class="kpi-info">
-            <span class="kpi-label">Active Clinics</span>
-            <span class="kpi-value text-emerald-600">{{ countActive() }}</span>
-          </div>
+          <div class="metric-value">{{ countActive() }}</div>
+          <div class="metric-sub">Operational & verified partners</div>
         </div>
 
-        <div class="kpi-card" (click)="setStatusFilter('suspended')" [class.active-kpi]="statusFilter === 'suspended'">
-          <div class="kpi-icon-wrap suspended">
-            <mat-icon>block</mat-icon>
+        <div class="metric-card" (click)="setStatusFilter('suspended')" [class.metric-card-active]="statusFilter === 'suspended'">
+          <div class="metric-top">
+            <span class="metric-label">Suspended</span>
+            <mat-icon class="metric-icon">block</mat-icon>
           </div>
-          <div class="kpi-info">
-            <span class="kpi-label">Suspended</span>
-            <span class="kpi-value text-rose-600">{{ countSuspended() }}</span>
-          </div>
+          <div class="metric-value">{{ countSuspended() }}</div>
+          <div class="metric-sub">Inactive or compliance hold</div>
         </div>
 
-        <div class="kpi-card">
-          <div class="kpi-icon-wrap cities">
-            <mat-icon>location_city</mat-icon>
+        <div class="metric-card">
+          <div class="metric-top">
+            <span class="metric-label">Cities Covered</span>
+            <mat-icon class="metric-icon">location_city</mat-icon>
           </div>
-          <div class="kpi-info">
-            <span class="kpi-label">Cities Covered</span>
-            <span class="kpi-value text-teal-700">{{ getCitiesCount() }}</span>
-          </div>
+          <div class="metric-value">{{ getCitiesCount() }}</div>
+          <div class="metric-sub">Geographic coverage spread</div>
         </div>
       </div>
 
@@ -516,71 +512,89 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       100% { transform: rotate(360deg); }
     }
 
-    /* KPI Grid */
+    /* KPI Summary Cards Grid: Clean, Standard Subtle Layout (No floating animation) */
     .kpi-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-      gap: 16px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
     }
 
-    .kpi-card {
+    @media (max-width: 1024px) {
+      .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 640px) {
+      .kpi-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .metric-card {
       background: #FFFFFF;
       border: 1px solid #E5E7EB;
-      border-radius: 14px;
-      padding: 16px 20px;
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-    }
-
-    .kpi-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-      border-color: #0F5C5C;
-    }
-
-    .kpi-card.active-kpi {
-      border-color: #0F5C5C;
-      background: #F4FAF9;
-      box-shadow: 0 0 0 2px #0F5C5C;
-    }
-
-    .kpi-icon-wrap {
-      width: 44px;
-      height: 44px;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .kpi-icon-wrap.total { background: #EEF2F6; color: #1E3A8A; }
-    .kpi-icon-wrap.active { background: #D1FAE5; color: #059669; }
-    .kpi-icon-wrap.suspended { background: #FEE2E2; color: #DC2626; }
-    .kpi-icon-wrap.cities { background: #E6F2F1; color: #0F5C5C; }
-
-    .kpi-info {
+      border-radius: 8px;
+      padding: 14px 16px;
       display: flex;
       flex-direction: column;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: border-color 0.15s ease, background-color 0.15s ease;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
     }
 
-    .kpi-label {
+    .metric-card:hover {
+      border-color: #D1D5DB;
+    }
+
+    .metric-card.metric-card-active {
+      border-color: #0F5C5C;
+      background: #FAFAF8;
+    }
+
+    .metric-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .metric-label {
       font-size: 11px;
       font-weight: 700;
-      color: #6B7280;
+      color: #64748B;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
 
-    .kpi-value {
+    .metric-icon {
+      font-size: 17px;
+      width: 17px;
+      height: 17px;
+      color: #94A3B8;
+      flex-shrink: 0;
+    }
+
+    .metric-card.metric-card-active .metric-icon {
+      color: #0F5C5C;
+    }
+
+    .metric-value {
       font-size: 22px;
-      font-weight: 900;
-      color: #111827;
+      font-weight: 800;
+      color: #0F172A;
       line-height: 1.2;
+      letter-spacing: -0.4px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .metric-sub {
+      font-size: 11px;
+      color: #94A3B8;
+      margin-top: 4px;
+      font-weight: 500;
     }
 
     /* Table Card */
