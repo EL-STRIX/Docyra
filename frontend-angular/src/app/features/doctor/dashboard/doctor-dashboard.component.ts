@@ -614,7 +614,7 @@ export class DoctorDashboardComponent implements OnInit {
     if (this.doctorProfile?.clinicId && typeof this.doctorProfile.clinicId === 'object') {
       return (this.doctorProfile.clinicId as any).name || 'Affiliated Clinic';
     }
-    return this.doctorProfile?.isIndependent ? 'Independent Practice' : 'Clinic Affiliated';
+    return 'Affiliated Healthcare Facility';
   }
 
   getSpecializationName(): string {

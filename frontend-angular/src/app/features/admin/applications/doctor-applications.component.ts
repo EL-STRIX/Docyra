@@ -34,8 +34,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     <div class="doctor-applications-page">
       <div class="page-header">
         <div>
-          <h1 class="page-title">Independent Doctor Applications & Verification</h1>
-          <p class="page-subtitle">Review medical licenses and qualifications for independent doctors applying to practice on Docyra.</p>
+          <h1 class="page-title">Physician Applications & Verification</h1>
+          <p class="page-subtitle">Review medical licenses and qualifications for doctors applying to practice on Docyra.</p>
         </div>
       </div>
 
@@ -62,7 +62,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
         <div *ngIf="!loading && filteredApplications.length === 0" class="empty-state">
           <mat-icon class="empty-icon">verified</mat-icon>
           <h3>No applications found</h3>
-          <p>No independent doctor applications match the selected status.</p>
+          <p>No physician applications match the selected status.</p>
         </div>
 
         <div *ngIf="!loading && filteredApplications.length > 0" class="table-container">

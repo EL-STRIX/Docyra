@@ -459,7 +459,7 @@ interface SpecializationStats {
 
                   <td class="td-clinic">
                     <div class="clinic-cell-info">
-                      <div class="clinic-name-text">{{ doc.clinicName || 'Independent Practice' }}</div>
+                      <div class="clinic-name-text">{{ doc.clinicName || 'Partner Facility' }}</div>
                       <div class="clinic-city-text">{{ doc.clinicCity || 'India' }}</div>
                     </div>
                   </td>

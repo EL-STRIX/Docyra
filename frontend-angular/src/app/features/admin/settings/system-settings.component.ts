@@ -108,14 +108,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
           <div class="toggle-list mt-4">
             <div class="toggle-item">
               <div class="toggle-meta">
-                <span class="t-title">Allow Independent Doctor Applications</span>
-                <span class="t-desc">Allow solo medical practitioners without clinic affiliation to submit license verification.</span>
-              </div>
-              <mat-slide-toggle [(ngModel)]="settings.allowIndependentDoctors" color="primary"></mat-slide-toggle>
-            </div>
-
-            <div class="toggle-item">
-              <div class="toggle-meta">
                 <span class="t-title">Enforce 2FA for Clinical & Administrative Staff</span>
                 <span class="t-desc">Require TOTP 2FA enrollment upon login for doctors, clinic admins, and platform administrators.</span>
               </div>

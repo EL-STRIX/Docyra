@@ -80,20 +80,20 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 
         <div class="metric-card">
           <div class="metric-top">
-            <span class="metric-label">Clinic-Affiliated</span>
+            <span class="metric-label">Partner Facilities</span>
             <mat-icon class="metric-icon">local_hospital</mat-icon>
           </div>
-          <div class="metric-value">{{ countClinicAffiliated() }}</div>
-          <div class="metric-sub">Partner hospital practitioners</div>
+          <div class="metric-value">{{ countUniqueClinics() }}</div>
+          <div class="metric-sub">Hospitals & clinics network</div>
         </div>
 
         <div class="metric-card">
           <div class="metric-top">
-            <span class="metric-label">Independent Practice</span>
-            <mat-icon class="metric-icon">domain</mat-icon>
+            <span class="metric-label">Avg. Consultation Fee</span>
+            <mat-icon class="metric-icon">payments</mat-icon>
           </div>
-          <div class="metric-value">{{ countIndependent() }}</div>
-          <div class="metric-sub">Direct patient consultation</div>
+          <div class="metric-value">₹{{ getAverageFee() }}</div>
+          <div class="metric-sub">Standard practitioner rate</div>
         </div>
       </div>
 
@@ -241,7 +241,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 
                 <!-- Practice Facility -->
                 <td class="facility-cell">
-                  <div *ngIf="isClinicDoctor(doc)" class="facility-wrap">
+                  <div class="facility-wrap">
                     <div class="facility-header">
                       <mat-icon class="facility-icon">local_hospital</mat-icon>
                       <span class="facility-name" [title]="getClinicName(doc)">
@@ -251,18 +251,6 @@ import { MatTooltipModule } from '@angular/material/tooltip';
                     <div class="facility-city">
                       <mat-icon class="city-icon">location_on</mat-icon>
                       <span>{{ getClinicCity(doc) }}</span>
-                    </div>
-                  </div>
-                  <div *ngIf="!isClinicDoctor(doc)" class="facility-wrap">
-                    <div class="facility-header">
-                      <span class="independent-tag">
-                        <mat-icon class="ind-icon">medical_services</mat-icon>
-                        <span>Independent Practice</span>
-                      </span>
-                    </div>
-                    <div class="facility-city" [title]="doc.clinicAddress || 'Bengaluru'">
-                      <mat-icon class="city-icon">location_on</mat-icon>
-                      <span>{{ truncate(doc.clinicAddress, 26) || getClinicCity(doc) }}</span>
                     </div>
                   </div>
                 </td>
@@ -464,17 +452,11 @@ import { MatTooltipModule } from '@angular/material/tooltip';
                 <h4 class="section-title">Practice Affiliation & Facility</h4>
               </div>
               <div class="info-grid">
-                <div class="info-item full-width">
-                  <span class="info-label">Facility Classification</span>
-                  <span class="info-val font-semibold">
-                    {{ isClinicDoctor(selectedDoctor) ? 'Institutional Hospital / Partner Clinic' : 'Direct Independent Outpatient Practice' }}
-                  </span>
-                </div>
-                <div class="info-item" *ngIf="isClinicDoctor(selectedDoctor)">
+                <div class="info-item">
                   <span class="info-label">Hospital / Clinic Name</span>
                   <span class="info-val font-bold text-neutral-900">{{ getClinicName(selectedDoctor) }}</span>
                 </div>
-                <div class="info-item" *ngIf="isClinicDoctor(selectedDoctor)">
+                <div class="info-item">
                   <span class="info-label">Facility City</span>
                   <span class="info-val">{{ getClinicCity(selectedDoctor) }}</span>
                 </div>
@@ -1614,7 +1596,6 @@ export class ManageDoctorsAdminComponent implements OnInit {
   searchTerm = '';
   statusFilter: 'all' | 'active' | 'suspended' = 'all';
   specializationFilter = 'all';
-  practiceFilter: 'all' | 'clinic' | 'independent' = 'all';
 
   // Selected Profile Dossier
   selectedDoctor: any | null = null;
@@ -1709,13 +1690,6 @@ export class ManageDoctorsAdminComponent implements OnInit {
       });
     }
 
-    // Practice Affiliation Filter
-    if (this.practiceFilter === 'clinic') {
-      result = result.filter((d) => this.isClinicDoctor(d));
-    } else if (this.practiceFilter === 'independent') {
-      result = result.filter((d) => !this.isClinicDoctor(d));
-    }
-
     // Search term filter
     if (this.searchTerm.trim()) {
       const term = this.searchTerm.toLowerCase().trim();
@@ -1746,11 +1720,6 @@ export class ManageDoctorsAdminComponent implements OnInit {
     this.applyFilters();
   }
 
-  setPracticeFilter(type: 'all' | 'clinic' | 'independent'): void {
-    this.practiceFilter = type;
-    this.applyFilters();
-  }
-
   clearSearch(): void {
     this.searchTerm = '';
     this.applyFilters();
@@ -1760,7 +1729,6 @@ export class ManageDoctorsAdminComponent implements OnInit {
     this.searchTerm = '';
     this.statusFilter = 'all';
     this.specializationFilter = 'all';
-    this.practiceFilter = 'all';
     this.applyFilters();
   }
 
@@ -1772,17 +1740,17 @@ export class ManageDoctorsAdminComponent implements OnInit {
     return this.doctors.filter((d) => d.status === 'suspended').length;
   }
 
-  countClinicAffiliated(): number {
-    return this.doctors.filter((d) => this.isClinicDoctor(d)).length;
+  countUniqueClinics(): number {
+    const names = new Set(
+      this.doctors.map((d) => this.getClinicName(d)).filter((n) => !!n && n !== 'Independent Practice')
+    );
+    return names.size || 1;
   }
 
-  countIndependent(): number {
-    return this.doctors.filter((d) => !this.isClinicDoctor(d)).length;
-  }
-
-  isClinicDoctor(doc: any): boolean {
-    if (doc.isIndependent) return false;
-    return !!doc.clinicId;
+  getAverageFee(): number {
+    if (!this.doctors.length) return 500;
+    const sum = this.doctors.reduce((acc, d) => acc + (d.consultationFee || 500), 0);
+    return Math.round(sum / this.doctors.length);
   }
 
   getDoctorDisplayName(doc: any): string {
@@ -1855,19 +1823,19 @@ export class ManageDoctorsAdminComponent implements OnInit {
   }
 
   getClinicName(doc: any): string {
-    if (doc.clinicName) return doc.clinicName;
-    if (doc.clinicId && typeof doc.clinicId === 'object') {
-      return doc.clinicId.name || 'Partner Facility';
+    if (doc.clinicName && doc.clinicName !== 'Independent Practice') return doc.clinicName;
+    if (doc.clinicId && typeof doc.clinicId === 'object' && doc.clinicId.name) {
+      return doc.clinicId.name;
     }
-    return 'Independent Practice';
+    return 'Docyra Partner Clinic';
   }
 
   getClinicCity(doc: any): string {
     if (doc.clinicCity) return doc.clinicCity;
-    if (doc.clinicId && typeof doc.clinicId === 'object') {
-      return doc.clinicId.city || 'India';
+    if (doc.clinicId && typeof doc.clinicId === 'object' && doc.clinicId.city) {
+      return doc.clinicId.city;
     }
-    return 'India';
+    return 'Bengaluru';
   }
 
   truncate(str?: string, maxLen: number = 24): string {
