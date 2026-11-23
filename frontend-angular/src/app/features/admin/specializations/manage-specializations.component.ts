@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, FormsModule, Validators } from '@angular/forms';
+import { Router, ActivatedRoute, RouterModule } from '@angular/router';
 import { AdminService } from '../../../core/services/admin.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { Specialization } from '../../../core/models/specialization.model';
@@ -27,6 +28,7 @@ interface SpecializationStats {
     CommonModule,
     ReactiveFormsModule,
     FormsModule,
+    RouterModule,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
@@ -38,241 +40,459 @@ interface SpecializationStats {
   ],
   template: `
     <div class="manage-specializations-page">
-      <!-- Page Header -->
-      <div class="page-header">
-        <div class="header-left">
-          <h1 class="page-title">Medical Specialties & Departments</h1>
-          <p class="page-subtitle">
-            Configure clinical specializations displayed across patient search, physician credentials, and booking catalogs.
-          </p>
-        </div>
-
-        <div class="header-actions">
-          <button
-            mat-stroked-button
-            class="action-btn"
-            (click)="loadSpecializations()"
-            [disabled]="loading"
-            title="Refresh list"
-          >
-            <mat-icon [class.spinning]="loading">refresh</mat-icon>
-            <span>Refresh</span>
-          </button>
-
-          <button mat-flat-button class="create-btn" (click)="openCreateModal()">
-            <mat-icon>add</mat-icon>
-            <span>Add New Specialization</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Live KPI Summary Metric Cards: Clean Standard Subtle Layout -->
-      <div class="stats-grid">
-        <div class="metric-card">
-          <div class="metric-top">
-            <span class="metric-label">Total Specialties</span>
-            <mat-icon class="metric-icon">domain_add</mat-icon>
+      <!-- ==================================================================== -->
+      <!-- 1. SPECIALIZATION LIST VIEW (viewMode === 'list')                     -->
+      <!-- ==================================================================== -->
+      <div *ngIf="viewMode === 'list'" class="spec-list-view">
+        <!-- Page Header -->
+        <div class="page-header">
+          <div class="header-left">
+            <h1 class="page-title">Medical Specialties & Departments</h1>
+            <p class="page-subtitle">
+              Configure clinical specializations displayed across patient search, physician credentials, and booking catalogs.
+            </p>
           </div>
-          <div class="metric-value">{{ stats.totalDepartments }}</div>
-          <div class="metric-sub">Configured clinical disciplines</div>
-        </div>
 
-        <div class="metric-card">
-          <div class="metric-top">
-            <span class="metric-label">Active Physicians</span>
-            <mat-icon class="metric-icon">medical_services</mat-icon>
-          </div>
-          <div class="metric-value">{{ stats.totalDoctors }}</div>
-          <div class="metric-sub">Specialists practicing across clinics</div>
-        </div>
-
-        <div class="metric-card">
-          <div class="metric-top">
-            <span class="metric-label">Partner Facilities</span>
-            <mat-icon class="metric-icon">local_hospital</mat-icon>
-          </div>
-          <div class="metric-value">{{ stats.totalClinics }}</div>
-          <div class="metric-sub">Hospitals & medical clinics</div>
-        </div>
-
-        <div class="metric-card">
-          <div class="metric-top">
-            <span class="metric-label">Top Department</span>
-            <mat-icon class="metric-icon">stars</mat-icon>
-          </div>
-          <div class="metric-value text-department">{{ stats.topDepartment || 'Cardiology' }}</div>
-          <div class="metric-sub">Highest consultation volume</div>
-        </div>
-      </div>
-
-      <!-- Specializations Table Card -->
-      <mat-card class="table-card">
-        <!-- Search & Filter Toolbar -->
-        <div class="toolbar-wrap">
-          <div class="search-box">
-            <mat-icon class="search-icon">search</mat-icon>
-            <input
-              type="text"
-              class="search-input"
-              [(ngModel)]="searchTerm"
-              (ngModelChange)="applyFilter()"
-              placeholder="Search by department name, slug, or scope..."
-            />
+          <div class="header-actions">
             <button
-              *ngIf="searchTerm"
-              type="button"
-              class="clear-search-btn"
-              (click)="clearSearch()"
-              title="Clear Search"
+              mat-stroked-button
+              class="action-btn"
+              (click)="loadSpecializations()"
+              [disabled]="loading"
+              title="Refresh list"
             >
-              <mat-icon class="clear-icon">close</mat-icon>
+              <mat-icon [class.spinning]="loading">refresh</mat-icon>
+              <span>Refresh</span>
             </button>
-          </div>
 
-          <div class="doctor-filter-tabs">
-            <button
-              class="tab-btn"
-              [class.active]="filterMode === 'all'"
-              (click)="setFilterMode('all')"
-            >
-              All ({{ specializations.length }})
-            </button>
-            <button
-              class="tab-btn active-tab"
-              [class.active]="filterMode === 'active'"
-              (click)="setFilterMode('active')"
-            >
-              With Doctors ({{ getDepartmentsWithDoctorsCount() }})
+            <button mat-flat-button class="create-btn" (click)="openCreateModal()">
+              <mat-icon>add</mat-icon>
+              <span>Add New Specialization</span>
             </button>
           </div>
         </div>
 
-        <div *ngIf="loading && specializations.length === 0" class="loading-wrap">
-          <mat-spinner diameter="40"></mat-spinner>
-          <p class="loading-text">Loading clinical department catalog...</p>
-        </div>
-
-        <div *ngIf="!loading && filteredSpecs.length === 0" class="empty-state">
-          <div class="empty-icon-wrap">
-            <mat-icon>category</mat-icon>
+        <!-- Live KPI Summary Metric Cards: Clean Standard Subtle Layout -->
+        <div class="stats-grid">
+          <div class="metric-card">
+            <div class="metric-top">
+              <span class="metric-label">Total Specialties</span>
+              <mat-icon class="metric-icon">domain_add</mat-icon>
+            </div>
+            <div class="metric-value">{{ stats.totalDepartments }}</div>
+            <div class="metric-sub">Configured clinical disciplines</div>
           </div>
-          <h3>No Specializations Found</h3>
-          <p>No medical specialties match your current search query.</p>
-          <button mat-stroked-button color="primary" (click)="clearSearch()">
-            Clear Search
-          </button>
+
+          <div class="metric-card">
+            <div class="metric-top">
+              <span class="metric-label">Active Physicians</span>
+              <mat-icon class="metric-icon">medical_services</mat-icon>
+            </div>
+            <div class="metric-value">{{ stats.totalDoctors }}</div>
+            <div class="metric-sub">Specialists practicing across clinics</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-top">
+              <span class="metric-label">Partner Facilities</span>
+              <mat-icon class="metric-icon">local_hospital</mat-icon>
+            </div>
+            <div class="metric-value">{{ stats.totalClinics }}</div>
+            <div class="metric-sub">Hospitals & medical clinics</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-top">
+              <span class="metric-label">Top Department</span>
+              <mat-icon class="metric-icon">stars</mat-icon>
+            </div>
+            <div class="metric-value text-department">{{ stats.topDepartment || 'Cardiology' }}</div>
+            <div class="metric-sub">Highest consultation volume</div>
+          </div>
         </div>
 
-        <div *ngIf="filteredSpecs.length > 0" class="table-container">
-          <table class="spec-table">
-            <thead>
-              <tr>
-                <th class="dept-col">Department & Specialty</th>
-                <th class="slug-col">URL Slug</th>
-                <th class="desc-col">Clinical Scope & Description</th>
-                <th class="doctor-col">Practicing Doctors</th>
-                <th class="clinic-col">Partner Facilities</th>
-                <th class="status-col">Portal Status</th>
-                <th class="actions-col text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                *ngFor="let s of filteredSpecs"
-                class="spec-row"
-                (click)="inspectSpec(s)"
+        <!-- Specializations Table Card -->
+        <mat-card class="table-card">
+          <!-- Search & Filter Toolbar -->
+          <div class="toolbar-wrap">
+            <div class="search-box">
+              <mat-icon class="search-icon">search</mat-icon>
+              <input
+                type="text"
+                class="search-input"
+                [(ngModel)]="searchTerm"
+                (ngModelChange)="applyFilter()"
+                placeholder="Search by department name, slug, or scope..."
+              />
+              <button
+                *ngIf="searchTerm"
+                type="button"
+                class="clear-search-btn"
+                (click)="clearSearch()"
+                title="Clear Search"
               >
-                <!-- Specialty Name & Icon -->
-                <td class="dept-cell">
-                  <div class="dept-wrap">
-                    <div class="dept-icon-box" [ngClass]="getIconCategory(s.iconName || s.icon)">
-                      <mat-icon>{{ getMaterialIcon(s.iconName || s.icon) }}</mat-icon>
+                <mat-icon class="clear-icon">close</mat-icon>
+              </button>
+            </div>
+
+            <div class="doctor-filter-tabs">
+              <button
+                class="tab-btn"
+                [class.active]="filterMode === 'all'"
+                (click)="setFilterMode('all')"
+              >
+                All ({{ specializations.length }})
+              </button>
+              <button
+                class="tab-btn active-tab"
+                [class.active]="filterMode === 'active'"
+                (click)="setFilterMode('active')"
+              >
+                With Doctors ({{ getDepartmentsWithDoctorsCount() }})
+              </button>
+            </div>
+          </div>
+
+          <div *ngIf="loading && specializations.length === 0" class="loading-wrap">
+            <mat-spinner diameter="40"></mat-spinner>
+            <p class="loading-text">Loading clinical department catalog...</p>
+          </div>
+
+          <div *ngIf="!loading && filteredSpecs.length === 0" class="empty-state">
+            <div class="empty-icon-wrap">
+              <mat-icon>category</mat-icon>
+            </div>
+            <h3>No Specializations Found</h3>
+            <p>No medical specialties match your current search query.</p>
+            <button mat-stroked-button color="primary" (click)="clearSearch()">
+              Clear Search
+            </button>
+          </div>
+
+          <div *ngIf="filteredSpecs.length > 0" class="table-container">
+            <table class="spec-table">
+              <thead>
+                <tr>
+                  <th class="dept-col">Department & Specialty</th>
+                  <th class="slug-col">URL Slug</th>
+                  <th class="desc-col">Clinical Scope & Description</th>
+                  <th class="doctor-col">Practicing Doctors</th>
+                  <th class="clinic-col">Partner Facilities</th>
+                  <th class="status-col">Portal Status</th>
+                  <th class="actions-col text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  *ngFor="let s of filteredSpecs"
+                  class="spec-row"
+                  (click)="inspectSpec(s)"
+                >
+                  <!-- Specialty Name & Icon -->
+                  <td class="dept-cell">
+                    <div class="dept-wrap">
+                      <div class="dept-icon-box" [ngClass]="getIconCategory(s.iconName || s.icon)">
+                        <mat-icon>{{ getMaterialIcon(s.iconName || s.icon) }}</mat-icon>
+                      </div>
+                      <div class="dept-meta">
+                        <div class="dept-name font-bold text-sm text-neutral-900">{{ s.name }}</div>
+                        <span class="dept-type text-xs text-neutral-400">Clinical Specialty</span>
+                      </div>
                     </div>
-                    <div class="dept-meta">
-                      <div class="dept-name font-bold text-sm text-neutral-900">{{ s.name }}</div>
-                      <span class="dept-type text-xs text-neutral-400">Clinical Specialty</span>
+                  </td>
+
+                  <!-- Slug Column -->
+                  <td class="slug-cell">
+                    <code class="slug-code">{{ s.slug || getComputedSlug(s.name) }}</code>
+                  </td>
+
+                  <!-- Description Column -->
+                  <td class="desc-cell text-sm text-neutral-600">
+                    {{ s.description || 'Comprehensive clinical diagnosis and specialized patient therapy.' }}
+                  </td>
+
+                  <!-- Doctors Column -->
+                  <td class="doctor-cell">
+                    <span
+                      class="doctor-count-badge"
+                      [class.has-docs]="(s.doctorCount || 0) > 0"
+                      [matTooltip]="(s.doctorCount || 0) + ' practicing doctors in this department'"
+                    >
+                      <mat-icon class="badge-doc-icon">medical_services</mat-icon>
+                      {{ s.doctorCount || 0 }} {{ (s.doctorCount || 0) === 1 ? 'Doctor' : 'Doctors' }}
+                    </span>
+                  </td>
+
+                  <!-- Clinic Count Column -->
+                  <td class="clinic-cell">
+                    <span class="clinic-count-badge">
+                      <mat-icon class="badge-clinic-icon">local_hospital</mat-icon>
+                      {{ s.clinicCount || 0 }} {{ (s.clinicCount || 0) === 1 ? 'Clinic' : 'Clinics' }}
+                    </span>
+                  </td>
+
+                  <!-- Status Column -->
+                  <td class="status-cell">
+                    <span class="status-pill active">
+                      <span class="dot"></span>
+                      Active
+                    </span>
+                  </td>
+
+                  <!-- Actions Column -->
+                  <td class="actions-cell text-right" (click)="$event.stopPropagation()">
+                    <div class="btn-group">
+                      <button
+                        mat-stroked-button
+                        class="inspect-btn"
+                        (click)="inspectSpec(s)"
+                        matTooltip="Inspect Affiliated Doctors & Facilities"
+                      >
+                        <mat-icon class="btn-icon">visibility</mat-icon>
+                        <span>View</span>
+                      </button>
+                      <button
+                        mat-stroked-button
+                        color="primary"
+                        (click)="openEditModal(s)"
+                        class="btn-sm edit-btn"
+                        matTooltip="Edit Specialization"
+                      >
+                        <mat-icon class="btn-icon">edit</mat-icon>
+                        <span>Edit</span>
+                      </button>
+                      <button
+                        mat-stroked-button
+                        color="warn"
+                        (click)="deleteSpec(s)"
+                        class="btn-sm delete-btn"
+                        [disabled]="(s.doctorCount || 0) > 0"
+                        [matTooltip]="(s.doctorCount || 0) > 0 ? 'Cannot delete: doctors assigned' : 'Delete Specialization'"
+                      >
+                        <mat-icon class="btn-icon">delete_outline</mat-icon>
+                        <span>Delete</span>
+                      </button>
                     </div>
-                  </div>
-                </td>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </mat-card>
+      </div>
 
-                <!-- Slug Column -->
-                <td class="slug-cell">
-                  <code class="slug-code">{{ s.slug || getComputedSlug(s.name) }}</code>
-                </td>
+      <!-- ==================================================================== -->
+      <!-- 2. FULL PAGE DEPARTMENT DOSSIER VIEW (viewMode === 'detail')         -->
+      <!-- ==================================================================== -->
+      <div *ngIf="viewMode === 'detail' && selectedSpec" class="spec-detail-fullpage">
+        <!-- Top Navigation Bar -->
+        <div class="detail-nav-bar">
+          <div class="nav-left">
+            <button mat-button class="back-btn" (click)="closeInspector()">
+              <mat-icon class="back-icon">arrow_back</mat-icon>
+              <span>Back to Specializations</span>
+            </button>
+            <div class="breadcrumb-divider">/</div>
+            <span class="breadcrumb-current">{{ selectedSpec.name }}</span>
+          </div>
 
-                <!-- Description Column -->
-                <td class="desc-cell text-sm text-neutral-600">
-                  {{ s.description || 'Comprehensive clinical diagnosis and specialized patient therapy.' }}
-                </td>
+          <div class="nav-actions">
+            <button
+              mat-stroked-button
+              class="refresh-btn"
+              (click)="refreshDetail()"
+              [disabled]="loadingDetail"
+              title="Refresh Department Data"
+            >
+              <mat-icon [class.spinning]="loadingDetail" class="btn-icon">refresh</mat-icon>
+              <span>Refresh</span>
+            </button>
 
-                <!-- Doctors Column -->
-                <td class="doctor-cell">
-                  <span
-                    class="doctor-count-badge"
-                    [class.has-docs]="(s.doctorCount || 0) > 0"
-                    [matTooltip]="(s.doctorCount || 0) + ' practicing doctors in this department'"
-                  >
-                    <mat-icon class="badge-doc-icon">medical_services</mat-icon>
-                    {{ s.doctorCount || 0 }} {{ (s.doctorCount || 0) === 1 ? 'Doctor' : 'Doctors' }}
-                  </span>
-                </td>
+            <button
+              mat-stroked-button
+              class="edit-spec-btn"
+              (click)="openEditModal(selectedSpec)"
+            >
+              <mat-icon class="btn-icon">edit</mat-icon>
+              <span>Edit Department</span>
+            </button>
+          </div>
+        </div>
 
-                <!-- Clinic Count Column -->
-                <td class="clinic-cell">
-                  <span class="clinic-count-badge">
-                    <mat-icon class="badge-clinic-icon">local_hospital</mat-icon>
-                    {{ s.clinicCount || 0 }} {{ (s.clinicCount || 0) === 1 ? 'Clinic' : 'Clinics' }}
-                  </span>
-                </td>
+        <!-- Department Identity Hero Header Card -->
+        <div class="dept-hero-card">
+          <div class="hero-left">
+            <div class="dept-hero-icon-box" [ngClass]="getIconCategory(selectedSpec.iconName || selectedSpec.icon)">
+              <mat-icon>{{ getMaterialIcon(selectedSpec.iconName || selectedSpec.icon) }}</mat-icon>
+            </div>
+            <div class="hero-meta">
+              <div class="hero-badges-row">
+                <span class="status-pill active">
+                  <span class="dot"></span>
+                  Active Specialty
+                </span>
+                <span class="portal-pill">
+                  <mat-icon class="pill-icon">public</mat-icon>
+                  Public Patient Booking
+                </span>
+              </div>
+              <h1 class="hero-title">{{ selectedSpec.name }}</h1>
+              <div class="hero-sub-row">
+                <span class="hero-slug font-mono">/specializations/{{ selectedSpec.slug || getComputedSlug(selectedSpec.name) }}</span>
+                <span class="dot-sep">&bull;</span>
+                <span class="hero-id font-mono">ID: {{ selectedSpec._id }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
 
-                <!-- Status Column -->
-                <td class="status-cell">
-                  <span class="status-pill active">
-                    <span class="dot"></span>
-                    Active
-                  </span>
-                </td>
+        <!-- Upper Metric Summary Cards -->
+        <div class="stats-grid">
+          <div class="metric-card">
+            <div class="metric-top">
+              <span class="metric-label">Practicing Physicians</span>
+              <mat-icon class="metric-icon">medical_services</mat-icon>
+            </div>
+            <div class="metric-value">{{ selectedSpec.doctorCount || specDetailDoctors.length }}</div>
+            <div class="metric-sub">Doctors in this department</div>
+          </div>
 
-                <!-- Actions Column -->
-                <td class="actions-cell text-right" (click)="$event.stopPropagation()">
-                  <div class="btn-group">
+          <div class="metric-card">
+            <div class="metric-top">
+              <span class="metric-label">Partner Facilities</span>
+              <mat-icon class="metric-icon">local_hospital</mat-icon>
+            </div>
+            <div class="metric-value">{{ selectedSpec.clinicCount || getAffiliatedClinicsCount() }}</div>
+            <div class="metric-sub">Clinics providing this discipline</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-top">
+              <span class="metric-label">Avg. Consultation Fee</span>
+              <mat-icon class="metric-icon">payments</mat-icon>
+            </div>
+            <div class="metric-value">₹{{ getAverageConsultationFee() }}</div>
+            <div class="metric-sub">Standard consultation rate</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-top">
+              <span class="metric-label">Portal Visibility</span>
+              <mat-icon class="metric-icon">visibility</mat-icon>
+            </div>
+            <div class="metric-value text-emerald-700">Published</div>
+            <div class="metric-sub">Available across booking catalogs</div>
+          </div>
+        </div>
+
+        <!-- Clinical Scope Section -->
+        <mat-card class="detail-section-card">
+          <div class="section-card-header">
+            <div class="header-icon-wrap">
+              <mat-icon>domain_add</mat-icon>
+            </div>
+            <div>
+              <h3 class="section-card-title">Clinical Scope & Description</h3>
+              <p class="section-card-desc">Diagnostic coverage and treatment focus for {{ selectedSpec.name }}</p>
+            </div>
+          </div>
+          <div class="clinical-desc-box">
+            {{ selectedSpec.description || 'Comprehensive clinical diagnosis and specialized patient therapy provided across network clinics.' }}
+          </div>
+        </mat-card>
+
+        <!-- Affiliated Doctors Section -->
+        <mat-card class="detail-section-card">
+          <div class="section-card-header">
+            <div class="header-icon-wrap">
+              <mat-icon>groups</mat-icon>
+            </div>
+            <div class="section-title-col">
+              <h3 class="section-card-title">Affiliated Practicing Physicians ({{ specDetailDoctors.length }})</h3>
+              <p class="section-card-desc">Credentialed doctors affiliated with {{ selectedSpec.name }} department</p>
+            </div>
+          </div>
+
+          <!-- Loading Spinner -->
+          <div *ngIf="loadingDetail" class="detail-loading-wrap">
+            <mat-spinner diameter="36"></mat-spinner>
+            <p>Fetching practicing physician roster...</p>
+          </div>
+
+          <!-- Empty State -->
+          <div *ngIf="!loadingDetail && specDetailDoctors.length === 0" class="empty-doctors-state">
+            <mat-icon class="empty-icon">person_off</mat-icon>
+            <h4>No Physicians Currently Assigned</h4>
+            <p>There are currently no active physicians assigned to {{ selectedSpec.name }}. When doctors specify this specialization during onboarding or profile editing, they will appear here.</p>
+          </div>
+
+          <!-- Doctors Table -->
+          <div *ngIf="!loadingDetail && specDetailDoctors.length > 0" class="doctors-table-container">
+            <table class="doctors-table">
+              <thead>
+                <tr>
+                  <th class="th-doctor">Doctor Name & Identity</th>
+                  <th class="th-clinic">Clinic / Hospital</th>
+                  <th class="th-exp">Experience</th>
+                  <th class="th-fee">Consultation Fee</th>
+                  <th class="th-rating">Rating</th>
+                  <th class="th-action text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let doc of specDetailDoctors" class="doctor-row">
+                  <td class="td-doctor">
+                    <div class="doc-identity-cell">
+                      <div class="doc-avatar-box">
+                        {{ getDoctorInitials(doc.name) }}
+                      </div>
+                      <div class="doc-identity-info">
+                        <div class="doc-name-text">{{ doc.name }}</div>
+                        <div class="doc-sub-info">
+                          <span *ngIf="doc.email">{{ doc.email }}</span>
+                          <span *ngIf="doc.email && doc.phone" class="sep">&bull;</span>
+                          <span *ngIf="doc.phone">{{ doc.phone }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+
+                  <td class="td-clinic">
+                    <div class="clinic-cell-info">
+                      <div class="clinic-name-text">{{ doc.clinicName || 'Independent Practice' }}</div>
+                      <div class="clinic-city-text">{{ doc.clinicCity || 'India' }}</div>
+                    </div>
+                  </td>
+
+                  <td class="td-exp">
+                    <span class="exp-badge">{{ doc.experienceYears || 0 }} Yrs Exp</span>
+                  </td>
+
+                  <td class="td-fee">
+                    <span class="fee-text">₹{{ doc.consultationFee || 500 }}</span>
+                  </td>
+
+                  <td class="td-rating">
+                    <span class="rating-badge">⭐ {{ doc.rating ? (doc.rating | number:'1.1-1') : '5.0' }}</span>
+                  </td>
+
+                  <td class="td-action text-right">
                     <button
                       mat-stroked-button
-                      class="inspect-btn"
-                      (click)="inspectSpec(s)"
-                      matTooltip="Inspect Affiliated Doctors & Facilities"
+                      class="view-doctor-btn"
+                      (click)="viewDoctorInManageDoctors(doc)"
+                      title="Open physician profile on Doctor Management page"
                     >
                       <mat-icon class="btn-icon">visibility</mat-icon>
-                      <span>View</span>
+                      <span>View Profile</span>
                     </button>
-                    <button
-                      mat-stroked-button
-                      color="primary"
-                      (click)="openEditModal(s)"
-                      class="btn-sm edit-btn"
-                      matTooltip="Edit Specialization"
-                    >
-                      <mat-icon class="btn-icon">edit</mat-icon>
-                      <span>Edit</span>
-                    </button>
-                    <button
-                      mat-stroked-button
-                      color="warn"
-                      (click)="deleteSpec(s)"
-                      class="btn-sm delete-btn"
-                      [disabled]="(s.doctorCount || 0) > 0"
-                      [matTooltip]="(s.doctorCount || 0) > 0 ? 'Cannot delete: doctors assigned' : 'Delete Specialization'"
-                    >
-                      <mat-icon class="btn-icon">delete_outline</mat-icon>
-                      <span>Delete</span>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </mat-card>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </mat-card>
+      </div>
 
       <!-- Add/Edit Specialization Modal -->
       <div *ngIf="showModal" class="modal-backdrop" (click)="showModal = false">
@@ -342,106 +562,6 @@ interface SpecializationStats {
               </button>
             </div>
           </form>
-        </div>
-      </div>
-
-      <!-- Department Inspector Slide-over Drawer -->
-      <div *ngIf="selectedSpec" class="inspector-backdrop" (click)="closeInspector()">
-        <div class="inspector-panel" (click)="$event.stopPropagation()">
-          <div class="inspector-header">
-            <div class="inspector-title-wrap">
-              <span class="inspector-kicker">DEPARTMENT DOSSIER</span>
-              <div class="title-with-icon">
-                <div class="dept-icon-box" [ngClass]="getIconCategory(selectedSpec.iconName || selectedSpec.icon)">
-                  <mat-icon>{{ getMaterialIcon(selectedSpec.iconName || selectedSpec.icon) }}</mat-icon>
-                </div>
-                <h2 class="inspector-title">{{ selectedSpec.name }}</h2>
-              </div>
-              <div class="inspector-slug font-mono">/specializations/{{ selectedSpec.slug || getComputedSlug(selectedSpec.name) }}</div>
-            </div>
-            <button mat-icon-button (click)="closeInspector()">
-              <mat-icon>close</mat-icon>
-            </button>
-          </div>
-
-          <div class="inspector-body">
-            <!-- Summary Grid -->
-            <div class="inspect-section">
-              <h4 class="section-title">Department Specifications</h4>
-              <div class="inspect-grid">
-                <div class="inspect-prop">
-                  <span class="prop-lbl">Department ID</span>
-                  <span class="prop-val font-mono">{{ selectedSpec._id }}</span>
-                </div>
-                <div class="inspect-prop">
-                  <span class="prop-lbl">Practicing Doctors</span>
-                  <span class="prop-val font-bold text-teal-800">{{ selectedSpec.doctorCount || 0 }} Physicians</span>
-                </div>
-                <div class="inspect-prop">
-                  <span class="prop-lbl">Partner Facilities</span>
-                  <span class="prop-val font-bold text-neutral-800">{{ selectedSpec.clinicCount || 0 }} Clinics</span>
-                </div>
-                <div class="inspect-prop">
-                  <span class="prop-lbl">Portal Visibility</span>
-                  <span class="prop-val text-emerald-600 font-bold">Public Patient Search</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Description -->
-            <div class="inspect-section">
-              <h4 class="section-title">Clinical Scope</h4>
-              <div class="desc-box">
-                {{ selectedSpec.description || 'Clinical specialty offering specialized outpatient medical diagnostics and care.' }}
-              </div>
-            </div>
-
-            <!-- Loading Spinner for Affiliated Doctors -->
-            <div *ngIf="loadingDetail" class="drawer-loading">
-              <mat-spinner diameter="32"></mat-spinner>
-              <span>Fetching practicing physician roster...</span>
-            </div>
-
-            <!-- Affiliated Doctors Roster -->
-            <div class="inspect-section" *ngIf="!loadingDetail">
-              <h4 class="section-title">
-                Affiliated Physicians ({{ specDetailDoctors.length }})
-              </h4>
-
-              <div *ngIf="specDetailDoctors.length === 0" class="empty-detail-box">
-                <mat-icon class="box-icon">person_off</mat-icon>
-                <span>No practicing physicians currently assigned to this department.</span>
-              </div>
-
-              <div *ngIf="specDetailDoctors.length > 0" class="doctors-list">
-                <div *ngFor="let doc of specDetailDoctors" class="doctor-card">
-                  <div class="doc-avatar">
-                    <mat-icon>medical_services</mat-icon>
-                  </div>
-                  <div class="doc-meta">
-                    <div class="doc-name font-bold">{{ doc.name }}</div>
-                    <div class="doc-clinic text-xs text-neutral-500">
-                      {{ doc.clinicName }} &bull; {{ doc.clinicCity }}
-                    </div>
-                  </div>
-                  <div class="doc-badge-col text-right">
-                    <div class="doc-fee text-xs font-bold text-emerald-700">₹{{ doc.consultationFee }}</div>
-                    <div class="doc-rating text-[11px] text-amber-600">⭐ {{ doc.rating | number:'1.1-1' }}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="inspector-footer">
-            <button mat-stroked-button color="primary" (click)="openEditModal(selectedSpec); closeInspector()">
-              <mat-icon>edit</mat-icon>
-              <span>Edit Department</span>
-            </button>
-            <button mat-flat-button color="primary" (click)="closeInspector()">
-              Done
-            </button>
-          </div>
         </div>
       </div>
     </div>
@@ -1059,19 +1179,14 @@ interface SpecializationStats {
       border-top: 1px solid #EBECEF;
     }
 
-    /* Inspector Slide-over */
-    .inspector-backdrop {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.45);
-      z-index: 1000;
+    /* ==================================================================== */
+    /* FULL PAGE DEPARTMENT DOSSIER VIEW                                    */
+    /* ==================================================================== */
+    .spec-detail-fullpage {
       display: flex;
-      justify-content: flex-end;
-      backdrop-filter: blur(2px);
-      animation: fadeIn 0.2s ease;
+      flex-direction: column;
+      gap: 16px;
+      animation: fadeIn 0.15s ease;
     }
 
     @keyframes fadeIn {
@@ -1079,173 +1194,96 @@ interface SpecializationStats {
       to { opacity: 1; }
     }
 
-    .inspector-panel {
-      width: 560px;
-      max-width: 92vw;
-      height: 100vh;
-      background: #FFFFFF;
-      box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
-      display: flex;
-      flex-direction: column;
-      animation: slideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    @keyframes slideIn {
-      from { transform: translateX(100%); }
-      to { transform: translateX(0); }
-    }
-
-    .inspector-header {
-      padding: 24px;
-      border-bottom: 1px solid #EBECEF;
+    .detail-nav-bar {
       display: flex;
       justify-content: space-between;
-      align-items: flex-start;
-      background: #FAFAF8;
+      align-items: center;
+      gap: 12px;
+      padding: 4px 0 8px;
+      flex-wrap: wrap;
     }
 
-    .inspector-kicker {
-      font-size: 10px;
-      font-weight: 800;
-      letter-spacing: 1px;
-      color: #0F5C5C;
-      display: block;
-      margin-bottom: 4px;
-    }
-
-    .title-with-icon {
+    .nav-left {
       display: flex;
       align-items: center;
       gap: 10px;
-      margin: 4px 0;
     }
 
-    .inspector-title {
-      font-size: 20px;
-      font-weight: 800;
-      color: #1A2E2E;
-      margin: 0;
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600 !important;
+      color: #374151 !important;
+      padding: 0 12px !important;
+      height: 36px !important;
+      border-radius: 6px !important;
+      background: #F3F4F6 !important;
     }
 
-    .inspector-slug {
-      font-size: 11px;
-      color: #6C757D;
+    .back-btn:hover {
+      background: #E5E7EB !important;
+      color: #111827 !important;
     }
 
-    .inspector-body {
-      flex: 1;
-      overflow-y: auto;
-      padding: 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
+    .back-icon {
+      font-size: 18px !important;
+      width: 18px !important;
+      height: 18px !important;
+      line-height: 18px !important;
     }
 
-    .inspect-section {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
+    .breadcrumb-divider {
+      color: #9CA3AF;
+      font-size: 14px;
     }
 
-    .section-title {
-      font-size: 12px;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: #5C6B6B;
-      margin: 0;
-    }
-
-    .inspect-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      background: #FAFAF8;
-      padding: 14px;
-      border-radius: 8px;
-      border: 1px solid #E7E5E0;
-    }
-
-    .inspect-prop {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .prop-lbl {
-      font-size: 10px;
+    .breadcrumb-current {
       font-weight: 700;
-      text-transform: uppercase;
-      color: #8C98A4;
+      font-size: 14px;
+      color: #111827;
     }
 
-    .prop-val {
-      font-size: 12px;
-      color: #1A2E2E;
-      word-break: break-all;
-    }
-
-    .desc-box {
-      background: #FAFAF8;
-      border: 1px solid #E7E5E0;
-      padding: 12px 14px;
-      border-radius: 8px;
-      font-size: 13px;
-      color: #475569;
-      line-height: 1.5;
-    }
-
-    .drawer-loading {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 16px;
-      font-size: 12px;
-      color: #5C6B6B;
-    }
-
-    .empty-detail-box {
+    .nav-actions {
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 14px;
-      border-radius: 8px;
-      background: #FAFAF8;
-      border: 1px solid #E7E5E0;
-      font-size: 12px;
-      color: #8C98A4;
     }
 
-    .box-icon {
-      font-size: 20px;
-      width: 20px;
-      height: 20px;
-      color: #B0BEC5;
+    .refresh-btn, .edit-spec-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 36px !important;
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      border-color: #D1D5DB !important;
+      color: #374151 !important;
+      border-radius: 6px !important;
     }
 
-    /* Doctors List */
-    .doctors-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .doctor-card {
+    .dept-hero-card {
+      background: #FFFFFF;
+      border: 1px solid #E5E7EB;
+      border-radius: 10px;
+      padding: 20px 24px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
-      padding: 10px 14px;
-      border-radius: 8px;
-      background: #FAFAF8;
-      border: 1px solid #E7E5E0;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
     }
 
-    .doc-avatar {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background: #E6F2F1;
+    .hero-left {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .dept-hero-icon-box {
+      width: 54px;
+      height: 54px;
+      border-radius: 12px;
+      background: #F1F5F9;
       color: #0F5C5C;
       display: flex;
       align-items: center;
@@ -1253,17 +1291,308 @@ interface SpecializationStats {
       flex-shrink: 0;
     }
 
-    .doc-meta {
-      flex: 1;
+    .dept-hero-icon-box mat-icon {
+      font-size: 28px;
+      width: 28px;
+      height: 28px;
     }
 
-    .inspector-footer {
-      padding: 16px 24px;
-      border-top: 1px solid #EBECEF;
+    .hero-meta {
       display: flex;
-      justify-content: space-between;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .hero-badges-row {
+      display: flex;
       align-items: center;
+      gap: 8px;
+    }
+
+    .portal-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #0F5C5C;
+      background: #E6F2F1;
+      padding: 2px 8px;
+      border-radius: 999px;
+    }
+
+    .portal-pill .pill-icon {
+      font-size: 13px;
+      width: 13px;
+      height: 13px;
+      line-height: 13px;
+    }
+
+    .hero-title {
+      font-size: 24px;
+      font-weight: 800;
+      color: #0F172A;
+      margin: 2px 0 0;
+      letter-spacing: -0.4px;
+    }
+
+    .hero-sub-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #64748B;
+    }
+
+    .dot-sep {
+      color: #CBD5E1;
+    }
+
+    .detail-section-card {
+      background: #FFFFFF;
+      border: 1px solid #E5E7EB;
+      border-radius: 10px;
+      padding: 20px 24px !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .section-card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header-icon-wrap {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: #F1F5F9;
+      color: #475569;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .header-icon-wrap mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+
+    .section-card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #0F172A;
+      margin: 0;
+    }
+
+    .section-card-desc {
+      font-size: 12px;
+      color: #64748B;
+      margin: 2px 0 0;
+    }
+
+    .clinical-desc-box {
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 8px;
+      padding: 14px 18px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #334155;
+    }
+
+    .detail-loading-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 36px;
+      gap: 12px;
+      color: #64748B;
+      font-size: 13px;
+    }
+
+    .empty-doctors-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 36px 20px;
+      color: #64748B;
+    }
+
+    .empty-doctors-state .empty-icon {
+      font-size: 38px;
+      width: 38px;
+      height: 38px;
+      color: #94A3B8;
+      margin-bottom: 8px;
+    }
+
+    .empty-doctors-state h4 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #0F172A;
+      margin: 0 0 4px;
+    }
+
+    .empty-doctors-state p {
+      font-size: 13px;
+      max-width: 520px;
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    /* Doctors Table in Full Page View */
+    .doctors-table-container {
+      overflow-x: auto;
+      border: 1px solid #E5E7EB;
+      border-radius: 8px;
+    }
+
+    .doctors-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .doctors-table th {
+      background: #F8FAFC;
+      padding: 12px 16px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #64748B;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid #E5E7EB;
+    }
+
+    .doctors-table td {
+      padding: 14px 16px;
+      border-bottom: 1px solid #F1F5F9;
+      vertical-align: middle;
+      font-size: 13px;
+    }
+
+    .doctors-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .doctors-table tr:hover {
       background: #FAFAF8;
+    }
+
+    .doc-identity-cell {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .doc-avatar-box {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #E6F2F1;
+      color: #0F5C5C;
+      font-weight: 800;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .doc-identity-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .doc-name-text {
+      font-weight: 700;
+      color: #0F172A;
+      font-size: 14px;
+    }
+
+    .doc-sub-info {
+      font-size: 12px;
+      color: #64748B;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .doc-sub-info .sep {
+      color: #CBD5E1;
+    }
+
+    .clinic-cell-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .clinic-name-text {
+      font-weight: 600;
+      color: #1E293B;
+    }
+
+    .clinic-city-text {
+      font-size: 12px;
+      color: #64748B;
+    }
+
+    .exp-badge {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #475569;
+      background: #F1F5F9;
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+
+    .fee-text {
+      font-weight: 700;
+      color: #047857;
+      font-size: 13px;
+    }
+
+    .rating-badge {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #B45309;
+      background: #FEF3C7;
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+
+    .view-doctor-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px !important;
+      font-weight: 600 !important;
+      height: 32px !important;
+      padding: 0 12px !important;
+      border-radius: 6px !important;
+      color: #0F5C5C !important;
+      border-color: #0F5C5C !important;
+    }
+
+    .view-doctor-btn:hover {
+      background: #E6F2F1 !important;
+    }
+
+    .view-doctor-btn .btn-icon {
+      font-size: 15px !important;
+      width: 15px !important;
+      height: 15px !important;
+      line-height: 15px !important;
     }
   `],
 })
@@ -1272,6 +1601,10 @@ export class ManageSpecializationsComponent implements OnInit {
   private notificationService = inject(NotificationService);
   private fb = inject(FormBuilder);
   private cdr = inject(ChangeDetectorRef);
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+
+  viewMode: 'list' | 'detail' = 'list';
 
   specializations: Specialization[] = [];
   filteredSpecs: Specialization[] = [];
@@ -1293,7 +1626,7 @@ export class ManageSpecializationsComponent implements OnInit {
   editingSpecId: string | null = null;
   saving = false;
 
-  // Drawer
+  // Department Details (Full-page)
   selectedSpec: Specialization | null = null;
   specDetailDoctors: any[] = [];
   loadingDetail = false;
@@ -1321,6 +1654,29 @@ export class ManageSpecializationsComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadSpecializations();
+    this.route.queryParams.subscribe((params) => {
+      const specId = params['specId'] || params['departmentId'];
+      if (specId) {
+        this.openSpecById(specId);
+      }
+    });
+  }
+
+  openSpecById(id: string): void {
+    if (this.specializations.length > 0) {
+      const found = this.specializations.find((s) => s._id === id || s.slug === id);
+      if (found) {
+        this.inspectSpec(found);
+        return;
+      }
+    }
+    this.adminService.getSpecializationDetail(id).subscribe({
+      next: (res) => {
+        if (res.success && res.data && res.data.specialization) {
+          this.inspectSpec(res.data.specialization);
+        }
+      },
+    });
   }
 
   loadSpecializations(): void {
@@ -1332,6 +1688,10 @@ export class ManageSpecializationsComponent implements OnInit {
           this.specializations = res.data;
           this.updateStats();
           this.applyFilter();
+          const specId = this.route.snapshot.queryParams['specId'] || this.route.snapshot.queryParams['departmentId'];
+          if (specId && !this.selectedSpec) {
+            this.openSpecById(specId);
+          }
         }
         this.loading = false;
         this.cdr.markForCheck();
@@ -1521,6 +1881,7 @@ export class ManageSpecializationsComponent implements OnInit {
 
   inspectSpec(spec: Specialization): void {
     this.selectedSpec = { ...spec };
+    this.viewMode = 'detail';
     this.loadingDetail = true;
     this.specDetailDoctors = [];
     this.cdr.markForCheck();
@@ -1529,6 +1890,9 @@ export class ManageSpecializationsComponent implements OnInit {
       next: (res) => {
         if (res.success && res.data) {
           this.specDetailDoctors = res.data.doctors || [];
+          if (res.data.specialization) {
+            this.selectedSpec = { ...this.selectedSpec, ...res.data.specialization };
+          }
         }
         this.loadingDetail = false;
         this.cdr.markForCheck();
@@ -1541,10 +1905,58 @@ export class ManageSpecializationsComponent implements OnInit {
     });
   }
 
+  refreshDetail(): void {
+    if (!this.selectedSpec || !this.selectedSpec._id) return;
+    this.inspectSpec(this.selectedSpec);
+  }
+
   closeInspector(): void {
+    this.viewMode = 'list';
     this.selectedSpec = null;
     this.specDetailDoctors = [];
     this.cdr.markForCheck();
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { specId: null, departmentId: null },
+      queryParamsHandling: 'merge',
+    });
+  }
+
+  getAffiliatedClinicsCount(): number {
+    if (!this.specDetailDoctors || this.specDetailDoctors.length === 0) {
+      return this.selectedSpec?.clinicCount || 0;
+    }
+    const uniqueClinics = new Set(
+      this.specDetailDoctors
+        .map((d) => d.clinicName)
+        .filter((name) => !!name && name !== 'Independent Practice')
+    );
+    return Math.max(uniqueClinics.size, this.selectedSpec?.clinicCount || 0);
+  }
+
+  getAverageConsultationFee(): number {
+    if (!this.specDetailDoctors || this.specDetailDoctors.length === 0) {
+      return 0;
+    }
+    const fees = this.specDetailDoctors
+      .map((d) => Number(d.consultationFee) || 0)
+      .filter((fee) => fee > 0);
+    if (fees.length === 0) return 0;
+    const sum = fees.reduce((acc, curr) => acc + curr, 0);
+    return Math.round(sum / fees.length);
+  }
+
+  getDoctorInitials(name?: string): string {
+    if (!name) return 'DR';
+    const clean = name.replace(/^Dr\.?\s*/i, '').trim();
+    const parts = clean.split(/\s+/);
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+
+  viewDoctorInManageDoctors(doc: any): void {
+    if (!doc || !doc._id) return;
+    this.router.navigate(['/admin/doctors'], { queryParams: { viewDoctorId: doc._id } });
   }
 
   getMaterialIcon(iconName?: string): string {

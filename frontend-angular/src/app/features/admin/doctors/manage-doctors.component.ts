@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AdminService } from '../../../core/services/admin.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { Doctor } from '../../../core/models/doctor.model';
@@ -1507,6 +1508,8 @@ export class ManageDoctorsAdminComponent implements OnInit {
   private adminService = inject(AdminService);
   private notificationService = inject(NotificationService);
   private cdr = inject(ChangeDetectorRef);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
 
   doctors: Doctor[] = [];
   filteredDoctors: Doctor[] = [];
@@ -1522,10 +1525,42 @@ export class ManageDoctorsAdminComponent implements OnInit {
   // Selected Profile Dossier
   selectedDoctor: any | null = null;
   loadingDetail = false;
+  pendingDoctorId: string | null = null;
 
   ngOnInit(): void {
     this.loadSpecializations();
     this.loadDoctors();
+    this.route.queryParams.subscribe((params) => {
+      const docId = params['viewDoctorId'] || params['doctorId'];
+      if (docId) {
+        this.pendingDoctorId = docId;
+        this.checkPendingDoctor();
+      }
+    });
+  }
+
+  checkPendingDoctor(): void {
+    if (this.pendingDoctorId && this.doctors.length > 0) {
+      const targetId = this.pendingDoctorId;
+      const found = this.doctors.find(
+        (d) =>
+          d._id === targetId ||
+          (d as any).id === targetId ||
+          (d.userId && ((d.userId as any)._id === targetId || (d.userId as any).id === targetId || d.userId === targetId))
+      );
+      if (found) {
+        this.openDoctorProfile(found);
+      } else {
+        this.adminService.getDoctorDetail(targetId).subscribe({
+          next: (res) => {
+            if (res.success && res.data) {
+              this.openDoctorProfile(res.data);
+            }
+          },
+        });
+      }
+      this.pendingDoctorId = null;
+    }
   }
 
   loadSpecializations(): void {
@@ -1548,6 +1583,9 @@ export class ManageDoctorsAdminComponent implements OnInit {
         if (res.success && Array.isArray(res.data)) {
           this.doctors = res.data;
           this.applyFilters();
+          if (this.pendingDoctorId) {
+            this.checkPendingDoctor();
+          }
         }
         this.loading = false;
         this.cdr.markForCheck();
@@ -1771,6 +1809,11 @@ export class ManageDoctorsAdminComponent implements OnInit {
   closeDoctorProfile(): void {
     this.selectedDoctor = null;
     this.cdr.markForCheck();
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { viewDoctorId: null, doctorId: null },
+      queryParamsHandling: 'merge',
+    });
   }
 
   toggleDoctorStatus(doc: any, newStatus: 'active' | 'suspended'): void {
