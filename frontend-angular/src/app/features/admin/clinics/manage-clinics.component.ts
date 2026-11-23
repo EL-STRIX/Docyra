@@ -1,5 +1,6 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AdminService } from '../../../core/services/admin.service';
 import { ClinicService } from '../../../core/services/clinic.service';
@@ -15,12 +16,14 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 @Component({
   selector: 'app-manage-clinics',
   standalone: true,
   imports: [
     CommonModule,
+    RouterModule,
     FormsModule,
     ReactiveFormsModule,
     StatusBadgeComponent,
@@ -32,231 +35,515 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     MatInputModule,
     MatSelectModule,
     MatProgressSpinnerModule,
+    MatTooltipModule,
   ],
   template: `
     <div class="manage-clinics-page">
-      <!-- Header -->
-      <div class="page-header">
-        <div>
-          <h1 class="page-title">Manage Healthcare Clinics & Hospitals</h1>
-          <p class="page-subtitle">Onboard, configure, and oversee institutional healthcare partners across Docyra.</p>
+      <!-- ================================================================= -->
+      <!-- 1. CLINIC LIST DIRECTORY VIEW (viewMode === 'list')               -->
+      <!-- ================================================================= -->
+      <div *ngIf="viewMode === 'list'" class="clinic-list-view">
+        <!-- Header -->
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Manage Healthcare Clinics & Hospitals</h1>
+            <p class="page-subtitle">Onboard, configure, and oversee institutional healthcare partners across Docyra.</p>
+          </div>
+          <div class="header-actions">
+            <button mat-stroked-button (click)="loadClinics()" [disabled]="loading" class="refresh-btn">
+              <mat-icon [class.spin]="loading">refresh</mat-icon>
+              <span>Refresh</span>
+            </button>
+            <button mat-flat-button color="primary" (click)="openOnboardModal()">
+              <mat-icon>add_business</mat-icon>
+              <span>Onboard New Partner Clinic</span>
+            </button>
+          </div>
         </div>
-        <div class="header-actions">
-          <button mat-stroked-button (click)="loadClinics()" [disabled]="loading" class="refresh-btn">
-            <mat-icon [class.spin]="loading">refresh</mat-icon>
-            <span>Refresh</span>
-          </button>
-          <button mat-flat-button color="primary" (click)="openOnboardModal()">
-            <mat-icon>add_business</mat-icon>
-            <span>Onboard New Partner Clinic</span>
-          </button>
+
+        <!-- KPI Summary Cards: Clean Standard Subtle Layout -->
+        <div class="kpi-grid">
+          <div class="metric-card" (click)="setStatusFilter('all')" [class.metric-card-active]="statusFilter === 'all' && !searchTerm">
+            <div class="metric-top">
+              <span class="metric-label">Total Facilities</span>
+              <mat-icon class="metric-icon">domain</mat-icon>
+            </div>
+            <div class="metric-value">{{ clinics.length }}</div>
+            <div class="metric-sub">Registered hospitals & clinics</div>
+          </div>
+
+          <div class="metric-card" (click)="setStatusFilter('active')" [class.metric-card-active]="statusFilter === 'active'">
+            <div class="metric-top">
+              <span class="metric-label">Active Clinics</span>
+              <mat-icon class="metric-icon">verified</mat-icon>
+            </div>
+            <div class="metric-value">{{ countActive() }}</div>
+            <div class="metric-sub">Operational & verified partners</div>
+          </div>
+
+          <div class="metric-card" (click)="setStatusFilter('suspended')" [class.metric-card-active]="statusFilter === 'suspended'">
+            <div class="metric-top">
+              <span class="metric-label">Suspended</span>
+              <mat-icon class="metric-icon">block</mat-icon>
+            </div>
+            <div class="metric-value">{{ countSuspended() }}</div>
+            <div class="metric-sub">Inactive or compliance hold</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-top">
+              <span class="metric-label">Cities Covered</span>
+              <mat-icon class="metric-icon">location_city</mat-icon>
+            </div>
+            <div class="metric-value">{{ getCitiesCount() }}</div>
+            <div class="metric-sub">Geographic coverage spread</div>
+          </div>
         </div>
+
+        <!-- Clinics Table Card -->
+        <mat-card class="table-card">
+          <div class="toolbar-wrap">
+            <div class="search-box">
+              <mat-icon class="search-icon">search</mat-icon>
+              <input
+                type="text"
+                placeholder="Search clinic name, city, email, or phone..."
+                [(ngModel)]="searchTerm"
+                (ngModelChange)="applySearch()"
+                class="search-input"
+              />
+              <button *ngIf="searchTerm" class="clear-search" (click)="searchTerm = ''; applySearch()">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+
+            <div class="status-tabs">
+              <button
+                class="tab-btn"
+                [class.active]="statusFilter === 'all'"
+                (click)="setStatusFilter('all')"
+              >
+                All ({{ clinics.length }})
+              </button>
+              <button
+                class="tab-btn active-tab"
+                [class.active]="statusFilter === 'active'"
+                (click)="setStatusFilter('active')"
+              >
+                Active ({{ countActive() }})
+              </button>
+              <button
+                class="tab-btn suspended-tab"
+                [class.active]="statusFilter === 'suspended'"
+                (click)="setStatusFilter('suspended')"
+              >
+                Suspended ({{ countSuspended() }})
+              </button>
+            </div>
+          </div>
+
+          <div *ngIf="loading" class="loading-wrap">
+            <mat-spinner diameter="36"></mat-spinner>
+            <p>Loading clinic facilities...</p>
+          </div>
+
+          <div *ngIf="!loading && filteredClinics.length === 0" class="empty-state">
+            <mat-icon class="empty-icon">domain_disabled</mat-icon>
+            <h3>No clinic facilities found</h3>
+            <p>No clinics match your search query or selected status filter.</p>
+          </div>
+
+          <div *ngIf="!loading && filteredClinics.length > 0" class="table-container">
+            <table class="clinics-table">
+              <thead>
+                <tr>
+                  <th>Clinic Facility</th>
+                  <th>Location & Address</th>
+                  <th>Contact Details</th>
+                  <th>Status</th>
+                  <th>Rating & Reviews</th>
+                  <th class="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let c of filteredClinics">
+                  <!-- Name & Avatar -->
+                  <td>
+                    <div class="clinic-name-cell">
+                      <div class="clinic-avatar">
+                        {{ getClinicInitials(c.name) }}
+                      </div>
+                      <div class="clinic-meta">
+                        <div class="clinic-name">{{ c.name }}</div>
+                        <div class="clinic-slug">{{ c.slug || c._id }}</div>
+                      </div>
+                    </div>
+                  </td>
+
+                  <!-- Location -->
+                  <td>
+                    <div class="loc-cell">
+                      <div class="city-name">{{ getClinicCity(c) }}</div>
+                      <div class="street-address" [title]="getClinicStreet(c)">
+                        {{ truncate(getClinicStreet(c), 35) || 'Address on file' }}
+                      </div>
+                    </div>
+                  </td>
+
+                  <!-- Contact -->
+                  <td>
+                    <div class="contact-cell">
+                      <div class="contact-phone">
+                        <mat-icon class="contact-ic">call</mat-icon>
+                        <span>{{ getClinicPhone(c) }}</span>
+                      </div>
+                      <div class="contact-email">
+                        <mat-icon class="contact-ic">mail</mat-icon>
+                        <span>{{ getClinicEmail(c) }}</span>
+                      </div>
+                    </div>
+                  </td>
+
+                  <!-- Status -->
+                  <td>
+                    <app-status-badge [status]="isClinicActive(c) ? 'active' : 'suspended'"></app-status-badge>
+                  </td>
+
+                  <!-- Rating -->
+                  <td>
+                    <div class="rating-cell">
+                      <span class="rating-badge">⭐ {{ c.rating ? (c.rating | number:'1.1-1') : '5.0' }}</span>
+                      <span class="review-count">({{ c.reviewCount || 0 }} reviews)</span>
+                    </div>
+                  </td>
+
+                  <!-- Actions Column with balanced, aligned buttons -->
+                  <td class="text-right actions-col">
+                    <div class="action-btn-group">
+                      <button
+                        mat-stroked-button
+                        class="action-btn view-action-btn"
+                        (click)="openClinicDetails(c)"
+                        matTooltip="View Complete Facility & Doctor Profile"
+                      >
+                        <mat-icon class="btn-icon">visibility</mat-icon>
+                        <span>View</span>
+                      </button>
+
+                      <button
+                        mat-stroked-button
+                        class="action-btn edit-action-btn"
+                        (click)="openEditModal(c)"
+                        matTooltip="Edit Facility Configuration"
+                      >
+                        <mat-icon class="btn-icon">edit</mat-icon>
+                        <span>Edit</span>
+                      </button>
+
+                      <button
+                        *ngIf="isClinicActive(c)"
+                        mat-stroked-button
+                        color="warn"
+                        (click)="toggleClinicStatus(c._id, 'suspended')"
+                        class="action-btn suspend-action-btn"
+                        matTooltip="Suspend clinic operations"
+                      >
+                        <span>Suspend</span>
+                      </button>
+                      <button
+                        *ngIf="!isClinicActive(c)"
+                        mat-flat-button
+                        color="primary"
+                        (click)="toggleClinicStatus(c._id, 'active')"
+                        class="action-btn activate-action-btn"
+                        matTooltip="Activate clinic operations"
+                      >
+                        <span>Activate</span>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </mat-card>
       </div>
 
-      <!-- KPI Summary Cards: Clean Standard Subtle Layout -->
-      <div class="kpi-grid">
-        <div class="metric-card" (click)="setStatusFilter('all')" [class.metric-card-active]="statusFilter === 'all' && !searchTerm">
-          <div class="metric-top">
-            <span class="metric-label">Total Facilities</span>
-            <mat-icon class="metric-icon">domain</mat-icon>
-          </div>
-          <div class="metric-value">{{ clinics.length }}</div>
-          <div class="metric-sub">Registered hospitals & clinics</div>
-        </div>
-
-        <div class="metric-card" (click)="setStatusFilter('active')" [class.metric-card-active]="statusFilter === 'active'">
-          <div class="metric-top">
-            <span class="metric-label">Active Clinics</span>
-            <mat-icon class="metric-icon">verified</mat-icon>
-          </div>
-          <div class="metric-value">{{ countActive() }}</div>
-          <div class="metric-sub">Operational & verified partners</div>
-        </div>
-
-        <div class="metric-card" (click)="setStatusFilter('suspended')" [class.metric-card-active]="statusFilter === 'suspended'">
-          <div class="metric-top">
-            <span class="metric-label">Suspended</span>
-            <mat-icon class="metric-icon">block</mat-icon>
-          </div>
-          <div class="metric-value">{{ countSuspended() }}</div>
-          <div class="metric-sub">Inactive or compliance hold</div>
-        </div>
-
-        <div class="metric-card">
-          <div class="metric-top">
-            <span class="metric-label">Cities Covered</span>
-            <mat-icon class="metric-icon">location_city</mat-icon>
-          </div>
-          <div class="metric-value">{{ getCitiesCount() }}</div>
-          <div class="metric-sub">Geographic coverage spread</div>
-        </div>
-      </div>
-
-      <!-- Clinics Table Card -->
-      <mat-card class="table-card">
-        <div class="toolbar-wrap">
-          <div class="search-box">
-            <mat-icon class="search-icon">search</mat-icon>
-            <input
-              type="text"
-              placeholder="Search clinic name, city, email, or phone..."
-              [(ngModel)]="searchTerm"
-              (ngModelChange)="applySearch()"
-              class="search-input"
-            />
-            <button *ngIf="searchTerm" class="clear-search" (click)="searchTerm = ''; applySearch()">
-              <mat-icon>close</mat-icon>
+      <!-- ================================================================= -->
+      <!-- 2. FULL PAGE CLINIC DOSSIER VIEW (viewMode === 'detail')          -->
+      <!-- ================================================================= -->
+      <div *ngIf="viewMode === 'detail' && selectedClinicForView" class="clinic-detail-fullpage">
+        <!-- Top Navigation Bar -->
+        <div class="detail-nav-bar">
+          <div class="nav-left">
+            <button mat-button class="back-btn" (click)="closeClinicDetails()">
+              <mat-icon class="back-icon">arrow_back</mat-icon>
+              <span>Back to Clinics</span>
             </button>
+            <div class="breadcrumb-divider">/</div>
+            <span class="breadcrumb-current">{{ selectedClinicForView.name }}</span>
           </div>
 
-          <div class="status-tabs">
+          <div class="nav-actions">
             <button
-              class="tab-btn"
-              [class.active]="statusFilter === 'all'"
-              (click)="setStatusFilter('all')"
+              mat-stroked-button
+              class="refresh-btn"
+              (click)="refreshClinicDetails()"
+              [disabled]="loadingDoctors"
+              title="Refresh Facility Information"
             >
-              All ({{ clinics.length }})
+              <mat-icon [class.spin]="loadingDoctors" class="btn-icon">refresh</mat-icon>
+              <span>Refresh</span>
+            </button>
+
+            <button
+              mat-stroked-button
+              class="edit-clinic-btn"
+              (click)="openEditModal(selectedClinicForView)"
+            >
+              <mat-icon class="btn-icon">edit</mat-icon>
+              <span>Edit Clinic</span>
+            </button>
+
+            <button
+              *ngIf="isClinicActive(selectedClinicForView)"
+              mat-stroked-button
+              color="warn"
+              (click)="toggleClinicStatus(selectedClinicForView._id, 'suspended')"
+              class="status-action-btn suspend-btn"
+            >
+              <mat-icon class="btn-icon">block</mat-icon>
+              <span>Suspend Facility</span>
             </button>
             <button
-              class="tab-btn active-tab"
-              [class.active]="statusFilter === 'active'"
-              (click)="setStatusFilter('active')"
+              *ngIf="!isClinicActive(selectedClinicForView)"
+              mat-flat-button
+              color="primary"
+              (click)="toggleClinicStatus(selectedClinicForView._id, 'active')"
+              class="status-action-btn activate-btn"
             >
-              Active ({{ countActive() }})
-            </button>
-            <button
-              class="tab-btn suspended-tab"
-              [class.active]="statusFilter === 'suspended'"
-              (click)="setStatusFilter('suspended')"
-            >
-              Suspended ({{ countSuspended() }})
+              <mat-icon class="btn-icon">verified</mat-icon>
+              <span>Activate Facility</span>
             </button>
           </div>
         </div>
 
-        <div *ngIf="loading" class="loading-wrap">
-          <mat-spinner diameter="36"></mat-spinner>
-          <p>Loading clinic facilities...</p>
+        <!-- Clinic Identity Hero Header Card -->
+        <div class="clinic-hero-card">
+          <div class="hero-left">
+            <div class="clinic-hero-avatar">
+              {{ getClinicInitials(selectedClinicForView.name) }}
+            </div>
+            <div class="hero-meta">
+              <div class="hero-badges-row">
+                <span class="status-pill" [class.active]="isClinicActive(selectedClinicForView)" [class.suspended]="!isClinicActive(selectedClinicForView)">
+                  <span class="dot"></span>
+                  {{ isClinicActive(selectedClinicForView) ? 'Active Partner Facility' : 'Suspended Facility' }}
+                </span>
+                <span class="location-pill">
+                  <mat-icon class="pill-icon">location_on</mat-icon>
+                  {{ getClinicCity(selectedClinicForView) }}, {{ getClinicState(selectedClinicForView) }}
+                </span>
+              </div>
+              <h1 class="hero-title">{{ selectedClinicForView.name }}</h1>
+              <div class="hero-sub-row">
+                <span class="hero-slug font-mono">/clinics/{{ selectedClinicForView.slug || selectedClinicForView._id }}</span>
+                <span class="dot-sep">&bull;</span>
+                <span class="hero-id font-mono">ID: {{ selectedClinicForView._id }}</span>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div *ngIf="!loading && filteredClinics.length === 0" class="empty-state">
-          <mat-icon class="empty-icon">domain_disabled</mat-icon>
-          <h3>No clinic facilities found</h3>
-          <p>No clinics match your search query or selected status filter.</p>
+        <!-- Upper Metric Summary Cards -->
+        <div class="kpi-grid">
+          <div class="metric-card">
+            <div class="metric-top">
+              <span class="metric-label">Affiliated Doctors</span>
+              <mat-icon class="metric-icon">medical_services</mat-icon>
+            </div>
+            <div class="metric-value">{{ clinicDoctors.length }}</div>
+            <div class="metric-sub">Practicing medical professionals</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-top">
+              <span class="metric-label">Facility Rating</span>
+              <mat-icon class="metric-icon">star</mat-icon>
+            </div>
+            <div class="metric-value text-amber-600">⭐ {{ selectedClinicForView.rating ? (selectedClinicForView.rating | number:'1.1-1') : '5.0' }}</div>
+            <div class="metric-sub">{{ selectedClinicForView.reviewCount || 0 }} patient reviews recorded</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-top">
+              <span class="metric-label">Contact Phone</span>
+              <mat-icon class="metric-icon">call</mat-icon>
+            </div>
+            <div class="metric-value font-mono text-base">{{ getClinicPhone(selectedClinicForView) }}</div>
+            <div class="metric-sub">{{ getClinicEmail(selectedClinicForView) }}</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-top">
+              <span class="metric-label">Operational Status</span>
+              <mat-icon class="metric-icon">{{ isClinicActive(selectedClinicForView) ? 'verified' : 'block' }}</mat-icon>
+            </div>
+            <div class="metric-value" [class.text-emerald-700]="isClinicActive(selectedClinicForView)" [class.text-rose-700]="!isClinicActive(selectedClinicForView)">
+              {{ isClinicActive(selectedClinicForView) ? 'Operational' : 'Suspended' }}
+            </div>
+            <div class="metric-sub">{{ isClinicActive(selectedClinicForView) ? 'Accepting patient bookings' : 'Bookings paused' }}</div>
+          </div>
         </div>
 
-        <div *ngIf="!loading && filteredClinics.length > 0" class="table-container">
-          <table class="clinics-table">
-            <thead>
-              <tr>
-                <th>Clinic Facility</th>
-                <th>Location & Address</th>
-                <th>Contact Details</th>
-                <th>Status</th>
-                <th>Rating & Reviews</th>
-                <th class="text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let c of filteredClinics">
-                <!-- Name & Avatar -->
-                <td>
-                  <div class="clinic-name-cell">
-                    <div class="clinic-avatar">
-                      {{ getClinicInitials(c.name) }}
-                    </div>
-                    <div class="clinic-meta">
-                      <div class="clinic-name">{{ c.name }}</div>
-                      <div class="clinic-slug">{{ c.slug || c._id }}</div>
-                    </div>
-                  </div>
-                </td>
+        <!-- Facility Specifications Card -->
+        <mat-card class="detail-section-card">
+          <div class="section-card-header">
+            <div class="header-icon-wrap">
+              <mat-icon>business</mat-icon>
+            </div>
+            <div>
+              <h3 class="section-card-title">Facility Information & Address</h3>
+              <p class="section-card-desc">Accredited facility specifications and contact details for {{ selectedClinicForView.name }}</p>
+            </div>
+          </div>
 
-                <!-- Location -->
-                <td>
-                  <div class="loc-cell">
-                    <div class="city-name">{{ getClinicCity(c) }}</div>
-                    <div class="street-address" [title]="getClinicStreet(c)">
-                      {{ truncate(getClinicStreet(c), 35) || 'Address on file' }}
+          <div class="meta-info-grid">
+            <div class="info-item">
+              <span class="info-label">Clinic Facility Name</span>
+              <span class="info-val font-semibold">{{ selectedClinicForView.name }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Portal Status</span>
+              <span class="info-val">
+                <app-status-badge [status]="isClinicActive(selectedClinicForView) ? 'active' : 'suspended'"></app-status-badge>
+              </span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Direct Phone</span>
+              <a [href]="'tel:' + getClinicPhone(selectedClinicForView)" class="info-val info-link">
+                {{ getClinicPhone(selectedClinicForView) }}
+              </a>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Direct Email</span>
+              <a [href]="'mailto:' + getClinicEmail(selectedClinicForView)" class="info-val info-link">
+                {{ getClinicEmail(selectedClinicForView) }}
+              </a>
+            </div>
+            <div class="info-item full-width">
+              <span class="info-label">Full Street Address</span>
+              <span class="info-val">
+                {{ getClinicStreet(selectedClinicForView) }}, {{ getClinicCity(selectedClinicForView) }}, {{ getClinicState(selectedClinicForView) }} - {{ getClinicPostalCode(selectedClinicForView) }}, India
+              </span>
+            </div>
+            <div *ngIf="selectedClinicForView.website" class="info-item full-width">
+              <span class="info-label">Official Website</span>
+              <a [href]="selectedClinicForView.website" target="_blank" class="info-link flex items-center gap-1">
+                <span>{{ selectedClinicForView.website }}</span>
+                <mat-icon class="external-ic">open_in_new</mat-icon>
+              </a>
+            </div>
+            <div class="info-item full-width">
+              <span class="info-label">About Facility / Clinical Scope</span>
+              <span class="info-val text-neutral-700">
+                {{ selectedClinicForView.description || 'Comprehensive clinical outpatient care, diagnostic consultations, and patient therapeutic management provided by certified healthcare specialists.' }}
+              </span>
+            </div>
+          </div>
+        </mat-card>
+
+        <!-- Affiliated Doctors Section -->
+        <mat-card class="detail-section-card">
+          <div class="section-card-header">
+            <div class="header-icon-wrap">
+              <mat-icon>groups</mat-icon>
+            </div>
+            <div class="section-title-col">
+              <h3 class="section-card-title">Affiliated Practicing Physicians ({{ clinicDoctors.length }})</h3>
+              <p class="section-card-desc">Credentialed doctors and medical specialists practicing at {{ selectedClinicForView.name }}</p>
+            </div>
+          </div>
+
+          <!-- Loading Spinner -->
+          <div *ngIf="loadingDoctors" class="detail-loading-wrap">
+            <mat-spinner diameter="36"></mat-spinner>
+            <p>Fetching practicing physician roster...</p>
+          </div>
+
+          <!-- Empty State -->
+          <div *ngIf="!loadingDoctors && clinicDoctors.length === 0" class="empty-doctors-state">
+            <mat-icon class="empty-icon">person_off</mat-icon>
+            <h4>No Physicians Currently Assigned</h4>
+            <p>There are currently no active physicians assigned to {{ selectedClinicForView.name }}. When doctors associate with this facility, they will appear here.</p>
+          </div>
+
+          <!-- Doctors Table -->
+          <div *ngIf="!loadingDoctors && clinicDoctors.length > 0" class="doctors-table-container">
+            <table class="doctors-table">
+              <thead>
+                <tr>
+                  <th class="th-doctor">Doctor Name & Identity</th>
+                  <th class="th-spec">Specialization</th>
+                  <th class="th-exp">Experience</th>
+                  <th class="th-fee">Consultation Fee</th>
+                  <th class="th-rating">Rating</th>
+                  <th class="th-action text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let doc of clinicDoctors" class="doctor-row">
+                  <td class="td-doctor">
+                    <div class="doc-identity-cell">
+                      <div class="doc-avatar-box">
+                        {{ getDoctorInitials(doc.name || doc.userId?.name) }}
+                      </div>
+                      <div class="doc-identity-info">
+                        <div class="doc-name-text">{{ doc.name || doc.userId?.name || 'Dr. Practitioner' }}</div>
+                        <div class="doc-sub-info">
+                          <span *ngIf="doc.email || doc.userId?.email">{{ doc.email || doc.userId?.email }}</span>
+                          <span *ngIf="(doc.email || doc.userId?.email) && (doc.phone || doc.userId?.phone)" class="sep">&bull;</span>
+                          <span *ngIf="doc.phone || doc.userId?.phone">{{ doc.phone || doc.userId?.phone }}</span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </td>
+                  </td>
 
-                <!-- Contact -->
-                <td>
-                  <div class="contact-cell">
-                    <div class="contact-phone">
-                      <mat-icon class="contact-ic">call</mat-icon>
-                      <span>{{ getClinicPhone(c) }}</span>
-                    </div>
-                    <div class="contact-email">
-                      <mat-icon class="contact-ic">mail</mat-icon>
-                      <span>{{ getClinicEmail(c) }}</span>
-                    </div>
-                  </div>
-                </td>
+                  <td class="td-spec">
+                    <span class="spec-badge">
+                      {{ doc.specializationId?.name || doc.specialization?.name || 'General Practitioner' }}
+                    </span>
+                  </td>
 
-                <!-- Status -->
-                <td>
-                  <app-status-badge [status]="isClinicActive(c) ? 'active' : 'suspended'"></app-status-badge>
-                </td>
+                  <td class="td-exp">
+                    <span class="exp-badge">{{ doc.experienceYears || doc.yearsExperience || 0 }} Yrs Exp</span>
+                  </td>
 
-                <!-- Rating -->
-                <td>
-                  <div class="rating-cell">
-                    <span class="rating-badge">⭐ {{ c.rating ? (c.rating | number:'1.1-1') : '5.0' }}</span>
-                    <span class="review-count">({{ c.reviewCount || 0 }} reviews)</span>
-                  </div>
-                </td>
+                  <td class="td-fee">
+                    <span class="fee-text">₹{{ doc.consultationFee || 500 }}</span>
+                  </td>
 
-                <!-- Actions -->
-                <td class="text-right actions-col">
-                  <div class="action-btn-group">
+                  <td class="td-rating">
+                    <span class="rating-badge">⭐ {{ doc.rating ? (doc.rating | number:'1.1-1') : '5.0' }}</span>
+                  </td>
+
+                  <td class="td-action text-right">
                     <button
-                      mat-icon-button
-                      class="view-btn"
-                      (click)="openClinicDetails(c)"
-                      title="View Clinic Details & Doctors"
-                    >
-                      <mat-icon>visibility</mat-icon>
-                    </button>
-
-                    <button
-                      mat-icon-button
-                      class="edit-btn"
-                      (click)="openEditModal(c)"
-                      title="Edit Clinic Details"
-                    >
-                      <mat-icon>edit</mat-icon>
-                    </button>
-
-                    <button
-                      *ngIf="isClinicActive(c)"
                       mat-stroked-button
-                      color="warn"
-                      (click)="toggleClinicStatus(c._id, 'suspended')"
-                      class="btn-sm status-toggle-btn suspend"
-                      title="Suspend clinic operations"
+                      class="view-doctor-btn"
+                      (click)="viewDoctorInManageDoctors(doc)"
+                      title="Open physician profile on Doctor Management page"
                     >
-                      Suspend
+                      <mat-icon class="btn-icon">visibility</mat-icon>
+                      <span>View Profile</span>
                     </button>
-                    <button
-                      *ngIf="!isClinicActive(c)"
-                      mat-flat-button
-                      color="primary"
-                      (click)="toggleClinicStatus(c._id, 'active')"
-                      class="btn-sm status-toggle-btn activate"
-                      title="Activate clinic operations"
-                    >
-                      Activate
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </mat-card>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </mat-card>
+      </div>
 
       <!-- Onboard / Edit Clinic Modal -->
       <div *ngIf="showModal" class="modal-backdrop" (click)="showModal = false">
@@ -361,105 +648,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
           </form>
         </div>
       </div>
-
-      <!-- Clinic Details Drawer / Modal -->
-      <div *ngIf="selectedClinicForView" class="modal-backdrop" (click)="selectedClinicForView = null">
-        <div class="drawer-card" (click)="$event.stopPropagation()">
-          <div class="drawer-header">
-            <div class="drawer-title-wrap">
-              <div class="drawer-avatar">
-                {{ getClinicInitials(selectedClinicForView.name) }}
-              </div>
-              <div>
-                <h3 class="drawer-name">{{ selectedClinicForView.name }}</h3>
-                <span class="drawer-city">{{ getClinicCity(selectedClinicForView) }}, India</span>
-              </div>
-            </div>
-            <button mat-icon-button (click)="selectedClinicForView = null">
-              <mat-icon>close</mat-icon>
-            </button>
-          </div>
-
-          <div class="drawer-body">
-            <!-- Facility Metadata Cards -->
-            <div class="detail-section">
-              <h4 class="section-title">Facility Information</h4>
-              <div class="meta-info-grid">
-                <div class="info-item">
-                  <span class="info-label">Status</span>
-                  <span class="info-val">
-                    <app-status-badge [status]="isClinicActive(selectedClinicForView) ? 'active' : 'suspended'"></app-status-badge>
-                  </span>
-                </div>
-                <div class="info-item">
-                  <span class="info-label">Rating</span>
-                  <span class="info-val font-bold text-amber-600">
-                    ⭐ {{ selectedClinicForView.rating ? (selectedClinicForView.rating | number:'1.1-1') : '5.0' }} ({{ selectedClinicForView.reviewCount || 0 }} reviews)
-                  </span>
-                </div>
-                <div class="info-item">
-                  <span class="info-label">Phone</span>
-                  <span class="info-val">{{ getClinicPhone(selectedClinicForView) }}</span>
-                </div>
-                <div class="info-item">
-                  <span class="info-label">Email</span>
-                  <span class="info-val">{{ getClinicEmail(selectedClinicForView) }}</span>
-                </div>
-                <div class="info-item full-width">
-                  <span class="info-label">Full Address</span>
-                  <span class="info-val">{{ getClinicStreet(selectedClinicForView) }}, {{ getClinicCity(selectedClinicForView) }}</span>
-                </div>
-                <div *ngIf="selectedClinicForView.website" class="info-item full-width">
-                  <span class="info-label">Website</span>
-                  <a [href]="selectedClinicForView.website" target="_blank" class="info-link">
-                    {{ selectedClinicForView.website }}
-                  </a>
-                </div>
-                <div *ngIf="selectedClinicForView.description" class="info-item full-width">
-                  <span class="info-label">About Facility</span>
-                  <span class="info-val italic text-neutral-600">{{ selectedClinicForView.description }}</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Affiliated Doctors -->
-            <div class="detail-section mt-4">
-              <div class="flex justify-between items-center mb-2">
-                <h4 class="section-title mb-0">Affiliated Doctors ({{ clinicDoctors.length }})</h4>
-                <span *ngIf="loadingDoctors" class="text-xs text-neutral-500">Loading roster...</span>
-              </div>
-
-              <div *ngIf="!loadingDoctors && clinicDoctors.length === 0" class="empty-doctors">
-                <mat-icon class="text-neutral-400">person_off</mat-icon>
-                <p>No doctors affiliated with this facility yet.</p>
-              </div>
-
-              <div *ngIf="clinicDoctors.length > 0" class="doctors-list">
-                <div *ngFor="let doc of clinicDoctors" class="doctor-row">
-                  <div class="doc-icon">
-                    <mat-icon>medical_services</mat-icon>
-                  </div>
-                  <div class="doc-info">
-                    <div class="doc-name">{{ doc.name || doc.userId?.name || 'Dr. Practitioner' }}</div>
-                    <div class="doc-spec">{{ doc.specializationId?.name || 'General Practitioner' }}</div>
-                  </div>
-                  <div class="doc-fee">
-                    <span>₹{{ doc.consultationFee }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="drawer-footer">
-            <button mat-button (click)="selectedClinicForView = null">Close</button>
-            <button mat-stroked-button color="primary" (click)="openEditModal(selectedClinicForView); selectedClinicForView = null">
-              <mat-icon>edit</mat-icon>
-              <span>Edit Clinic</span>
-            </button>
-          </div>
-        </div>
-      </div>
     </div>
   `,
   styles: [`
@@ -469,6 +657,12 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       gap: 20px;
       max-width: 1400px;
       margin: 0 auto;
+    }
+
+    .clinic-list-view {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
     }
 
     .page-header {
@@ -500,8 +694,9 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     }
 
     .refresh-btn {
-      border-color: #D1D5DB !important;
-      color: #374151 !important;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
 
     .spin {
@@ -512,11 +707,11 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       100% { transform: rotate(360deg); }
     }
 
-    /* KPI Summary Cards Grid: Clean, Standard Subtle Layout (No floating animation) */
+    /* KPI Summary Cards: Clean Standard Subtle Layout */
     .kpi-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
+      gap: 14px;
     }
 
     @media (max-width: 1024px) {
@@ -525,7 +720,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       }
     }
 
-    @media (max-width: 640px) {
+    @media (max-width: 600px) {
       .kpi-grid {
         grid-template-columns: 1fr;
       }
@@ -533,101 +728,98 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
     .metric-card {
       background: #FFFFFF;
-      border: 1px solid #E5E7EB;
-      border-radius: 8px;
-      padding: 14px 16px;
+      border: 1px solid #EBECEF;
+      border-radius: 12px;
+      padding: 16px 20px;
+      cursor: pointer;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
-      cursor: pointer;
+      gap: 4px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
       transition: border-color 0.15s ease, background-color 0.15s ease;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
     }
 
     .metric-card:hover {
-      border-color: #D1D5DB;
+      border-color: #CBD5E1;
+      background-color: #FBFBFC;
     }
 
-    .metric-card.metric-card-active {
-      border-color: #0F5C5C;
-      background: #FAFAF8;
+    .metric-card-active {
+      border-color: #0F5C5C !important;
+      background: #FAFCFC !important;
     }
 
     .metric-top {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 8px;
-      margin-bottom: 6px;
     }
 
     .metric-label {
       font-size: 11px;
-      font-weight: 700;
-      color: #64748B;
+      font-weight: 800;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.6px;
+      color: #64748B;
     }
 
     .metric-icon {
-      font-size: 17px;
-      width: 17px;
-      height: 17px;
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
       color: #94A3B8;
-      flex-shrink: 0;
-    }
-
-    .metric-card.metric-card-active .metric-icon {
-      color: #0F5C5C;
     }
 
     .metric-value {
-      font-size: 22px;
+      font-size: 26px;
       font-weight: 800;
       color: #0F172A;
-      line-height: 1.2;
-      letter-spacing: -0.4px;
-      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.5px;
+      line-height: 1.15;
+      margin: 2px 0 0;
     }
 
     .metric-sub {
-      font-size: 11px;
-      color: #94A3B8;
-      margin-top: 4px;
-      font-weight: 500;
+      font-size: 11.5px;
+      color: #64748B;
+      margin-top: 2px;
     }
 
     /* Table Card */
     .table-card {
-      border-radius: 16px !important;
-      border: 1px solid #E5E7EB;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
-      background: #FFFFFF;
+      border-radius: 12px !important;
+      border: 1px solid #EBECEF !important;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04) !important;
       overflow: hidden;
+      padding: 0 !important;
     }
 
     .toolbar-wrap {
-      padding: 16px 20px;
-      border-bottom: 1px solid #F3F4F6;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 16px;
       flex-wrap: wrap;
+      gap: 14px;
+      padding: 16px 20px;
+      border-bottom: 1px solid #EBECEF;
+      background: #FAFAF8;
     }
 
     .search-box {
-      position: relative;
-      flex: 1;
-      min-width: 280px;
-      max-width: 440px;
       display: flex;
       align-items: center;
+      background: #FFFFFF;
+      border: 1px solid #D1D5DB;
+      border-radius: 8px;
+      padding: 0 12px;
+      height: 38px;
+      min-width: 300px;
+      max-width: 440px;
+      width: 100%;
+      gap: 8px;
     }
 
     .search-icon {
-      position: absolute;
-      left: 12px;
       color: #9CA3AF;
       font-size: 18px;
       width: 18px;
@@ -635,30 +827,22 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     }
 
     .search-input {
-      width: 100%;
-      padding: 9px 36px 9px 38px;
-      border-radius: 999px;
-      border: 1px solid #D1D5DB;
-      font-size: 13px;
+      border: none;
       outline: none;
-      transition: border-color 0.2s;
-    }
-
-    .search-input:focus {
-      border-color: #0F5C5C;
-      box-shadow: 0 0 0 3px rgba(15, 92, 92, 0.1);
+      width: 100%;
+      font-size: 13px;
+      color: #111827;
+      background: transparent;
     }
 
     .clear-search {
-      position: absolute;
-      right: 10px;
-      background: transparent;
+      background: none;
       border: none;
       cursor: pointer;
-      color: #9CA3AF;
+      padding: 0;
       display: flex;
       align-items: center;
-      padding: 0;
+      color: #9CA3AF;
     }
 
     .clear-search mat-icon {
@@ -669,31 +853,29 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
     .status-tabs {
       display: flex;
-      gap: 6px;
-      background: #F3F4F6;
-      padding: 4px;
-      border-radius: 999px;
+      align-items: center;
+      gap: 4px;
+      background: #EBECEF;
+      padding: 3px;
+      border-radius: 8px;
     }
 
     .tab-btn {
+      padding: 6px 14px;
+      border-radius: 6px;
       border: none;
       background: transparent;
-      padding: 6px 14px;
-      border-radius: 999px;
       font-size: 12px;
-      font-weight: 700;
-      color: #4B5563;
+      font-weight: 600;
+      color: #5C6B6B;
       cursor: pointer;
-      transition: all 0.15s ease;
-    }
-
-    .tab-btn:hover {
-      color: #111827;
+      transition: all 0.2s ease;
     }
 
     .tab-btn.active {
       background: #FFFFFF;
-      color: #0F5C5C;
+      color: #1A2E2E;
+      font-weight: 700;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
 
@@ -845,36 +1027,583 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       text-align: right;
     }
 
+    /* Adjusted Actions Layout with Balanced Uniform Buttons */
     .action-btn-group {
-      display: flex;
+      display: inline-flex;
       align-items: center;
       justify-content: flex-end;
-      gap: 4px;
+      gap: 6px;
+      vertical-align: middle;
     }
 
-    .view-btn, .edit-btn {
-      color: #5C6B6B !important;
-      width: 32px !important;
-      height: 32px !important;
-      line-height: 32px !important;
+    .action-btn {
+      height: 30px !important;
+      line-height: 28px !important;
+      padding: 0 10px !important;
+      font-size: 12px !important;
+      font-weight: 600 !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 4px !important;
+      border-radius: 6px !important;
+      box-shadow: none !important;
     }
 
-    .view-btn:hover { color: #0F5C5C !important; }
-    .edit-btn:hover { color: #1E3A8A !important; }
+    .view-action-btn {
+      border-color: #D1D5DB !important;
+      color: #374151 !important;
+      background: #FFFFFF !important;
+    }
 
-    .view-btn mat-icon, .edit-btn mat-icon {
+    .view-action-btn:hover {
+      background: #F3F4F6 !important;
+      border-color: #9CA3AF !important;
+      color: #0F5C5C !important;
+    }
+
+    .edit-action-btn {
+      border-color: #BFDBFE !important;
+      color: #1D4ED8 !important;
+      background: #FFFFFF !important;
+    }
+
+    .edit-action-btn:hover {
+      background: #EFF6FF !important;
+      border-color: #93C5FD !important;
+    }
+
+    .suspend-action-btn {
+      border-color: #FECACA !important;
+      color: #DC2626 !important;
+      background: #FFFFFF !important;
+    }
+
+    .suspend-action-btn:hover {
+      background: #FEF2F2 !important;
+      border-color: #F87171 !important;
+    }
+
+    .activate-action-btn {
+      background: #0F5C5C !important;
+      color: #FFFFFF !important;
+    }
+
+    .activate-action-btn:hover {
+      background: #0D4E4E !important;
+    }
+
+    .btn-icon {
+      font-size: 15px !important;
+      width: 15px !important;
+      height: 15px !important;
+      line-height: 15px !important;
+    }
+
+    .text-right {
+      text-align: right;
+    }
+
+    /* ==================================================================== */
+    /* FULL PAGE CLINIC DOSSIER VIEW (viewMode === 'detail')                 */
+    /* ==================================================================== */
+    .clinic-detail-fullpage {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      animation: fadeIn 0.15s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .detail-nav-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 4px 0 8px;
+      flex-wrap: wrap;
+    }
+
+    .nav-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600 !important;
+      color: #374151 !important;
+      padding: 0 12px !important;
+      height: 36px !important;
+      border-radius: 6px !important;
+      background: #F3F4F6 !important;
+    }
+
+    .back-btn:hover {
+      background: #E5E7EB !important;
+      color: #111827 !important;
+    }
+
+    .back-icon {
       font-size: 18px !important;
       width: 18px !important;
       height: 18px !important;
+      line-height: 18px !important;
     }
 
-    .status-toggle-btn {
-      font-size: 11.5px !important;
-      height: 30px !important;
-      line-height: 30px !important;
-      padding: 0 10px !important;
+    .breadcrumb-divider {
+      color: #9CA3AF;
+      font-size: 14px;
+    }
+
+    .breadcrumb-current {
+      font-weight: 700;
+      font-size: 14px;
+      color: #111827;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .refresh-btn, .edit-clinic-btn, .status-action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 36px !important;
+      font-size: 13px !important;
+      font-weight: 600 !important;
       border-radius: 6px !important;
-      font-weight: 700 !important;
+    }
+
+    .refresh-btn, .edit-clinic-btn {
+      border-color: #D1D5DB !important;
+      color: #374151 !important;
+      background: #FFFFFF !important;
+    }
+
+    .refresh-btn:hover, .edit-clinic-btn:hover {
+      background: #F9FAFB !important;
+      border-color: #9CA3AF !important;
+    }
+
+    /* Hero Header Card */
+    .clinic-hero-card {
+      background: #FFFFFF;
+      border: 1px solid #E5E7EB;
+      border-radius: 12px;
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+    }
+
+    .hero-left {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .clinic-hero-avatar {
+      width: 58px;
+      height: 58px;
+      border-radius: 14px;
+      background: #0F5C5C;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 20px;
+      flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(15, 92, 92, 0.2);
+    }
+
+    .hero-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .hero-badges-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 10px;
+      border-radius: 999px;
+    }
+
+    .status-pill.active {
+      background: #EBF7EE;
+      color: #2E9E6B;
+    }
+
+    .status-pill.active .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #2E9E6B;
+    }
+
+    .status-pill.suspended {
+      background: #FEE2E2;
+      color: #DC2626;
+    }
+
+    .status-pill.suspended .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #DC2626;
+    }
+
+    .location-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #0F5C5C;
+      background: #E6F2F1;
+      padding: 2px 10px;
+      border-radius: 999px;
+    }
+
+    .location-pill .pill-icon {
+      font-size: 13px;
+      width: 13px;
+      height: 13px;
+      line-height: 13px;
+    }
+
+    .hero-title {
+      font-size: 24px;
+      font-weight: 800;
+      color: #0F172A;
+      margin: 2px 0 0;
+      letter-spacing: -0.4px;
+    }
+
+    .hero-sub-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #64748B;
+    }
+
+    .dot-sep {
+      color: #CBD5E1;
+    }
+
+    /* Detail Section Cards */
+    .detail-section-card {
+      background: #FFFFFF;
+      border: 1px solid #E5E7EB;
+      border-radius: 12px;
+      padding: 20px 24px !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .section-card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header-icon-wrap {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: #F1F5F9;
+      color: #475569;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .header-icon-wrap mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+
+    .section-card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #0F172A;
+      margin: 0;
+    }
+
+    .section-card-desc {
+      font-size: 12px;
+      color: #64748B;
+      margin: 2px 0 0;
+    }
+
+    .meta-info-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      background: #F8FAFC;
+      padding: 16px 20px;
+      border-radius: 10px;
+      border: 1px solid #E2E8F0;
+    }
+
+    @media (max-width: 768px) {
+      .meta-info-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .info-item {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .info-item.full-width {
+      grid-column: 1 / -1;
+    }
+
+    .info-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #64748B;
+    }
+
+    .info-val {
+      font-size: 13.5px;
+      color: #0F172A;
+      word-break: break-word;
+    }
+
+    .info-link {
+      color: #0F5C5C !important;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .info-link:hover {
+      text-decoration: underline;
+    }
+
+    .external-ic {
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+    }
+
+    /* Affiliated Doctors Section */
+    .detail-loading-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 36px;
+      gap: 12px;
+      color: #64748B;
+      font-size: 13px;
+    }
+
+    .empty-doctors-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 36px 20px;
+      color: #64748B;
+    }
+
+    .empty-doctors-state .empty-icon {
+      font-size: 40px;
+      width: 40px;
+      height: 40px;
+      color: #94A3B8;
+      margin-bottom: 8px;
+    }
+
+    .empty-doctors-state h4 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #0F172A;
+      margin: 0 0 4px;
+    }
+
+    .empty-doctors-state p {
+      font-size: 13px;
+      max-width: 520px;
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    /* Doctors Table in Full Page View */
+    .doctors-table-container {
+      overflow-x: auto;
+      border: 1px solid #E5E7EB;
+      border-radius: 8px;
+    }
+
+    .doctors-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .doctors-table th {
+      background: #F8FAFC;
+      padding: 12px 16px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #64748B;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid #E5E7EB;
+    }
+
+    .doctors-table td {
+      padding: 14px 16px;
+      border-bottom: 1px solid #F1F5F9;
+      vertical-align: middle;
+      font-size: 13px;
+    }
+
+    .doctors-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .doctors-table tr:hover {
+      background: #FAFAF8;
+    }
+
+    .doc-identity-cell {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .doc-avatar-box {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #E6F2F1;
+      color: #0F5C5C;
+      font-weight: 800;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .doc-identity-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .doc-name-text {
+      font-weight: 700;
+      color: #0F172A;
+      font-size: 14px;
+    }
+
+    .doc-sub-info {
+      font-size: 12px;
+      color: #64748B;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .doc-sub-info .sep {
+      color: #CBD5E1;
+    }
+
+    .spec-badge {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #0F5C5C;
+      background: #E6F2F1;
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+
+    .exp-badge {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #475569;
+      background: #F1F5F9;
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+
+    .fee-text {
+      font-weight: 700;
+      color: #047857;
+      font-size: 13px;
+    }
+
+    .rating-badge {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #B45309;
+      background: #FEF3C7;
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+
+    .view-doctor-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px !important;
+      font-weight: 600 !important;
+      height: 32px !important;
+      padding: 0 12px !important;
+      border-radius: 6px !important;
+      color: #0F5C5C !important;
+      border-color: #0F5C5C !important;
+      background: #FFFFFF !important;
+    }
+
+    .view-doctor-btn:hover {
+      background: #E6F2F1 !important;
+    }
+
+    .view-doctor-btn .btn-icon {
+      font-size: 15px !important;
+      width: 15px !important;
+      height: 15px !important;
+      line-height: 15px !important;
     }
 
     /* Modal Backdrop */
@@ -887,6 +1616,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       justify-content: center;
       z-index: 1000;
       padding: 20px;
+      backdrop-filter: blur(2px);
     }
 
     .modal-card {
@@ -900,55 +1630,12 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       overflow-y: auto;
     }
 
-    .drawer-card {
-      background: #FFFFFF;
-      border-radius: 16px;
-      padding: 24px;
-      max-width: 580px;
-      width: 100%;
-      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.2);
-      max-height: 90vh;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .modal-header, .drawer-header {
+    .modal-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
       border-bottom: 1px solid #E5E7EB;
       padding-bottom: 14px;
-    }
-
-    .drawer-title-wrap {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .drawer-avatar {
-      width: 44px;
-      height: 44px;
-      border-radius: 12px;
-      background: #0F5C5C;
-      color: #FFFFFF;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-      font-weight: 800;
-    }
-
-    .drawer-name {
-      font-size: 16px;
-      font-weight: 800;
-      color: #111827;
-      margin: 0;
-    }
-
-    .drawer-city {
-      font-size: 12px;
-      color: #6B7280;
     }
 
     .modal-title {
@@ -988,132 +1675,13 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       color: #374151;
     }
 
-    .modal-actions, .drawer-footer {
+    .modal-actions {
       display: flex;
       justify-content: flex-end;
       gap: 10px;
       margin-top: 16px;
       border-top: 1px solid #E5E7EB;
       padding-top: 14px;
-    }
-
-    .drawer-body {
-      flex: 1;
-      overflow-y: auto;
-      padding-top: 16px;
-    }
-
-    .section-title {
-      font-size: 12.5px;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: #4B5563;
-      margin: 0 0 10px 0;
-    }
-
-    .meta-info-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      background: #F9FAFB;
-      padding: 14px;
-      border-radius: 10px;
-      border: 1px solid #E5E7EB;
-    }
-
-    .info-item {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .info-item.full-width {
-      grid-column: span 2;
-    }
-
-    .info-label {
-      font-size: 10.5px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: #6B7280;
-    }
-
-    .info-val {
-      font-size: 12.5px;
-      color: #111827;
-      word-break: break-word;
-    }
-
-    .info-link {
-      font-size: 12px;
-      color: #0F5C5C;
-      text-decoration: underline;
-    }
-
-    .empty-doctors {
-      text-align: center;
-      padding: 20px;
-      color: #6B7280;
-      font-size: 12px;
-      background: #F9FAFB;
-      border-radius: 8px;
-    }
-
-    .doctors-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .doctor-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 12px;
-      background: #F9FAFB;
-      border: 1px solid #E5E7EB;
-      border-radius: 8px;
-    }
-
-    .doc-icon {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      background: #E8F5F1;
-      color: #0F5C5C;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .doc-icon mat-icon {
-      font-size: 16px;
-      width: 16px;
-      height: 16px;
-    }
-
-    .doc-info {
-      flex: 1;
-    }
-
-    .doc-name {
-      font-size: 12.5px;
-      font-weight: 700;
-      color: #111827;
-    }
-
-    .doc-spec {
-      font-size: 11px;
-      color: #6B7280;
-    }
-
-    .doc-fee {
-      font-size: 12px;
-      font-weight: 800;
-      color: #0F5C5C;
     }
 
     .w-full {
@@ -1125,7 +1693,14 @@ export class ManageClinicsComponent implements OnInit {
   private adminService = inject(AdminService);
   private clinicService = inject(ClinicService);
   private notificationService = inject(NotificationService);
+  private cdr = inject(ChangeDetectorRef);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private fb = inject(FormBuilder);
+
+  // View state: list directory vs full-page clinic dossier
+  viewMode: 'list' | 'detail' = 'list';
+  pendingClinicId: string | null = null;
 
   clinics: Clinic[] = [];
   filteredClinics: Clinic[] = [];
@@ -1137,7 +1712,7 @@ export class ManageClinicsComponent implements OnInit {
   editingClinicId: string | null = null;
   saving = false;
 
-  selectedClinicForView: Clinic | null = null;
+  selectedClinicForView: any | null = null;
   clinicDoctors: any[] = [];
   loadingDoctors = false;
 
@@ -1155,6 +1730,33 @@ export class ManageClinicsComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadClinics();
+    this.route.queryParams.subscribe((params) => {
+      const targetClinicId = params['clinicId'] || params['viewClinicId'];
+      if (targetClinicId) {
+        this.pendingClinicId = targetClinicId;
+        this.checkPendingClinic();
+      }
+    });
+  }
+
+  checkPendingClinic(): void {
+    if (this.pendingClinicId && this.clinics.length > 0) {
+      const target = this.clinics.find(
+        (c) => c._id === this.pendingClinicId || (c as any).id === this.pendingClinicId
+      );
+      if (target) {
+        this.openClinicDetails(target);
+      } else {
+        this.clinicService.getClinicProfile(this.pendingClinicId).subscribe({
+          next: (res) => {
+            if (res.success && res.data) {
+              this.openClinicDetails(res.data);
+            }
+          },
+        });
+      }
+      this.pendingClinicId = null;
+    }
   }
 
   loadClinics(): void {
@@ -1164,12 +1766,17 @@ export class ManageClinicsComponent implements OnInit {
         if (res.success && Array.isArray(res.data)) {
           this.clinics = res.data;
           this.applySearch();
+          if (this.pendingClinicId) {
+            this.checkPendingClinic();
+          }
         }
         this.loading = false;
+        this.cdr.markForCheck();
       },
       error: () => {
         this.loading = false;
         this.notificationService.error('Failed to load clinic facilities');
+        this.cdr.markForCheck();
       },
     });
   }
@@ -1193,6 +1800,7 @@ export class ManageClinicsComponent implements OnInit {
   }
 
   isClinicActive(c: any): boolean {
+    if (!c) return false;
     if (typeof c?.isActive === 'boolean') return c.isActive;
     return c?.subscriptionStatus === 'active' || c?.status === 'active';
   }
@@ -1202,6 +1810,18 @@ export class ManageClinicsComponent implements OnInit {
     if (typeof c?.address === 'object' && c?.address?.city) return c.address.city;
     if (typeof c?.address === 'string' && c?.address) return c.address;
     return 'India';
+  }
+
+  getClinicState(c: any): string {
+    if (c?.state) return c.state;
+    if (typeof c?.address === 'object' && c?.address?.state) return c.address.state;
+    return 'Karnataka';
+  }
+
+  getClinicPostalCode(c: any): string {
+    if (c?.postalCode) return c.postalCode;
+    if (typeof c?.address === 'object' && c?.address?.postalCode) return c.address.postalCode;
+    return '560001';
   }
 
   getClinicStreet(c: any): string {
@@ -1230,6 +1850,16 @@ export class ManageClinicsComponent implements OnInit {
       return (parts[0][0] + parts[1][0]).toUpperCase();
     }
     return (parts[0]?.[0] || 'C').toUpperCase();
+  }
+
+  getDoctorInitials(name?: string): string {
+    if (!name) return 'DR';
+    const clean = name.replace(/^Dr\.?\s+/i, '').trim();
+    const parts = clean.split(' ');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return (parts[0]?.[0] || 'D').toUpperCase();
   }
 
   truncate(str: string, maxLen: number): string {
@@ -1295,19 +1925,63 @@ export class ManageClinicsComponent implements OnInit {
 
   openClinicDetails(c: Clinic): void {
     this.selectedClinicForView = c;
+    this.viewMode = 'detail';
     this.clinicDoctors = [];
     this.loadingDoctors = true;
 
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { clinicId: c._id },
+      queryParamsHandling: 'merge',
+    });
+
+    // Fetch fresh clinic profile to ensure 100% accurate information
+    this.clinicService.getClinicProfile(c._id).subscribe({
+      next: (res) => {
+        if (res.success && res.data) {
+          this.selectedClinicForView = { ...c, ...res.data };
+          this.cdr.markForCheck();
+        }
+      },
+    });
+
+    // Fetch doctor roster
     this.clinicService.getClinicDoctors(c._id).subscribe({
       next: (res) => {
         this.loadingDoctors = false;
         if (res.success && Array.isArray(res.data)) {
           this.clinicDoctors = res.data;
         }
+        this.cdr.markForCheck();
       },
       error: () => {
         this.loadingDoctors = false;
+        this.cdr.markForCheck();
       },
+    });
+  }
+
+  closeClinicDetails(): void {
+    this.viewMode = 'list';
+    this.selectedClinicForView = null;
+    this.clinicDoctors = [];
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { clinicId: null, viewClinicId: null },
+      queryParamsHandling: 'merge',
+    });
+    this.cdr.markForCheck();
+  }
+
+  refreshClinicDetails(): void {
+    if (!this.selectedClinicForView) return;
+    this.openClinicDetails(this.selectedClinicForView);
+  }
+
+  viewDoctorInManageDoctors(doc: any): void {
+    const doctorId = doc._id || doc.id || (doc.userId && (doc.userId._id || doc.userId.id));
+    this.router.navigate(['/admin/doctors'], {
+      queryParams: { viewDoctorId: doctorId },
     });
   }
 
@@ -1315,7 +1989,19 @@ export class ManageClinicsComponent implements OnInit {
     this.adminService.updateClinicStatus(clinicId, newStatus).subscribe({
       next: () => {
         this.notificationService.success(`Clinic status updated to ${newStatus}`);
-        this.loadClinics();
+        const isActive = newStatus === 'active';
+        if (this.selectedClinicForView && this.selectedClinicForView._id === clinicId) {
+          this.selectedClinicForView.isActive = isActive;
+          this.selectedClinicForView.subscriptionStatus = newStatus;
+          this.selectedClinicForView.status = newStatus;
+        }
+        const target = this.clinics.find((c) => c._id === clinicId);
+        if (target) {
+          target.isActive = isActive;
+          target.subscriptionStatus = newStatus as any;
+        }
+        this.applySearch();
+        this.cdr.markForCheck();
       },
       error: (err) => {
         this.notificationService.error(err.error?.error?.message || 'Failed to update clinic status');
@@ -1356,6 +2042,9 @@ export class ManageClinicsComponent implements OnInit {
           this.saving = false;
           this.showModal = false;
           this.notificationService.success('Clinic details updated successfully!');
+          if (this.selectedClinicForView && this.selectedClinicForView._id === this.editingClinicId) {
+            this.refreshClinicDetails();
+          }
           this.loadClinics();
         },
         error: (err) => {
