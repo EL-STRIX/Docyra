@@ -38,12 +38,6 @@ import { MatTooltipModule } from '@angular/material/tooltip';
       <!-- Page Header -->
       <div class="page-header">
         <div>
-          <div class="badge-row">
-            <span class="category-badge">
-              <mat-icon class="badge-icon">verified_user</mat-icon>
-              Physician Registry & Clinical Credentials
-            </span>
-          </div>
           <h1 class="page-title">Manage Physicians & Specialists</h1>
           <p class="page-subtitle">
             Oversee verified practitioners, clinic affiliations, clinical scope, and live consultation metrics across Docyra.
@@ -64,46 +58,42 @@ import { MatTooltipModule } from '@angular/material/tooltip';
         </div>
       </div>
 
-      <!-- KPI Summary Cards -->
+      <!-- KPI Summary Cards: Clean Standard Subtle Layout -->
       <div class="kpi-grid">
-        <div class="kpi-card" (click)="setStatusFilter('all')" [class.active-kpi]="statusFilter === 'all'">
-          <div class="kpi-icon-wrap total">
-            <mat-icon>medical_services</mat-icon>
+        <div class="metric-card">
+          <div class="metric-top">
+            <span class="metric-label">Total Physicians</span>
+            <mat-icon class="metric-icon">medical_services</mat-icon>
           </div>
-          <div class="kpi-info">
-            <span class="kpi-label">Total Physicians</span>
-            <span class="kpi-value">{{ doctors.length }}</span>
-          </div>
+          <div class="metric-value">{{ doctors.length }}</div>
+          <div class="metric-sub">Registered medical practitioners</div>
         </div>
 
-        <div class="kpi-card" (click)="setStatusFilter('active')" [class.active-kpi]="statusFilter === 'active'">
-          <div class="kpi-icon-wrap active">
-            <mat-icon>check_circle</mat-icon>
+        <div class="metric-card">
+          <div class="metric-top">
+            <span class="metric-label">Active Doctors</span>
+            <mat-icon class="metric-icon">verified</mat-icon>
           </div>
-          <div class="kpi-info">
-            <span class="kpi-label">Active Doctors</span>
-            <span class="kpi-value text-emerald-600">{{ countActive() }}</span>
-          </div>
+          <div class="metric-value">{{ countActive() }}</div>
+          <div class="metric-sub">Verified & in good standing</div>
         </div>
 
-        <div class="kpi-card" (click)="setPracticeFilter('clinic')" [class.active-kpi]="practiceFilter === 'clinic'">
-          <div class="kpi-icon-wrap clinic">
-            <mat-icon>local_hospital</mat-icon>
+        <div class="metric-card">
+          <div class="metric-top">
+            <span class="metric-label">Clinic-Affiliated</span>
+            <mat-icon class="metric-icon">local_hospital</mat-icon>
           </div>
-          <div class="kpi-info">
-            <span class="kpi-label">Clinic-Affiliated</span>
-            <span class="kpi-value text-blue-600">{{ countClinicAffiliated() }}</span>
-          </div>
+          <div class="metric-value">{{ countClinicAffiliated() }}</div>
+          <div class="metric-sub">Partner hospital practitioners</div>
         </div>
 
-        <div class="kpi-card" (click)="setPracticeFilter('independent')" [class.active-kpi]="practiceFilter === 'independent'">
-          <div class="kpi-icon-wrap independent">
-            <mat-icon>person_pin</mat-icon>
+        <div class="metric-card">
+          <div class="metric-top">
+            <span class="metric-label">Independent Practice</span>
+            <mat-icon class="metric-icon">domain</mat-icon>
           </div>
-          <div class="kpi-info">
-            <span class="kpi-label">Independent Practice</span>
-            <span class="kpi-value text-teal-700">{{ countIndependent() }}</span>
-          </div>
+          <div class="metric-value">{{ countIndependent() }}</div>
+          <div class="metric-sub">Direct patient consultation</div>
         </div>
       </div>
 
@@ -142,17 +132,6 @@ import { MatTooltipModule } from '@angular/material/tooltip';
               <option *ngFor="let spec of specializations" [value]="spec._id">
                 {{ spec.name }}
               </option>
-            </select>
-
-            <!-- Practice Affiliation Filter -->
-            <select
-              [(ngModel)]="practiceFilter"
-              (ngModelChange)="applyFilters()"
-              class="dropdown-filter"
-            >
-              <option value="all">All Affiliations</option>
-              <option value="clinic">Clinic Partners</option>
-              <option value="independent">Independent Practitioners</option>
             </select>
 
             <!-- Status Tabs -->
@@ -597,7 +576,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
     .manage-doctors-page {
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 20px;
       max-width: 1400px;
       margin: 0 auto;
     }
@@ -609,28 +588,6 @@ import { MatTooltipModule } from '@angular/material/tooltip';
       align-items: flex-start;
       gap: 16px;
       flex-wrap: wrap;
-    }
-
-    .badge-row {
-      margin-bottom: 6px;
-    }
-
-    .category-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-      font-weight: 700;
-      padding: 3px 10px;
-      border-radius: 999px;
-      background: #E6F2F1;
-      color: #0F5C5C;
-    }
-
-    .badge-icon {
-      font-size: 14px;
-      width: 14px;
-      height: 14px;
     }
 
     .page-title {
@@ -669,11 +626,11 @@ import { MatTooltipModule } from '@angular/material/tooltip';
       100% { transform: rotate(360deg); }
     }
 
-    /* KPI Summary Grid */
+    /* KPI Summary Cards: Clean Standard Subtle Layout */
     .kpi-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
+      gap: 14px;
     }
 
     @media (max-width: 1024px) {
@@ -688,68 +645,57 @@ import { MatTooltipModule } from '@angular/material/tooltip';
       }
     }
 
-    .kpi-card {
-      padding: 14px 16px;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
+    .metric-card {
       background: #FFFFFF;
-      border: 1px solid #E5E7EB;
-      cursor: pointer;
-      transition: all 0.15s ease;
-    }
-
-    .kpi-card:hover {
-      border-color: #D1D5DB;
-      background: #FDFDFD;
-    }
-
-    .kpi-card.active-kpi {
-      border-color: #0F5C5C;
-      background: #F0FDF4;
-    }
-
-    .kpi-icon-wrap {
-      width: 40px;
-      height: 40px;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      background: #F1F5F9;
-    }
-
-    .kpi-icon-wrap mat-icon {
-      font-size: 20px;
-      width: 20px;
-      height: 20px;
-    }
-
-    .kpi-icon-wrap.total { color: #0F5C5C; }
-    .kpi-icon-wrap.active { color: #10B981; }
-    .kpi-icon-wrap.clinic { color: #3B82F6; }
-    .kpi-icon-wrap.independent { color: #0D9488; }
-
-    .kpi-info {
+      border: 1px solid #EBECEF;
+      border-radius: 12px;
+      padding: 16px 20px;
       display: flex;
       flex-direction: column;
+      gap: 4px;
+      cursor: default;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      transition: border-color 0.15s ease, background-color 0.15s ease;
     }
 
-    .kpi-label {
+    .metric-card:hover {
+      border-color: #CBD5E1;
+      background-color: #FBFBFC;
+    }
+
+    .metric-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .metric-label {
       font-size: 11px;
-      font-weight: 700;
+      font-weight: 800;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: #6C757D;
+      letter-spacing: 0.6px;
+      color: #64748B;
     }
 
-    .kpi-value {
-      font-size: 20px;
+    .metric-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      color: #94A3B8;
+    }
+
+    .metric-value {
+      font-size: 26px;
       font-weight: 800;
-      color: #1A2E2E;
-      line-height: 1.2;
+      color: #0F172A;
+      letter-spacing: -0.5px;
+      line-height: 1.15;
+      margin: 2px 0 0;
+    }
+
+    .metric-sub {
+      font-size: 11.5px;
+      color: #64748B;
       margin-top: 2px;
     }
 
@@ -765,12 +711,12 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 
     /* Toolbar */
     .toolbar-wrap {
-      padding: 12px 16px;
+      padding: 14px 18px;
       border-bottom: 1px solid #EBECEF;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 12px;
+      gap: 16px;
       flex-wrap: wrap;
       background: #FAFAF8;
     }
@@ -839,13 +785,13 @@ import { MatTooltipModule } from '@angular/material/tooltip';
     .filters-group {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 12px;
       flex-wrap: wrap;
     }
 
     .dropdown-filter {
       height: 36px;
-      padding: 0 10px;
+      padding: 0 12px;
       border-radius: 8px;
       border: 1px solid #D1D5DB;
       background: #FFFFFF;
