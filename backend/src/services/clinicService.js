@@ -288,6 +288,19 @@ class ClinicService {
       query.doctorId = new mongoose.Types.ObjectId(doctorId);
     }
 
+    if (startDate || endDate) {
+      query.updatedAt = {};
+      if (startDate && !isNaN(new Date(startDate).getTime())) {
+        query.updatedAt.$gte = new Date(startDate);
+      }
+      if (endDate && !isNaN(new Date(endDate).getTime())) {
+        query.updatedAt.$lte = new Date(endDate);
+      }
+      if (Object.keys(query.updatedAt).length === 0) {
+        delete query.updatedAt;
+      }
+    }
+
     const completedAppointments = await Appointment.find(query)
       .populate({
         path: 'doctorId',

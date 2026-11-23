@@ -5,13 +5,6 @@ import logger from '../utils/logger.js';
 export const errorHandler = (err, req, res, _next) => {
   let error = err;
 
-  // Log error
-  if (!error.isOperational) {
-    logger.error(`Unhandled Error: ${error.message}`, { stack: error.stack });
-  } else {
-    logger.warn(`Operational Error: [${error.code}] ${error.message}`);
-  }
-
   // Handle Mongoose / MongoDB errors
   if (err.name === 'ValidationError') {
     const message = Object.values(err.errors).map((e) => e.message).join(', ');
@@ -25,6 +18,13 @@ export const errorHandler = (err, req, res, _next) => {
     error = new AppError(ERROR_CODES.INVALID_TOKEN, 401, 'Invalid authentication token');
   } else if (err.name === 'TokenExpiredError') {
     error = new AppError(ERROR_CODES.TOKEN_EXPIRED, 401, 'Authentication token expired');
+  }
+
+  // Log error
+  if (!error.isOperational) {
+    logger.error(`Unhandled Error: ${error.message}`, { stack: error.stack });
+  } else {
+    logger.warn(`Operational Error: [${error.code}] ${error.message}`);
   }
 
   const statusCode = error.statusCode || 500;

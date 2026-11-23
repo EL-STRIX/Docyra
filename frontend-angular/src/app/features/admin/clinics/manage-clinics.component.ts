@@ -6,7 +6,6 @@ import { AdminService } from '../../../core/services/admin.service';
 import { ClinicService } from '../../../core/services/clinic.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { Clinic } from '../../../core/models/clinic.model';
-import { Doctor } from '../../../core/models/doctor.model';
 import { StatusBadgeComponent } from '../../../shared/components/status-badge/status-badge.component';
 import { DateFormatPipe } from '../../../shared/pipes/date-format.pipe';
 import { MatCardModule } from '@angular/material/card';

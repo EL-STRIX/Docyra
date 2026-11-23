@@ -2404,7 +2404,7 @@ export class ManagePatientsComponent implements OnInit, OnDestroy {
 
   togglePatientStatus(userId: string, newStatus: 'active' | 'suspended'): void {
     this.adminService.updateUserStatus(userId, newStatus).subscribe({
-      next: (res) => {
+      next: () => {
         this.notificationService.success(`Patient account status updated to ${newStatus}`);
         const target = this.patients.find((p) => p._id === userId);
         if (target) {

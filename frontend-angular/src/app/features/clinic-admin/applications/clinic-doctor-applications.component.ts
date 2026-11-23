@@ -2261,7 +2261,7 @@ export class ClinicDoctorApplicationsComponent implements OnInit {
 
     this.processingId = app._id;
     this.clinicService.reviewDoctorApplication(app._id, true).subscribe({
-      next: (res) => {
+      next: () => {
         this.processingId = null;
         this.notificationService.success(`${app.name} has been approved and moved to Manage Doctors.`);
         // Immediately remove approved doctor from the applications queue
@@ -2294,7 +2294,7 @@ export class ClinicDoctorApplicationsComponent implements OnInit {
     this.clinicService
       .reviewDoctorApplication(targetApp._id, false, this.rejectionReason || 'Application rejected by clinic administration')
       .subscribe({
-        next: (res) => {
+        next: () => {
           this.processingId = null;
           this.notificationService.success(`Application for ${targetApp.name} has been rejected.`);
           targetApp.status = 'rejected';

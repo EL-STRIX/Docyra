@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ClinicService } from '../../../core/services/clinic.service';
 import { NotificationService } from '../../../core/services/notification.service';
-import { Clinic } from '../../../core/models/clinic.model';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -728,7 +727,7 @@ export class ClinicProfileComponent implements OnInit {
     };
 
     this.clinicService.updateClinicProfile(this.clinicId, payload as any).subscribe({
-      next: (res) => {
+      next: () => {
         this.saving = false;
         this.originalForm = { ...this.form };
         this.notificationService.success('Clinic profile details saved successfully');

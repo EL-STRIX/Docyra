@@ -4,7 +4,6 @@ import { RouterLink } from '@angular/router';
 import { AdminService } from '../../../core/services/admin.service';
 import { AnalyticsSummary } from '../../../core/models/analytics.model';
 import { Clinic } from '../../../core/models/clinic.model';
-import { DoctorApplication } from '../../../core/models/doctor.model';
 import { StatusBadgeComponent } from '../../../shared/components/status-badge/status-badge.component';
 import { DateFormatPipe } from '../../../shared/pipes/date-format.pipe';
 import { MatCardModule } from '@angular/material/card';
