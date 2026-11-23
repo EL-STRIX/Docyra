@@ -19,8 +19,8 @@ export const getSpecialization = asyncHandler(async (req, res) => {
 });
 
 export const createSpecialization = asyncHandler(async (req, res) => {
-  const { name, description, iconName } = req.body;
-  const spec = await specializationService.create({ name, description, iconName });
+  const { name, slug, description, iconName } = req.body;
+  const spec = await specializationService.create({ name, slug, description, iconName });
   res.status(201).json({
     success: true,
     data: spec,
@@ -29,8 +29,8 @@ export const createSpecialization = asyncHandler(async (req, res) => {
 
 export const updateSpecialization = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { name, description, iconName } = req.body;
-  const spec = await specializationService.update(id, { name, description, iconName });
+  const { name, slug, description, iconName } = req.body;
+  const spec = await specializationService.update(id, { name, slug, description, iconName });
   res.status(200).json({
     success: true,
     data: spec,

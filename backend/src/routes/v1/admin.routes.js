@@ -10,6 +10,8 @@ import {
   getPlatformAnalytics,
 } from '../../controllers/admin.controller.js';
 import {
+  listSpecializations,
+  getSpecialization,
   createSpecialization,
   updateSpecialization,
   deleteSpecialization,
@@ -51,6 +53,8 @@ router.post('/doctors/:id/review', auditLogger('DOCTOR_CREDENTIAL_VERIFIED', 'Do
 router.get('/analytics', getPlatformAnalytics);
 
 // Specialization Management
+router.get('/specializations', listSpecializations);
+router.get('/specializations/:id', getSpecialization);
 router.post('/specializations', validate(createSpecializationSchema), auditLogger('SPECIALIZATION_CREATED', 'Specialization'), createSpecialization);
 router.put('/specializations/:id', validate(updateSpecializationSchema), auditLogger('SPECIALIZATION_UPDATED', 'Specialization'), updateSpecialization);
 router.patch('/specializations/:id', validate(updateSpecializationSchema), auditLogger('SPECIALIZATION_UPDATED', 'Specialization'), updateSpecialization);

@@ -1,6 +1,6 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, FormsModule, Validators } from '@angular/forms';
 import { AdminService } from '../../../core/services/admin.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { Specialization } from '../../../core/models/specialization.model';
@@ -26,6 +26,7 @@ interface SpecializationStats {
   imports: [
     CommonModule,
     ReactiveFormsModule,
+    FormsModule,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
@@ -119,25 +120,23 @@ interface SpecializationStats {
         <!-- Search & Filter Toolbar -->
         <div class="toolbar-wrap">
           <div class="search-box">
-            <mat-form-field appearance="outline" class="w-full search-field">
-              <mat-label>Search by department name, slug, or scope...</mat-label>
-              <input
-                matInput
-                [value]="searchTerm"
-                (input)="onSearchInput($event)"
-                placeholder="e.g. Cardiology, dermatology, neurology..."
-              />
-              <mat-icon matPrefix class="mr-2 text-neutral-400">search</mat-icon>
-              <button
-                *ngIf="searchTerm"
-                mat-icon-button
-                matSuffix
-                (click)="clearSearch()"
-                class="clear-input-btn"
-              >
-                <mat-icon>close</mat-icon>
-              </button>
-            </mat-form-field>
+            <mat-icon class="search-icon">search</mat-icon>
+            <input
+              type="text"
+              class="search-input"
+              [(ngModel)]="searchTerm"
+              (ngModelChange)="applyFilter()"
+              placeholder="Search by department name, slug, or scope..."
+            />
+            <button
+              *ngIf="searchTerm"
+              type="button"
+              class="clear-search-btn"
+              (click)="clearSearch()"
+              title="Clear Search"
+            >
+              <mat-icon class="clear-icon">close</mat-icon>
+            </button>
           </div>
 
           <div class="doctor-filter-tabs">
@@ -248,30 +247,34 @@ interface SpecializationStats {
                 <td class="actions-cell text-right" (click)="$event.stopPropagation()">
                   <div class="btn-group">
                     <button
-                      mat-icon-button
-                      class="inspect-icon-btn"
+                      mat-stroked-button
+                      class="inspect-btn"
                       (click)="inspectSpec(s)"
                       matTooltip="Inspect Affiliated Doctors & Facilities"
                     >
-                      <mat-icon>visibility</mat-icon>
+                      <mat-icon class="btn-icon">visibility</mat-icon>
+                      <span>View</span>
                     </button>
                     <button
-                      mat-button
+                      mat-stroked-button
                       color="primary"
                       (click)="openEditModal(s)"
                       class="btn-sm edit-btn"
+                      matTooltip="Edit Specialization"
                     >
-                      <mat-icon class="btn-sm-icon">edit</mat-icon>
-                      Edit
+                      <mat-icon class="btn-icon">edit</mat-icon>
+                      <span>Edit</span>
                     </button>
                     <button
-                      mat-button
+                      mat-stroked-button
                       color="warn"
                       (click)="deleteSpec(s)"
                       class="btn-sm delete-btn"
+                      [disabled]="(s.doctorCount || 0) > 0"
+                      [matTooltip]="(s.doctorCount || 0) > 0 ? 'Cannot delete: doctors assigned' : 'Delete Specialization'"
                     >
-                      <mat-icon class="btn-sm-icon">delete_outline</mat-icon>
-                      Delete
+                      <mat-icon class="btn-icon">delete_outline</mat-icon>
+                      <span>Delete</span>
                     </button>
                   </div>
                 </td>
@@ -457,7 +460,7 @@ interface SpecializationStats {
     .manage-specializations-page {
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 16px;
     }
 
     /* Page Header */
@@ -539,7 +542,7 @@ interface SpecializationStats {
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
+      gap: 12px;
     }
 
     @media (max-width: 1024px) {
@@ -555,45 +558,48 @@ interface SpecializationStats {
     }
 
     .stat-card {
-      padding: 16px !important;
-      border-radius: 12px !important;
+      padding: 14px 16px !important;
+      border-radius: 10px !important;
       display: flex;
       flex-direction: row !important;
       align-items: center;
-      gap: 16px;
+      gap: 12px;
       background: #FFFFFF;
-      border: 1px solid #E7E5E0;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      border: 1px solid #E5E7EB;
+      box-shadow: none !important;
     }
 
     .stat-icon-wrap {
-      width: 44px;
-      height: 44px;
-      border-radius: 10px;
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
+      background: #F1F5F9;
+    }
+
+    .stat-icon-wrap mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
     }
 
     .stat-icon-wrap.primary {
-      background: #E6F2F1;
       color: #0F5C5C;
     }
 
     .stat-icon-wrap.success {
-      background: #EBF7EE;
-      color: #2E9E6B;
+      color: #10B981;
     }
 
     .stat-icon-wrap.warn {
-      background: #FEF3E8;
-      color: #C05621;
+      color: #F59E0B;
     }
 
     .stat-icon-wrap.info {
-      background: #EBF5FB;
-      color: #2B6CB0;
+      color: #3B82F6;
     }
 
     .stat-info {
@@ -610,7 +616,7 @@ interface SpecializationStats {
     }
 
     .stat-value {
-      font-size: 22px;
+      font-size: 20px;
       font-weight: 800;
       color: #1A2E2E;
       line-height: 1.2;
@@ -629,23 +635,75 @@ interface SpecializationStats {
 
     /* Toolbar */
     .toolbar-wrap {
-      padding: 16px 20px;
+      padding: 12px 16px;
       border-bottom: 1px solid #EBECEF;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 16px;
+      gap: 12px;
       flex-wrap: wrap;
       background: #FAFAF8;
     }
 
     .search-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #FFFFFF;
+      border: 1px solid #D1D5DB;
+      border-radius: 8px;
+      padding: 0 12px;
       flex: 1;
-      min-width: 300px;
+      min-width: 280px;
+      max-width: 440px;
+      height: 38px;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
     }
 
-    .w-full {
+    .search-box:focus-within {
+      border-color: #0F5C5C;
+      box-shadow: 0 0 0 3px rgba(15, 92, 92, 0.1);
+    }
+
+    .search-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      color: #9CA3AF;
+    }
+
+    .search-input {
+      border: none;
+      outline: none;
+      background: transparent;
+      font-size: 13px;
+      color: #1F2937;
       width: 100%;
+    }
+
+    .search-input::placeholder {
+      color: #9CA3AF;
+    }
+
+    .clear-search-btn {
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #9CA3AF;
+    }
+
+    .clear-search-btn:hover {
+      color: #4B5563;
+    }
+
+    .clear-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
     }
 
     .doctor-filter-tabs {
@@ -852,26 +910,61 @@ interface SpecializationStats {
     .btn-group {
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      gap: 6px;
     }
 
-    .btn-sm {
-      font-size: 11px !important;
-      font-weight: 700 !important;
+    .inspect-btn,
+    .edit-btn,
+    .delete-btn {
       height: 30px !important;
-      line-height: 30px !important;
-      padding: 0 8px !important;
+      line-height: 28px !important;
+      padding: 0 10px !important;
+      font-size: 12px !important;
+      font-weight: 600 !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 4px !important;
+      border-radius: 6px !important;
     }
 
-    .btn-sm-icon {
-      font-size: 15px;
-      width: 15px;
-      height: 15px;
-      margin-right: 3px;
+    .inspect-btn {
+      border-color: #D1D5DB !important;
+      color: #374151 !important;
     }
 
-    .inspect-icon-btn {
-      color: #0F5C5C !important;
+    .inspect-btn:hover {
+      background: #F3F4F6 !important;
+      border-color: #9CA3AF !important;
+    }
+
+    .edit-btn {
+      border-color: #93C5FD !important;
+      color: #1D4ED8 !important;
+    }
+
+    .edit-btn:hover {
+      background: #EFF6FF !important;
+    }
+
+    .delete-btn {
+      border-color: #FCA5A5 !important;
+      color: #DC2626 !important;
+    }
+
+    .delete-btn:hover:not([disabled]) {
+      background: #FEF2F2 !important;
+    }
+
+    .delete-btn[disabled] {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .btn-icon {
+      font-size: 15px !important;
+      width: 15px !important;
+      height: 15px !important;
+      line-height: 15px !important;
     }
 
     .text-right {
@@ -1213,6 +1306,7 @@ export class ManageSpecializationsComponent implements OnInit {
   private adminService = inject(AdminService);
   private notificationService = inject(NotificationService);
   private fb = inject(FormBuilder);
+  private cdr = inject(ChangeDetectorRef);
 
   specializations: Specialization[] = [];
   filteredSpecs: Specialization[] = [];
@@ -1266,6 +1360,7 @@ export class ManageSpecializationsComponent implements OnInit {
 
   loadSpecializations(): void {
     this.loading = true;
+    this.cdr.markForCheck();
     this.adminService.getSpecializations().subscribe({
       next: (res) => {
         if (res.success && Array.isArray(res.data)) {
@@ -1274,9 +1369,11 @@ export class ManageSpecializationsComponent implements OnInit {
           this.applyFilter();
         }
         this.loading = false;
+        this.cdr.markForCheck();
       },
       error: () => {
         this.loading = false;
+        this.cdr.markForCheck();
       },
     });
   }
@@ -1301,6 +1398,7 @@ export class ManageSpecializationsComponent implements OnInit {
       totalClinics,
       topDepartment: topDept,
     };
+    this.cdr.markForCheck();
   }
 
   onSearchInput(event: Event): void {
@@ -1341,6 +1439,7 @@ export class ManageSpecializationsComponent implements OnInit {
     }
 
     this.filteredSpecs = result;
+    this.cdr.markForCheck();
   }
 
   onNameChanged(): void {
@@ -1369,6 +1468,7 @@ export class ManageSpecializationsComponent implements OnInit {
       iconName: 'Stethoscope',
     });
     this.showModal = true;
+    this.cdr.markForCheck();
   }
 
   openEditModal(spec: Specialization): void {
@@ -1380,12 +1480,14 @@ export class ManageSpecializationsComponent implements OnInit {
       iconName: spec.iconName || spec.icon || 'Stethoscope',
     });
     this.showModal = true;
+    this.cdr.markForCheck();
   }
 
   saveSpec(): void {
     if (this.specForm.invalid) return;
 
     this.saving = true;
+    this.cdr.markForCheck();
     const formVal = this.specForm.value;
     const payload = {
       name: formVal.name.trim(),
@@ -1401,10 +1503,12 @@ export class ManageSpecializationsComponent implements OnInit {
           this.showModal = false;
           this.notificationService.success(`Specialization "${payload.name}" updated successfully`);
           this.loadSpecializations();
+          this.cdr.markForCheck();
         },
         error: (err) => {
           this.saving = false;
           this.notificationService.error(err.error?.error?.message || 'Failed to update specialization');
+          this.cdr.markForCheck();
         },
       });
     } else {
@@ -1414,10 +1518,12 @@ export class ManageSpecializationsComponent implements OnInit {
           this.showModal = false;
           this.notificationService.success(`Specialization "${payload.name}" created successfully`);
           this.loadSpecializations();
+          this.cdr.markForCheck();
         },
         error: (err) => {
           this.saving = false;
           this.notificationService.error(err.error?.error?.message || 'Failed to create specialization');
+          this.cdr.markForCheck();
         },
       });
     }
@@ -1439,9 +1545,11 @@ export class ManageSpecializationsComponent implements OnInit {
       next: () => {
         this.notificationService.success(`Specialization "${spec.name}" removed successfully`);
         this.loadSpecializations();
+        this.cdr.markForCheck();
       },
       error: (err) => {
         this.notificationService.error(err.error?.error?.message || 'Failed to delete specialization');
+        this.cdr.markForCheck();
       },
     });
   }
@@ -1450,6 +1558,7 @@ export class ManageSpecializationsComponent implements OnInit {
     this.selectedSpec = { ...spec };
     this.loadingDetail = true;
     this.specDetailDoctors = [];
+    this.cdr.markForCheck();
 
     this.adminService.getSpecializationDetail(spec._id).subscribe({
       next: (res) => {
@@ -1457,10 +1566,12 @@ export class ManageSpecializationsComponent implements OnInit {
           this.specDetailDoctors = res.data.doctors || [];
         }
         this.loadingDetail = false;
+        this.cdr.markForCheck();
       },
       error: () => {
         this.specDetailDoctors = [];
         this.loadingDetail = false;
+        this.cdr.markForCheck();
       },
     });
   }
@@ -1468,6 +1579,7 @@ export class ManageSpecializationsComponent implements OnInit {
   closeInspector(): void {
     this.selectedSpec = null;
     this.specDetailDoctors = [];
+    this.cdr.markForCheck();
   }
 
   getMaterialIcon(iconName?: string): string {

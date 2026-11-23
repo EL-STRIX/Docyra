@@ -88,14 +88,16 @@ class SpecializationService {
     };
   }
 
-  async create({ name, description, iconName = 'Stethoscope' }) {
+  async create({ name, slug, description, iconName = 'Stethoscope' }) {
     const existing = await Specialization.findOne({ name: { $regex: new RegExp(`^${name}$`, 'i') } });
     if (existing) {
       throw new ConflictError('Specialization with this name already exists', ERROR_CODES.CONFLICT);
     }
 
+    const finalSlug = slug ? generateSlug(slug) : generateSlug(name);
     const created = await Specialization.create({
       name,
+      slug: finalSlug,
       description: description || '',
       iconName: iconName || 'Stethoscope',
     });
@@ -103,7 +105,7 @@ class SpecializationService {
     return formatSpecialization(created.toObject ? created.toObject() : created, 0, 0);
   }
 
-  async update(id, { name, description, iconName }) {
+  async update(id, { name, slug, description, iconName }) {
     const spec = await Specialization.findById(id);
     if (!spec) {
       throw new NotFoundError('Specialization not found', ERROR_CODES.NOT_FOUND);
@@ -118,8 +120,14 @@ class SpecializationService {
         throw new ConflictError('Specialization name already in use by another department', ERROR_CODES.CONFLICT);
       }
       spec.name = name;
+      if (!slug) {
+        spec.slug = generateSlug(name);
+      }
     }
 
+    if (slug !== undefined) {
+      spec.slug = slug ? generateSlug(slug) : generateSlug(spec.name);
+    }
     if (description !== undefined) spec.description = description;
     if (iconName !== undefined) spec.iconName = iconName;
 
