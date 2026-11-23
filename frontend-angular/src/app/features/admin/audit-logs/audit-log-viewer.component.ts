@@ -61,46 +61,50 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
         </div>
       </div>
 
-      <!-- KPI Summary Cards -->
+      <!-- KPI Summary Cards: Clean, Standard Subtle Layout -->
       <div class="kpi-grid">
-        <div class="kpi-card" (click)="setRoleFilter('all')" [class.kpi-active]="roleFilter === 'all' && !searchTerm">
-          <div class="kpi-icon-wrap primary">
-            <mat-icon>history</mat-icon>
+        <div class="metric-card" (click)="setRoleFilter('all')" [class.metric-card-active]="roleFilter === 'all' && !searchTerm">
+          <div class="metric-top">
+            <span class="metric-label">Total Events</span>
+            <mat-icon class="metric-icon">history</mat-icon>
           </div>
-          <div class="kpi-info">
-            <span class="kpi-label">Total Events</span>
-            <span class="kpi-value">{{ stats.totalEvents || totalItems }}</span>
+          <div class="metric-value">
+            {{ stats.totalEvents || totalItems }}
           </div>
+          <div class="metric-sub">Recorded system audit trail</div>
         </div>
 
-        <div class="kpi-card" (click)="setRoleFilter('admin')" [class.kpi-active]="roleFilter === 'admin'">
-          <div class="kpi-icon-wrap admin">
-            <mat-icon>admin_panel_settings</mat-icon>
+        <div class="metric-card" (click)="setRoleFilter('admin')" [class.metric-card-active]="roleFilter === 'admin'">
+          <div class="metric-top">
+            <span class="metric-label">Admin Actions</span>
+            <mat-icon class="metric-icon">admin_panel_settings</mat-icon>
           </div>
-          <div class="kpi-info">
-            <span class="kpi-label">Admin Actions</span>
-            <span class="kpi-value text-amber-700">{{ stats.adminEvents || 0 }}</span>
+          <div class="metric-value">
+            {{ stats.adminEvents || 0 }}
           </div>
+          <div class="metric-sub">Platform administration logs</div>
         </div>
 
-        <div class="kpi-card" (click)="filterSecurityEvents()" [class.kpi-active]="searchTerm === 'AUTH'">
-          <div class="kpi-icon-wrap security">
-            <mat-icon>security</mat-icon>
+        <div class="metric-card" (click)="filterSecurityEvents()" [class.metric-card-active]="searchTerm === 'AUTH'">
+          <div class="metric-top">
+            <span class="metric-label">Security & Auth</span>
+            <mat-icon class="metric-icon">security</mat-icon>
           </div>
-          <div class="kpi-info">
-            <span class="kpi-label">Security & Auth</span>
-            <span class="kpi-value text-indigo-700">{{ stats.securityEvents || 0 }}</span>
+          <div class="metric-value">
+            {{ stats.securityEvents || 0 }}
           </div>
+          <div class="metric-sub">Authentication & credential checks</div>
         </div>
 
-        <div class="kpi-card" (click)="setRoleFilter('system')" [class.kpi-active]="roleFilter === 'system'">
-          <div class="kpi-icon-wrap system">
-            <mat-icon>memory</mat-icon>
+        <div class="metric-card" (click)="setRoleFilter('system')" [class.metric-card-active]="roleFilter === 'system'">
+          <div class="metric-top">
+            <span class="metric-label">System Operations</span>
+            <mat-icon class="metric-icon">memory</mat-icon>
           </div>
-          <div class="kpi-info">
-            <span class="kpi-label">System Operations</span>
-            <span class="kpi-value text-teal-800">{{ stats.systemEvents || 0 }}</span>
+          <div class="metric-value">
+            {{ stats.systemEvents || 0 }}
           </div>
+          <div class="metric-sub">Automated cron & background jobs</div>
         </div>
       </div>
 
@@ -449,86 +453,89 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       100% { transform: rotate(360deg); }
     }
 
-    /* KPI Summary Cards Grid */
+    /* KPI Summary Cards Grid: Clean, Standard Subtle Layout */
     .kpi-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-      gap: 14px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
     }
 
-    .kpi-card {
+    @media (max-width: 1024px) {
+      .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 640px) {
+      .kpi-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .metric-card {
       background: #FFFFFF;
-      border: 1px solid #E7E5E0;
-      border-radius: 12px;
-      padding: 14px 18px;
+      border: 1px solid #E5E7EB;
+      border-radius: 8px;
+      padding: 14px 16px;
       display: flex;
-      align-items: center;
-      gap: 14px;
+      flex-direction: column;
+      justify-content: space-between;
       cursor: pointer;
-      transition: all 0.15s ease;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
     }
 
-    .kpi-card:hover {
+    .metric-card:hover {
+      border-color: #D1D5DB;
+    }
+
+    .metric-card.metric-card-active {
       border-color: #0F5C5C;
-      transform: translateY(-1px);
-      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.06);
+      background: #FAFAF8;
     }
 
-    .kpi-card.kpi-active {
-      border-color: #0F5C5C;
-      background: #FAFDFD;
-    }
-
-    .kpi-icon-wrap {
-      width: 40px;
-      height: 40px;
-      border-radius: 10px;
+    .metric-top {
       display: flex;
       align-items: center;
-      justify-content: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .metric-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #64748B;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .metric-icon {
+      font-size: 17px;
+      width: 17px;
+      height: 17px;
+      color: #94A3B8;
       flex-shrink: 0;
     }
 
-    .kpi-icon-wrap.primary {
-      background: #E6F2F1;
+    .metric-card.metric-card-active .metric-icon {
       color: #0F5C5C;
     }
 
-    .kpi-icon-wrap.admin {
-      background: #FEF3E8;
-      color: #B45309;
-    }
-
-    .kpi-icon-wrap.security {
-      background: #EEF2FF;
-      color: #4F46E5;
-    }
-
-    .kpi-icon-wrap.system {
-      background: #F0FDF4;
-      color: #15803D;
-    }
-
-    .kpi-info {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .kpi-label {
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: #6B7280;
-    }
-
-    .kpi-value {
-      font-size: 20px;
+    .metric-value {
+      font-size: 22px;
       font-weight: 800;
-      color: #1A2E2E;
+      color: #0F172A;
       line-height: 1.2;
-      margin-top: 2px;
+      letter-spacing: -0.4px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .metric-sub {
+      font-size: 11px;
+      color: #94A3B8;
+      margin-top: 4px;
+      font-weight: 500;
     }
 
     /* Filter Card */
