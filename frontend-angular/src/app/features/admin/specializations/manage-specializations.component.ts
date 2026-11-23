@@ -41,12 +41,6 @@ interface SpecializationStats {
       <!-- Page Header -->
       <div class="page-header">
         <div class="header-left">
-          <div class="badge-row">
-            <span class="category-badge">
-              <mat-icon class="badge-icon">category</mat-icon>
-              Clinical Department Registry
-            </span>
-          </div>
           <h1 class="page-title">Medical Specialties & Departments</h1>
           <p class="page-subtitle">
             Configure clinical specializations displayed across patient search, physician credentials, and booking catalogs.
@@ -72,47 +66,43 @@ interface SpecializationStats {
         </div>
       </div>
 
-      <!-- Live KPI Summary Metric Cards -->
+      <!-- Live KPI Summary Metric Cards: Clean Standard Subtle Layout -->
       <div class="stats-grid">
-        <mat-card class="stat-card">
-          <div class="stat-icon-wrap primary">
-            <mat-icon>domain_add</mat-icon>
+        <div class="metric-card">
+          <div class="metric-top">
+            <span class="metric-label">Total Specialties</span>
+            <mat-icon class="metric-icon">domain_add</mat-icon>
           </div>
-          <div class="stat-info">
-            <span class="stat-label">Total Specialties</span>
-            <span class="stat-value">{{ stats.totalDepartments }}</span>
-          </div>
-        </mat-card>
+          <div class="metric-value">{{ stats.totalDepartments }}</div>
+          <div class="metric-sub">Configured clinical disciplines</div>
+        </div>
 
-        <mat-card class="stat-card">
-          <div class="stat-icon-wrap success">
-            <mat-icon>medical_services</mat-icon>
+        <div class="metric-card">
+          <div class="metric-top">
+            <span class="metric-label">Active Physicians</span>
+            <mat-icon class="metric-icon">medical_services</mat-icon>
           </div>
-          <div class="stat-info">
-            <span class="stat-label">Active Physicians</span>
-            <span class="stat-value">{{ stats.totalDoctors }}</span>
-          </div>
-        </mat-card>
+          <div class="metric-value">{{ stats.totalDoctors }}</div>
+          <div class="metric-sub">Specialists practicing across clinics</div>
+        </div>
 
-        <mat-card class="stat-card">
-          <div class="stat-icon-wrap info">
-            <mat-icon>local_hospital</mat-icon>
+        <div class="metric-card">
+          <div class="metric-top">
+            <span class="metric-label">Partner Facilities</span>
+            <mat-icon class="metric-icon">local_hospital</mat-icon>
           </div>
-          <div class="stat-info">
-            <span class="stat-label">Partner Facilities</span>
-            <span class="stat-value">{{ stats.totalClinics }}</span>
-          </div>
-        </mat-card>
+          <div class="metric-value">{{ stats.totalClinics }}</div>
+          <div class="metric-sub">Hospitals & medical clinics</div>
+        </div>
 
-        <mat-card class="stat-card">
-          <div class="stat-icon-wrap warn">
-            <mat-icon>stars</mat-icon>
+        <div class="metric-card">
+          <div class="metric-top">
+            <span class="metric-label">Top Department</span>
+            <mat-icon class="metric-icon">stars</mat-icon>
           </div>
-          <div class="stat-info">
-            <span class="stat-label">Top Department</span>
-            <span class="stat-value text-base">{{ stats.topDepartment || 'Cardiology' }}</span>
-          </div>
-        </mat-card>
+          <div class="metric-value text-department">{{ stats.topDepartment || 'Cardiology' }}</div>
+          <div class="metric-sub">Highest consultation volume</div>
+        </div>
       </div>
 
       <!-- Specializations Table Card -->
@@ -472,28 +462,6 @@ interface SpecializationStats {
       flex-wrap: wrap;
     }
 
-    .badge-row {
-      margin-bottom: 8px;
-    }
-
-    .category-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-      font-weight: 700;
-      padding: 3px 10px;
-      border-radius: 999px;
-      background: #E6F2F1;
-      color: #0F5C5C;
-    }
-
-    .badge-icon {
-      font-size: 14px;
-      width: 14px;
-      height: 14px;
-    }
-
     .page-title {
       font-size: 24px;
       font-weight: 800;
@@ -538,7 +506,7 @@ interface SpecializationStats {
       }
     }
 
-    /* Stats Grid */
+    /* Stats Grid: Clean, Standard Subtle Layout */
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -557,70 +525,67 @@ interface SpecializationStats {
       }
     }
 
-    .stat-card {
-      padding: 14px 16px !important;
-      border-radius: 10px !important;
-      display: flex;
-      flex-direction: row !important;
-      align-items: center;
-      gap: 12px;
+    .metric-card {
       background: #FFFFFF;
       border: 1px solid #E5E7EB;
-      box-shadow: none !important;
-    }
-
-    .stat-icon-wrap {
-      width: 40px;
-      height: 40px;
       border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      background: #F1F5F9;
-    }
-
-    .stat-icon-wrap mat-icon {
-      font-size: 20px;
-      width: 20px;
-      height: 20px;
-    }
-
-    .stat-icon-wrap.primary {
-      color: #0F5C5C;
-    }
-
-    .stat-icon-wrap.success {
-      color: #10B981;
-    }
-
-    .stat-icon-wrap.warn {
-      color: #F59E0B;
-    }
-
-    .stat-icon-wrap.info {
-      color: #3B82F6;
-    }
-
-    .stat-info {
+      padding: 14px 16px;
       display: flex;
       flex-direction: column;
+      justify-content: space-between;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
     }
 
-    .stat-label {
+    .metric-card:hover {
+      border-color: #D1D5DB;
+    }
+
+    .metric-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .metric-label {
       font-size: 11px;
       font-weight: 700;
+      color: #64748B;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      color: #6C757D;
     }
 
-    .stat-value {
-      font-size: 20px;
+    .metric-icon {
+      font-size: 17px;
+      width: 17px;
+      height: 17px;
+      color: #94A3B8;
+      flex-shrink: 0;
+    }
+
+    .metric-value {
+      font-size: 22px;
       font-weight: 800;
-      color: #1A2E2E;
+      color: #0F172A;
       line-height: 1.2;
-      margin-top: 2px;
+      letter-spacing: -0.4px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .metric-value.text-department {
+      font-size: 19px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .metric-sub {
+      font-size: 11px;
+      color: #94A3B8;
+      margin-top: 4px;
+      font-weight: 500;
     }
 
     /* Table Card */
