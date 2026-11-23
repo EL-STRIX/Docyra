@@ -44,47 +44,43 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
         </div>
       </div>
 
-      <!-- Key Platform Metrics -->
+      <!-- Key Platform Metrics: Clean Standard Subtle Layout -->
       <div class="stats-grid">
-        <mat-card class="stat-card">
-          <div class="stat-icon-wrap primary">
-            <mat-icon>domain</mat-icon>
+        <div class="metric-card">
+          <div class="metric-top">
+            <span class="metric-label">Onboarded Clinics</span>
+            <mat-icon class="metric-icon">domain</mat-icon>
           </div>
-          <div class="stat-info">
-            <span class="stat-label">Onboarded Clinics</span>
-            <span class="stat-value">{{ summary?.totalClinics || clinics.length }}</span>
-          </div>
-        </mat-card>
+          <div class="metric-value">{{ summary?.totalClinics || clinics.length }}</div>
+          <div class="metric-sub">Active hospital & clinic partners</div>
+        </div>
 
-        <mat-card class="stat-card">
-          <div class="stat-icon-wrap accent">
-            <mat-icon>medical_services</mat-icon>
+        <div class="metric-card">
+          <div class="metric-top">
+            <span class="metric-label">Registered Doctors</span>
+            <mat-icon class="metric-icon">medical_services</mat-icon>
           </div>
-          <div class="stat-info">
-            <span class="stat-label">Registered Doctors</span>
-            <span class="stat-value">{{ summary?.totalDoctors || 0 }}</span>
-          </div>
-        </mat-card>
+          <div class="metric-value">{{ summary?.totalDoctors || 0 }}</div>
+          <div class="metric-sub">Licensed physicians & specialists</div>
+        </div>
 
-        <mat-card class="stat-card">
-          <div class="stat-icon-wrap success">
-            <mat-icon>event_available</mat-icon>
+        <div class="metric-card">
+          <div class="metric-top">
+            <span class="metric-label">Total Appointments</span>
+            <mat-icon class="metric-icon">event_available</mat-icon>
           </div>
-          <div class="stat-info">
-            <span class="stat-label">Total Appointments</span>
-            <span class="stat-value">{{ summary?.totalAppointments || 0 }}</span>
-          </div>
-        </mat-card>
+          <div class="metric-value">{{ summary?.totalAppointments || 0 }}</div>
+          <div class="metric-sub">Booked patient consultations</div>
+        </div>
 
-        <mat-card class="stat-card">
-          <div class="stat-icon-wrap purple">
-            <mat-icon>groups</mat-icon>
+        <div class="metric-card">
+          <div class="metric-top">
+            <span class="metric-label">Registered Patients</span>
+            <mat-icon class="metric-icon">groups</mat-icon>
           </div>
-          <div class="stat-info">
-            <span class="stat-label">Registered Patients</span>
-            <span class="stat-value">{{ summary?.totalPatients || 0 }}</span>
-          </div>
-        </mat-card>
+          <div class="metric-value">{{ summary?.totalPatients || 0 }}</div>
+          <div class="metric-sub">Platform registered accounts</div>
+        </div>
       </div>
 
       <!-- Split Layout: Recent Onboardings & Platform Governance -->
@@ -241,76 +237,79 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       gap: 12px;
     }
 
+    /* Key Platform Metrics: Clean, Standard Subtle Layout */
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 16px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
     }
 
-    .stat-card {
-      padding: 16px 20px !important;
-      border-radius: 12px !important;
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      gap: 16px;
+    @media (max-width: 1024px) {
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 640px) {
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .metric-card {
       background: #FFFFFF;
-      border: 1px solid #E7E5E0;
-    }
-
-    .stat-icon-wrap {
-      width: 46px;
-      height: 46px;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .stat-icon-wrap.primary {
-      background-color: #E6F2F1;
-      color: #0F5C5C;
-    }
-
-    .stat-icon-wrap.accent {
-      background-color: #FEF6EC;
-      color: #B57416;
-    }
-
-    .stat-icon-wrap.success {
-      background-color: #EBF7EE;
-      color: #2E9E6B;
-    }
-
-    .stat-icon-wrap.purple {
-      background-color: #F3E8FF;
-      color: #7E22CE;
-    }
-
-    .stat-icon-wrap.warn {
-      background-color: #FDF2F2;
-      color: #D9534F;
-    }
-
-    .stat-info {
+      border: 1px solid #E5E7EB;
+      border-radius: 8px;
+      padding: 14px 16px;
       display: flex;
       flex-direction: column;
+      justify-content: space-between;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
     }
 
-    .stat-label {
+    .metric-card:hover {
+      border-color: #D1D5DB;
+    }
+
+    .metric-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .metric-label {
       font-size: 11px;
       font-weight: 700;
-      color: #5C6B6B;
+      color: #64748B;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
 
-    .stat-value {
-      font-size: 20px;
+    .metric-icon {
+      font-size: 17px;
+      width: 17px;
+      height: 17px;
+      color: #94A3B8;
+      flex-shrink: 0;
+    }
+
+    .metric-value {
+      font-size: 22px;
       font-weight: 800;
-      color: #1A2E2E;
-      margin-top: 2px;
+      color: #0F172A;
+      line-height: 1.2;
+      letter-spacing: -0.4px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .metric-sub {
+      font-size: 11px;
+      color: #94A3B8;
+      margin-top: 4px;
+      font-weight: 500;
     }
 
     .content-split {
