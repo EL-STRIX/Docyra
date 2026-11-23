@@ -38,77 +38,90 @@ import { MatInputModule } from '@angular/material/input';
         </button>
       </div>
 
-      <!-- Top Important Figures Grid -->
-      <div class="stats-grid">
-        <mat-card class="stat-card">
-          <div class="stat-icon-wrap primary">
-            <mat-icon>event_available</mat-icon>
+      <!-- Top Overview Metrics: Clean, Standard Structured Summary -->
+      <div class="metrics-overview">
+        <!-- Row 1: Consultations & Platform Revenue -->
+        <div class="metrics-row row-4">
+          <div class="metric-card">
+            <div class="metric-top">
+              <span class="metric-label">Total Platform Revenue</span>
+              <mat-icon class="metric-icon">payments</mat-icon>
+            </div>
+            <div class="metric-value font-bold text-neutral-900">
+              ₹{{ (analytics?.revenueEstimated || 0) | number }}
+            </div>
+            <div class="metric-sub">Completed visit consultation income</div>
           </div>
-          <div class="stat-info">
-            <span class="stat-label">Total Appointments</span>
-            <span class="stat-value">{{ analytics?.totalAppointments || 0 }}</span>
-          </div>
-        </mat-card>
 
-        <mat-card class="stat-card">
-          <div class="stat-icon-wrap success">
-            <mat-icon>task_alt</mat-icon>
+          <div class="metric-card">
+            <div class="metric-top">
+              <span class="metric-label">Total Appointments</span>
+              <mat-icon class="metric-icon">calendar_month</mat-icon>
+            </div>
+            <div class="metric-value">
+              {{ analytics?.totalAppointments || 0 }}
+            </div>
+            <div class="metric-sub">Total consultations booked</div>
           </div>
-          <div class="stat-info">
-            <span class="stat-label">Completed Consultations</span>
-            <span class="stat-value text-emerald-700">{{ analytics?.completedAppointments || 0 }}</span>
-          </div>
-        </mat-card>
 
-        <mat-card class="stat-card">
-          <div class="stat-icon-wrap warn">
-            <mat-icon>event_busy</mat-icon>
+          <div class="metric-card">
+            <div class="metric-top">
+              <span class="metric-label">Completed Consultations</span>
+              <mat-icon class="metric-icon text-emerald-600">check_circle</mat-icon>
+            </div>
+            <div class="metric-value text-emerald-700">
+              {{ analytics?.completedAppointments || 0 }}
+            </div>
+            <div class="metric-sub">Fulfilled patient visits</div>
           </div>
-          <div class="stat-info">
-            <span class="stat-label">Cancelled Appointments</span>
-            <span class="stat-value text-rose-700">{{ analytics?.cancelledAppointments || 0 }}</span>
-          </div>
-        </mat-card>
 
-        <mat-card class="stat-card">
-          <div class="stat-icon-wrap revenue">
-            <mat-icon>payments</mat-icon>
+          <div class="metric-card">
+            <div class="metric-top">
+              <span class="metric-label">Cancelled Appointments</span>
+              <mat-icon class="metric-icon text-rose-600">cancel</mat-icon>
+            </div>
+            <div class="metric-value text-rose-700">
+              {{ analytics?.cancelledAppointments || 0 }}
+            </div>
+            <div class="metric-sub">Patient or physician voided</div>
           </div>
-          <div class="stat-info">
-            <span class="stat-label">Total Platform Income</span>
-            <span class="stat-value text-amber-700">₹{{ (analytics?.revenueEstimated || 0) | number }}</span>
-          </div>
-        </mat-card>
+        </div>
 
-        <mat-card class="stat-card">
-          <div class="stat-icon-wrap hospitals">
-            <mat-icon>local_hospital</mat-icon>
+        <!-- Row 2: Ecosystem & Capacity Scale -->
+        <div class="metrics-row row-3">
+          <div class="metric-card">
+            <div class="metric-top">
+              <span class="metric-label">Hospitals & Clinics</span>
+              <mat-icon class="metric-icon">domain</mat-icon>
+            </div>
+            <div class="metric-value">
+              {{ hospitalReports.length || analytics?.totalClinics || 0 }}
+            </div>
+            <div class="metric-sub">Partner facilities on platform</div>
           </div>
-          <div class="stat-info">
-            <span class="stat-label">Hospitals & Clinics</span>
-            <span class="stat-value">{{ hospitalReports.length || analytics?.totalClinics || 0 }}</span>
-          </div>
-        </mat-card>
 
-        <mat-card class="stat-card">
-          <div class="stat-icon-wrap doctors">
-            <mat-icon>medical_services</mat-icon>
+          <div class="metric-card">
+            <div class="metric-top">
+              <span class="metric-label">Active Doctors</span>
+              <mat-icon class="metric-icon">medical_services</mat-icon>
+            </div>
+            <div class="metric-value">
+              {{ analytics?.totalDoctors || 0 }}
+            </div>
+            <div class="metric-sub">Verified practicing clinicians</div>
           </div>
-          <div class="stat-info">
-            <span class="stat-label">Active Doctors</span>
-            <span class="stat-value">{{ analytics?.totalDoctors || 0 }}</span>
-          </div>
-        </mat-card>
 
-        <mat-card class="stat-card">
-          <div class="stat-icon-wrap patients">
-            <mat-icon>people</mat-icon>
+          <div class="metric-card">
+            <div class="metric-top">
+              <span class="metric-label">Registered Patients</span>
+              <mat-icon class="metric-icon">groups</mat-icon>
+            </div>
+            <div class="metric-value">
+              {{ analytics?.totalPatients || 0 }}
+            </div>
+            <div class="metric-sub">Enrolled user patient accounts</div>
           </div>
-          <div class="stat-info">
-            <span class="stat-label">Registered Patients</span>
-            <span class="stat-value">{{ analytics?.totalPatients || 0 }}</span>
-          </div>
-        </mat-card>
+        </div>
       </div>
 
       <!-- All Hospitals Listed Down: Individual Hospital Reports Table -->
@@ -226,87 +239,95 @@ import { MatInputModule } from '@angular/material/input';
       gap: 6px;
     }
 
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-      gap: 16px;
-    }
-
-    .stat-card {
-      padding: 16px 18px !important;
-      border-radius: 12px !important;
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      gap: 14px;
-      background: #FFFFFF;
-      border: 1px solid #E7E5E0;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
-    }
-
-    .stat-icon-wrap {
-      width: 44px;
-      height: 44px;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .stat-icon-wrap.primary {
-      background-color: #E6F2F1;
-      color: #0F5C5C;
-    }
-
-    .stat-icon-wrap.success {
-      background-color: #EBF7EE;
-      color: #2E9E6B;
-    }
-
-    .stat-icon-wrap.warn {
-      background-color: #FDF2F2;
-      color: #D9534F;
-    }
-
-    .stat-icon-wrap.revenue {
-      background-color: #FEF6EC;
-      color: #B57416;
-    }
-
-    .stat-icon-wrap.hospitals {
-      background-color: #EEF2FF;
-      color: #4F46E5;
-    }
-
-    .stat-icon-wrap.doctors {
-      background-color: #E0F2FE;
-      color: #0284C7;
-    }
-
-    .stat-icon-wrap.patients {
-      background-color: #F3E8FF;
-      color: #7E22CE;
-    }
-
-    .stat-info {
+    .metrics-overview {
       display: flex;
       flex-direction: column;
+      gap: 12px;
     }
 
-    .stat-label {
+    .metrics-row {
+      display: grid;
+      gap: 12px;
+    }
+
+    .metrics-row.row-4 {
+      grid-template-columns: repeat(4, 1fr);
+    }
+
+    .metrics-row.row-3 {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    @media (max-width: 1024px) {
+      .metrics-row.row-4 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .metrics-row.row-3 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 640px) {
+      .metrics-row.row-4,
+      .metrics-row.row-3 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .metric-card {
+      background: #FFFFFF;
+      border: 1px solid #E5E7EB;
+      border-radius: 8px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+    }
+
+    .metric-card:hover {
+      border-color: #D1D5DB;
+    }
+
+    .metric-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .metric-label {
       font-size: 11px;
       font-weight: 700;
-      color: #5C6B6B;
+      color: #64748B;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
 
-    .stat-value {
-      font-size: 20px;
+    .metric-icon {
+      font-size: 17px;
+      width: 17px;
+      height: 17px;
+      color: #94A3B8;
+      flex-shrink: 0;
+    }
+
+    .metric-value {
+      font-size: 22px;
       font-weight: 800;
-      color: #1A2E2E;
-      margin-top: 2px;
+      color: #0F172A;
+      line-height: 1.2;
+      letter-spacing: -0.4px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .metric-sub {
+      font-size: 11px;
+      color: #94A3B8;
+      margin-top: 4px;
+      font-weight: 500;
     }
 
     .report-card {
