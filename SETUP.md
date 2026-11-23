@@ -140,6 +140,7 @@ All pre-seeded demo accounts share the default password: **`Password@123`**
 ## Verifying the Build & Running Tests
 
 ### Backend Unit & Integration Tests
+Runs all 10 automated test suites (104 tests) using Jest and an isolated in-memory MongoDB server:
 ```bash
 cd backend
 npm test
@@ -153,11 +154,12 @@ npm run lint
 npm run build
 ```
 
-### Operations Portal (Angular) Production Build & Lint
+### Operations Portal (Angular) Production Build & Tests
 ```bash
 cd frontend-angular
 npm run lint
 npm run build
+npm test -- --watch=false --browsers=ChromeHeadless
 ```
 
 ---

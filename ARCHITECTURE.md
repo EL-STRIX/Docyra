@@ -118,7 +118,7 @@ Patient B ──[POST /appointments/book]──┘     │
 | :--- | :--- | :--- |
 | **Auth** | `User` | Login, registration, 2FA TOTP verification, password resets, refresh tokens. |
 | **Clinics** | `Clinic` | Facility onboarding, address normalization, subscription states, doctor roster scoping. |
-| **Doctors** | `DoctorProfile`, `Specialization` | Specialty assignment, bio credentials, fee structure, independent vs. clinic practice. |
+| **Doctors** | `DoctorProfile`, `Specialization` | Specialty assignment, bio credentials, fee structure, clinic practice & partner facility affiliation. |
 | **Availability & Slots** | `AvailabilityRule`, `AppointmentSlot` | Weekly availability matrix, slot generation engine (30m intervals), emergency overrides. |
 | **Appointments** | `Appointment` | Transactional bookings, dependent tracking, status state machine (`pending` → `confirmed` → `completed` / `cancelled`). |
 | **Waitlist** | `Waitlist` | Captures patient preferences for fully booked doctors; triggers priority alerts upon slot opening. |
