@@ -1,6 +1,6 @@
 export const environment = {
   production: true,
-  apiBaseUrl: '/api/v1',
-  socketUrl: '',
+  apiBaseUrl: 'https://docyra-api.onrender.com/api/v1',
+  socketUrl: 'https://docyra-api.onrender.com',
   sentryDsn: '',
 };

@@ -28,6 +28,9 @@ import usersRoutes from './routes/v1/users.routes.js';
 
 const app = express();
 
+// Trust first proxy (required on Render/reverse proxies for rate limiting & secure cookies)
+app.set('trust proxy', 1);
+
 
 // Security headers with CSP
 app.use(
