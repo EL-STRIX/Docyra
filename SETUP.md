@@ -117,23 +117,16 @@ Open another **new terminal tab or window**:
 
 ---
 
-## Pre-Seeded Demo Accounts
+## Portal Access & Roles
 
-All pre-seeded demo accounts share the default password: **`Password@123`**
+Docyra operates with role-based portal separation:
 
-| Role | Email Address | Password | Portal Access URL |
-| :--- | :--- | :--- | :--- |
-| **Platform Admin** | `admin@docyra.app` | `Password@123` | `http://localhost:4200/login` |
-| **Clinic Admin** | `apollo.admin@docyra.app` | `Password@123` | `http://localhost:4200/login` |
-| **Clinic Admin** | `metrocare.admin@docyra.app` | `Password@123` | `http://localhost:4200/login` |
-| **Doctor** | `sarah.jenkins@docyra.app` | `Password@123` | `http://localhost:4200/login` |
-| **Doctor** | `rajesh.kumar@docyra.app` | `Password@123` | `http://localhost:4200/login` |
-| **Patient** | `patient.john@example.com` | `Password@123` | `http://localhost:5173/login` |
-| **Patient** | `patient.priya@example.com` | `Password@123` | `http://localhost:5173/login` |
+- **Patient Portal (`frontend-react`)**: Public discovery, patient registration, profile management, and appointment bookings. New users can create an account via the Registration page.
+- **Operations Portal (`frontend-angular`)**: Administrative and clinical operations for verified Doctors, Clinic Administrators, and Platform Administrators.
 
 > [!NOTE]
-> Patient accounts log in exclusively through the **React App (`http://localhost:5173`)**.  
-> Doctor, Clinic Admin, and Platform Admin accounts log in through the **Angular Portal (`http://localhost:4200`)**.
+> Patient accounts operate exclusively through the **Patient Portal**.  
+> Doctor, Clinic Admin, and Platform Admin accounts operate through the **Operations Portal**. Accounts and credentials are created and managed by authorized system administrators.
 
 ---
 

@@ -95,7 +95,7 @@ Docyra separates patient-facing discovery and booking from clinic operations:
 
 | Document | Purpose |
 | :--- | :--- |
-| **[SETUP.md](./SETUP.md)** | Step-by-step local machine setup, environment variables, seeding, and demo accounts. |
+| **[SETUP.md](./SETUP.md)** | Step-by-step local machine setup, environment variables, seeding, and execution guide. |
 | **[ARCHITECTURE.md](./ARCHITECTURE.md)** | Deep dive into technical design, atomic concurrency engine, request pipeline, and WebSockets. |
 | **[CONTRIBUTING.md](./CONTRIBUTING.md)** | Contribution standards, branch naming conventions, commit formats, and quality checklists. |
 | **[SECURITY.md](./SECURITY.md)** | Security controls, authentication practices, responsible disclosure, and privacy policies. |
